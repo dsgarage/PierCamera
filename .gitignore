@@ -1,0 +1,73 @@
+# ========== Unity ==========
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Mm]emoryCaptures/
+
+# Asset Store などのダウンロードキャッシュ
+Assets/AssetStoreTools*
+
+# 自動生成される Lightmap や GI データ（必要に応じて管理）
+# [Cc]ache/
+
+# User-specific settings
+UserSettings/
+
+# Crashlytics / その他ログ
+.crashlytics/
+
+# ========== iOS ==========
+# Xcode build artifacts
+*.xcworkspace/
+*.xcuserstate
+*.xcuserdata/
+*.xcsettings
+*.pbxuser
+DerivedData/
+build/
+
+# CocoaPods
+Pods/
+Podfile.lock
+
+# iOS Archive
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# ========== Android ==========
+# Gradle
+.gradle/
+**/build/
+
+# Local configuration file (sdk.dir path, etc.)
+local.properties
+
+# Android Studio
+.idea/
+*.iml
+
+# Keystore files（セキュリティのため管理外推奨）
+*.keystore
+*.jks
+
+# APK / AAB
+*.apk
+*.aab
+
+# ========== OS別不要ファイル ==========
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
