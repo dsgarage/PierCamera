@@ -74,3 +74,6 @@ Desktop.ini
 
 # Linux
 *~
+aiCam/.vscode/extensions.json
+aiCam/.vscode/launch.json
+aiCam/.vscode/settings.json
