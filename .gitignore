@@ -19,6 +19,9 @@ UserSettings/
 # Crashlytics / その他ログ
 .crashlytics/
 
+*.sln
+*.csproj
+
 # ========== iOS ==========
 # Xcode build artifacts
 *.xcworkspace/
