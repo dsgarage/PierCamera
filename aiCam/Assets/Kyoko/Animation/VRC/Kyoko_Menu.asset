@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -340790334, guid: 67cc4cb7839cd3741b63733d5adf0442, type: 3}
+  m_Name: Kyoko_Menu
+  m_EditorClassIdentifier: 
+  controls:
+  - name: "\u90E8\u5C4B\u7740A"
+    icon: {fileID: 2800000, guid: 935221a18c97c324088f8017c7e841da, type: 3}
+    type: 102
+    parameter:
+      name: Clothes
+    value: 1
+    style: 0
+    subMenu: {fileID: 0}
+    subParameters: []
+    labels: []
+  - name: "\u90E8\u5C4B\u7740B"
+    icon: {fileID: 2800000, guid: 1a5164096a373c04b8d7f1018c9f6018, type: 3}
+    type: 102
+    parameter:
+      name: Clothes
+    value: 2
+    style: 0
+    subMenu: {fileID: 0}
+    subParameters: []
+    labels: []
+  - name: "\u6C34\u7740"
+    icon: {fileID: 2800000, guid: ec0f77e0c3f9eaa45aded9bf8c401c03, type: 3}
+    type: 102
+    parameter:
+      name: Clothes
+    value: 3
+    style: 0
+    subMenu: {fileID: 0}
+    subParameters: []
+    labels: []
+  - name: "\u4E0A\u7740"
+    icon: {fileID: 0}
+    type: 102
+    parameter:
+      name: Outer
+    value: 1
+    style: 0
+    subMenu: {fileID: 0}
+    subParameters: []
+    labels: []
+  - name: "\u5E3D\u5B50"
+    icon: {fileID: 0}
+    type: 102
+    parameter:
+      name: Hat
+    value: 1
+    style: 0
+    subMenu: {fileID: 0}
+    subParameters: []
+    labels: []

@@ -10,9 +10,8 @@ using UnityEngine.Android;
 #endif
 
 /// <summary>
-/// 画面に見えている合成映像（AR背景＋3D＋UI）を保存するのが既定。
-/// iOSは必要に応じて「ネイティブ撮影（AVCapture）」にも切替可能。
-/// ネイティブ撮影時でも try/finally で ARSession を必ず復帰させ、平面検知が死なないようにする。
+/// 方法②：撮影の瞬間だけUIを非表示にし、AR背景＋3Dのみをスクショ保存。
+/// iOSのネイティブ撮影モード（互換）も従来どおり残しています。
 /// </summary>
 public sealed class ARPhotoController : MonoBehaviour
 {
@@ -20,12 +19,18 @@ public sealed class ARPhotoController : MonoBehaviour
     [SerializeField] private ARSession arSession;                 // 未割当なら自動取得
     [SerializeField] private OcclusionToggle occlusionToggle;     // 任意。なければ未設定でOK
 
+    [Header("UI Hiding (Method #2)")]
+    [Tooltip("撮影時に一時的に不可視にするUI（CanvasGroup）を割り当て")]
+    [SerializeField] private CanvasGroup[] uiToHide;
+    [Tooltip("重複タップで多重撮影を許可するか")]
+    [SerializeField] private bool allowConcurrentCapture = false;
+
     [Header("iOS Save Mode")]
     [SerializeField] private SaveModeIOS iosSaveMode = SaveModeIOS.CompositeScreenshot; // 既定: 合成スクショ
 
     public enum SaveModeIOS
     {
-        CompositeScreenshot,  // 推奨: 画面に見えるまま保存（ARSession停止なし）
+        CompositeScreenshot,  // 推奨: 画面に見えるまま保存（ARSession停止なし、UIは本スクリプトで非表示化）
         NativeCamera          // 互換: ネイティブ撮影（ARSession一時停止→必ず復帰）
     }
 
@@ -33,6 +38,8 @@ public sealed class ARPhotoController : MonoBehaviour
     [DllImport("__Internal")] private static extern void ARNative_SavePNGToPhotos(byte[] pngBytes, int length);
     [DllImport("__Internal")] private static extern void ARNative_CaptureOneShot();
 #endif
+
+    private bool _isCapturing;
 
     private void Awake()
     {
@@ -57,6 +64,8 @@ public sealed class ARPhotoController : MonoBehaviour
     /// <summary>UIボタンなどから呼ぶ。</summary>
     public void Capture()
     {
+        if (!allowConcurrentCapture && _isCapturing) return;
+
 #if UNITY_IOS && !UNITY_EDITOR
         if (iosSaveMode == SaveModeIOS.NativeCamera)
         {
@@ -68,57 +77,89 @@ public sealed class ARPhotoController : MonoBehaviour
     }
 
     /// <summary>
-    /// 画面に見えている“完成映像”を保存（AR背景+3D+UI）。セッション停止しないため安全。
+    /// 方法②：画面スクショ保存。ただし撮影直前にUI(CanvasGroup)を不可視化してUIだけを写さない。
+    /// ARSessionは停止しないため安全。
     /// </summary>
     private IEnumerator CaptureCompositedAndSave()
     {
-        // 合成完了を待つ
-        yield return new WaitForEndOfFrame();
-
-        var tex = ScreenCapture.CaptureScreenshotAsTexture(); // RGBA32
-        if (tex == null)
+        _isCapturing = true;
+        try
         {
-            Debug.LogError("[ARPhoto] CaptureScreenshotAsTexture returned null");
-            yield break;
-        }
+            // --- ① UIを不可視化（描画・クリックともに無効化） ---
+            SetUIVisible(false);
 
-        var png = tex.EncodeToPNG();
-        Destroy(tex);
+            // レイアウト／キャンバスの反映を待つ → そのフレームの描画完了を待つ
+            yield return null;
+            yield return new WaitForEndOfFrame();
+
+            // --- ② 画面キャプチャ（= AR背景＋3Dのみ。UIは非表示のため入らない） ---
+            var tex = ScreenCapture.CaptureScreenshotAsTexture(); // RGBA32
+            if (tex == null)
+            {
+                Debug.LogError("[ARPhoto] CaptureScreenshotAsTexture returned null");
+                yield break;
+            }
+
+            var png = tex.EncodeToPNG();
+            Destroy(tex);
+
+            string fileName = $"aiCam_{DateTime.Now:yyyyMMdd_HHmmss}.png";
 
 #if UNITY_ANDROID
-        try
-        {
-            SavePngToAndroidGallery(png, $"aiCam_{DateTime.Now:yyyyMMdd_HHmmss}.png");
-            Debug.Log("[ARPhoto] Saved to Android Photos.");
-        }
-        catch (Exception e)
-        {
-            var fallback = Path.Combine(Application.persistentDataPath, $"AR_{DateTime.Now:yyyyMMdd_HHmmss}.png");
-            File.WriteAllBytes(fallback, png);
-            Debug.LogWarning("[ARPhoto] MediaStore failed. Saved to: " + fallback + "\n" + e);
-        }
+            try
+            {
+                SavePngToAndroidGallery(png, fileName);
+                Debug.Log("[ARPhoto] Saved to Android Photos.");
+            }
+            catch (Exception e)
+            {
+                var fallback = Path.Combine(Application.persistentDataPath, fileName);
+                File.WriteAllBytes(fallback, png);
+                Debug.LogWarning("[ARPhoto] MediaStore failed. Saved to: " + fallback + "\n" + e);
+            }
 #elif UNITY_IOS && !UNITY_EDITOR
-        try
-        {
-            ARNative_SavePNGToPhotos(png, png.Length);
-            Debug.Log("[ARPhoto] Saved to iOS Photos.");
-        }
-        catch (Exception e)
-        {
-            var fallback = Path.Combine(Application.persistentDataPath, $"AR_{DateTime.Now:yyyyMMdd_HHmmss}.png");
-            File.WriteAllBytes(fallback, png);
-            Debug.LogWarning("[ARPhoto] iOS native save failed. Saved to: " + fallback + "\n" + e);
-        }
+            try
+            {
+                ARNative_SavePNGToPhotos(png, png.Length);
+                Debug.Log("[ARPhoto] Saved to iOS Photos.");
+            }
+            catch (Exception e)
+            {
+                var fallback = Path.Combine(Application.persistentDataPath, fileName);
+                File.WriteAllBytes(fallback, png);
+                Debug.LogWarning("[ARPhoto] iOS native save failed. Saved to: " + fallback + "\n" + e);
+            }
 #else
-        var path = Path.Combine(Application.persistentDataPath, $"AR_{DateTime.Now:yyyyMMdd_HHmmss}.png");
-        File.WriteAllBytes(path, png);
-        Debug.Log("[ARPhoto] Saved (editor/other): " + path);
+            var path = Path.Combine(Application.persistentDataPath, fileName);
+            File.WriteAllBytes(path, png);
+            Debug.Log("[ARPhoto] Saved (editor/other): " + path);
 #endif
+        }
+        finally
+        {
+            // --- ③ UIを必ず復帰 ---
+            SetUIVisible(true);
+            _isCapturing = false;
+        }
+    }
+
+    // UIの表示/非表示をまとめて切り替え
+    private void SetUIVisible(bool visible)
+    {
+        if (uiToHide == null) return;
+        foreach (var cg in uiToHide)
+        {
+            if (!cg) continue;
+            cg.alpha = visible ? 1f : 0f;
+            cg.interactable = visible;
+            cg.blocksRaycasts = visible;
+        }
     }
 
 #if UNITY_IOS && !UNITY_EDITOR
     /// <summary>
     /// iOSネイティブ撮影（互換）。ARSession を一時停止するため、try/finallyで必ず復帰させる。
+    /// ※このモードはUIの可視/不可視に関わらず「画面キャプチャ」ではないので、UIはもともと写りません。
     /// </summary>
     private IEnumerator CaptureIOS_Native()
     {
