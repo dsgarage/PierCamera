@@ -247,7 +247,8 @@ GameObject:
   - component: {fileID: 207520391}
   - component: {fileID: 207520395}
   - component: {fileID: 207520394}
-  - component: {fileID: 207520393}
+  - component: {fileID: 207520396}
+  - component: {fileID: 207520397}
   m_Layer: 0
   m_Name: XR Origin
   m_TagString: Untagged
@@ -288,20 +289,6 @@ Transform:
   - {fileID: 2054643648}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &207520393
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 207520390}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 31e0c8bf4616042c589d600d42f15734, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  placedPrefab: {fileID: 3448142631616145395, guid: 79394c4ca4eb06b47a2ef642893df631, type: 3}
-  planeManager: {fileID: 207520395}
 --- !u!114 &207520394
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -335,6 +322,39 @@ MonoBehaviour:
       m_Calls: []
   m_PlanePrefab: {fileID: 7091263678740481363, guid: 350b0c37c21b7465996b9677540c3c96, type: 3}
   m_DetectionMode: 1
+--- !u!114 &207520396
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 207520390}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 728ad7fae8e460a4ba41265c7308d757, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  <trackablesChanged>k__BackingField:
+    m_PersistentCalls:
+      m_Calls: []
+  m_AnchorPrefab: {fileID: 0}
+--- !u!114 &207520397
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 207520390}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6aa18451eedb84631b06f44b2e3d25ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  avatarPrefab: {fileID: 3448142631616145395, guid: 79394c4ca4eb06b47a2ef642893df631, type: 3}
+  planeManager: {fileID: 207520395}
+  anchorManager: {fileID: 207520396}
+  onlyHorizontal: 1
+  onlyFloorIfAvailable: 0
 --- !u!1 &285987944
 GameObject:
   m_ObjectHideFlags: 0

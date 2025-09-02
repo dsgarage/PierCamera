@@ -2,20 +2,24 @@
 %TAG !u! tag:unity3d.com,2011:
 --- !u!21 &2100000
 Material:
-  serializedVersion: 6
+  serializedVersion: 8
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Body
   m_Shader: {fileID: 4800000, guid: efa77a80ca0344749b4f19fdd5891cbe, type: 3}
-  m_ShaderKeywords: 
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
   stringTagMap: {}
   disabledShaderPasses: []
+  m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
@@ -84,6 +88,10 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DissolveNoiseMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DitherTex:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
@@ -251,6 +259,7 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    m_Ints: []
     m_Floats:
     - _AAStrength: 1
     - _AlphaBoostFA: 10
@@ -285,6 +294,7 @@ Material:
     - _AudioLink2Main3rd: 0
     - _AudioLink2Vertex: 0
     - _AudioLinkAsLocal: 0
+    - _AudioLinkMask_UVMode: 0
     - _AudioLinkUVMode: 1
     - _AudioLinkVertexUVMode: 1
     - _BackfaceForceShadow: 0
@@ -341,6 +351,9 @@ Material:
     - _Cutoff: 0.5
     - _DetailNormalMapScale: 1
     - _DissolveNoiseStrength: 0.1
+    - _DistanceFadeMode: 0
+    - _DistanceFadeRimFresnelPower: 5
+    - _DitherMaxValue: 255
     - _DstBlend: 0
     - _DstBlendAlpha: 10
     - _DstBlendAlphaFA: 1
@@ -380,12 +393,40 @@ Material:
     - _GlossMapScale: 1
     - _Glossiness: 0
     - _GlossyReflections: 1
+    - _IDMask1: 0
+    - _IDMask2: 0
+    - _IDMask3: 0
+    - _IDMask4: 0
+    - _IDMask5: 0
+    - _IDMask6: 0
+    - _IDMask7: 0
+    - _IDMask8: 0
+    - _IDMaskControlsDissolve: 0
+    - _IDMaskFrom: 8
+    - _IDMaskIndex1: 0
+    - _IDMaskIndex2: 0
+    - _IDMaskIndex3: 0
+    - _IDMaskIndex4: 0
+    - _IDMaskIndex5: 0
+    - _IDMaskIndex6: 0
+    - _IDMaskIndex7: 0
+    - _IDMaskIndex8: 0
+    - _IDMaskIsBitmap: 0
+    - _IDMaskPrior1: 0
+    - _IDMaskPrior2: 0
+    - _IDMaskPrior3: 0
+    - _IDMaskPrior4: 0
+    - _IDMaskPrior5: 0
+    - _IDMaskPrior6: 0
+    - _IDMaskPrior7: 0
+    - _IDMaskPrior8: 0
     - _IgnoreEncryption: 0
     - _Invisible: 0
     - _LightMaxLimit: 1
     - _LightMinLimit: 0.05
     - _Main2ndDissolveNoiseStrength: 0.1
     - _Main2ndEnableLighting: 1
+    - _Main2ndTexAlphaMode: 0
     - _Main2ndTexAngle: 0
     - _Main2ndTexBlendMode: 0
     - _Main2ndTexIsDecal: 0
@@ -399,6 +440,7 @@ Material:
     - _Main2ndTex_UVMode: 0
     - _Main3rdDissolveNoiseStrength: 0.1
     - _Main3rdEnableLighting: 1
+    - _Main3rdTexAlphaMode: 0
     - _Main3rdTexAngle: 0
     - _Main3rdTexBlendMode: 0
     - _Main3rdTexIsDecal: 0
@@ -565,6 +607,7 @@ Material:
     - _UseBump2ndMap: 0
     - _UseBumpMap: 0
     - _UseClippingCanceller: 0
+    - _UseDither: 0
     - _UseEmission: 0
     - _UseEmission2nd: 0
     - _UseGlitter: 0
@@ -588,10 +631,11 @@ Material:
     - _egci: 2
     - _lilDirectionalLightStrength: 1
     - _lilShadowCasterBias: 0
-    - _lilToonVersion: 33
+    - _lilToonVersion: 36
     m_Colors:
     - _AudioLinkDefaultValue: {r: 0, g: 0, b: 2, a: 0.75}
     - _AudioLinkLocalMapParams: {r: 120, g: 1, b: 0, a: 0}
+    - _AudioLinkMask_ScrollRotate: {r: 0, g: 0, b: 0, a: 0}
     - _AudioLinkStart: {r: 0, g: 0, b: 0, a: 0}
     - _AudioLinkUVParams: {r: 0.25, g: 0, b: 0, a: 0.125}
     - _AudioLinkVertexStart: {r: 0, g: 0, b: 0, a: 0}
@@ -609,6 +653,7 @@ Material:
     - _DissolvePos: {r: 0, g: 0, b: 0, a: 0}
     - _DistanceFade: {r: 0.1, g: 0.01, b: 0, a: 0}
     - _DistanceFadeColor: {r: 0, g: 0, b: 0, a: 1}
+    - _DistanceFadeRimColor: {r: 0, g: 0, b: 0, a: 0}
     - _Emission2ndBlendMask_ScrollRotate: {r: 0, g: 0, b: 0, a: 0}
     - _Emission2ndBlink: {r: 0, g: 0, b: 3.141593, a: 0}
     - _Emission2ndColor: {r: 1, g: 1, b: 1, a: 1}
@@ -691,3 +736,5 @@ Material:
     - _egc5: {r: 1, g: 1, b: 1, a: 0}
     - _egc6: {r: 1, g: 1, b: 1, a: 0}
     - _egc7: {r: 1, g: 1, b: 1, a: 0}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

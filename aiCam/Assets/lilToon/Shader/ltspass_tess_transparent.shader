@@ -826,9 +826,6 @@ Shader "Hidden/ltspass_tess_transparent"
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile _ DYNAMICLIGHTMAP_ON
             #pragma multi_compile_domain _ FOG_LINEAR FOG_EXP FOG_EXP2
-            // --- Added fog for vertex/fragment explicitly ---
-            #pragma multi_compile_vertex   _ FOG_LINEAR FOG_EXP FOG_EXP2
-            #pragma multi_compile_fragment _ FOG_LINEAR FOG_EXP FOG_EXP2
             #pragma multi_compile _ DOTS_INSTANCING_ON
             #pragma multi_compile_instancing
             #pragma instancing_options renderinglayer
@@ -898,9 +895,6 @@ Shader "Hidden/ltspass_tess_transparent"
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile _ DYNAMICLIGHTMAP_ON
             #pragma multi_compile_domain _ FOG_LINEAR FOG_EXP FOG_EXP2
-            // --- Added fog for vertex/fragment explicitly ---
-            #pragma multi_compile_vertex   _ FOG_LINEAR FOG_EXP FOG_EXP2
-            #pragma multi_compile_fragment _ FOG_LINEAR FOG_EXP FOG_EXP2
             #pragma multi_compile _ DOTS_INSTANCING_ON
             #pragma multi_compile_instancing
             #pragma instancing_options renderinglayer
@@ -969,9 +963,6 @@ Shader "Hidden/ltspass_tess_transparent"
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile _ DYNAMICLIGHTMAP_ON
             #pragma multi_compile_domain _ FOG_LINEAR FOG_EXP FOG_EXP2
-            // --- Added fog for vertex/fragment explicitly ---
-            #pragma multi_compile_vertex   _ FOG_LINEAR FOG_EXP FOG_EXP2
-            #pragma multi_compile_fragment _ FOG_LINEAR FOG_EXP FOG_EXP2
             #pragma multi_compile _ DOTS_INSTANCING_ON
             #pragma multi_compile_instancing
             #pragma instancing_options renderinglayer
@@ -1393,9 +1384,6 @@ Shader "Hidden/ltspass_tess_transparent"
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile _ DYNAMICLIGHTMAP_ON
             #pragma multi_compile_domain _ FOG_LINEAR FOG_EXP FOG_EXP2
-            // --- Added fog for vertex/fragment explicitly ---
-            #pragma multi_compile_vertex   _ FOG_LINEAR FOG_EXP FOG_EXP2
-            #pragma multi_compile_fragment _ FOG_LINEAR FOG_EXP FOG_EXP2
             #pragma multi_compile_instancing
             #pragma instancing_options renderinglayer
             #define LIL_PASS_FORWARD
@@ -1464,9 +1452,6 @@ Shader "Hidden/ltspass_tess_transparent"
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile _ DYNAMICLIGHTMAP_ON
             #pragma multi_compile_domain _ FOG_LINEAR FOG_EXP FOG_EXP2
-            // --- Added fog for vertex/fragment explicitly ---
-            #pragma multi_compile_vertex   _ FOG_LINEAR FOG_EXP FOG_EXP2
-            #pragma multi_compile_fragment _ FOG_LINEAR FOG_EXP FOG_EXP2
             #pragma multi_compile_instancing
             #pragma instancing_options renderinglayer
             #define LIL_PASS_FORWARD
@@ -1534,9 +1519,6 @@ Shader "Hidden/ltspass_tess_transparent"
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile _ DYNAMICLIGHTMAP_ON
             #pragma multi_compile_domain _ FOG_LINEAR FOG_EXP FOG_EXP2
-            // --- Added fog for vertex/fragment explicitly ---
-            #pragma multi_compile_vertex   _ FOG_LINEAR FOG_EXP FOG_EXP2
-            #pragma multi_compile_fragment _ FOG_LINEAR FOG_EXP FOG_EXP2
             #pragma multi_compile_instancing
             #pragma instancing_options renderinglayer
             #define LIL_PASS_FORWARD

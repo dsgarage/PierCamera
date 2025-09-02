@@ -80,6 +80,7 @@ Shader "Hidden/ltspass_tess_opaque"
         [lilToggle]     _Main3rdTexIsDecal          ("sAsDecal", Int) = 0
         [lilToggle]     _Main3rdTexIsLeftOnly       ("Left Only", Int) = 0
         [lilToggle]     _Main3rdTexIsRightOnly      ("Right Only", Int) = 0
+        [lilToggle]     _Main3rdTexShouldCopy       ("Copy", Int) = 0
         [lilToggle]     _Main3rdTexShouldFlipMirror ("Flip Mirror", Int) = 0
         [lilToggle]     _Main3rdTexShouldFlipCopy   ("Flip Copy", Int) = 0
         [lilToggle]     _Main3rdTexIsMSDF           ("sAsMSDF", Int) = 0
@@ -791,8 +792,7 @@ Shader "Hidden/ltspass_tess_opaque"
             #pragma multi_compile _ DIRLIGHTMAP_COMBINED
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile _ DYNAMICLIGHTMAP_ON
-            // Fog variants (fix)
-            #pragma multi_compile_fog
+            #pragma multi_compile_domain _ FOG_LINEAR FOG_EXP FOG_EXP2
             #pragma multi_compile _ DOTS_INSTANCING_ON
             #pragma multi_compile_instancing
             #pragma instancing_options renderinglayer
@@ -860,8 +860,7 @@ Shader "Hidden/ltspass_tess_opaque"
             #pragma multi_compile _ DIRLIGHTMAP_COMBINED
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile _ DYNAMICLIGHTMAP_ON
-            // Fog variants (fix)
-            #pragma multi_compile_fog
+            #pragma multi_compile_domain _ FOG_LINEAR FOG_EXP FOG_EXP2
             #pragma multi_compile _ DOTS_INSTANCING_ON
             #pragma multi_compile_instancing
             #pragma instancing_options renderinglayer
@@ -1282,8 +1281,7 @@ Shader "Hidden/ltspass_tess_opaque"
             #pragma multi_compile _ DIRLIGHTMAP_COMBINED
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile _ DYNAMICLIGHTMAP_ON
-            // Fog variants (fix)
-            #pragma multi_compile_fog
+            #pragma multi_compile_domain _ FOG_LINEAR FOG_EXP FOG_EXP2
             #pragma multi_compile_instancing
             #pragma instancing_options renderinglayer
             #define LIL_PASS_FORWARD
@@ -1350,8 +1348,7 @@ Shader "Hidden/ltspass_tess_opaque"
             #pragma multi_compile _ DIRLIGHTMAP_COMBINED
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile _ DYNAMICLIGHTMAP_ON
-            // Fog variants (fix)
-            #pragma multi_compile_fog
+            #pragma multi_compile_domain _ FOG_LINEAR FOG_EXP FOG_EXP2
             #pragma multi_compile_instancing
             #pragma instancing_options renderinglayer
             #define LIL_PASS_FORWARD

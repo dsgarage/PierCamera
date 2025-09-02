@@ -171,14 +171,14 @@ Shader "Hidden/ltspass_tess_cutout"
         [NoScaleOffset] _ShadowColorTex             ("Shadow Color", 2D) = "black" {}
                         _ShadowNormalStrength       ("sNormalStrength", Range(0, 1)) = 1.0
                         _ShadowBorder               ("sBorder", Range(0, 1)) = 0.5
-                        _ShadowBlur                 ("sBlur", Range(0,  1)) = 0.1
+                        _ShadowBlur                 ("sBlur", Range(0, 1)) = 0.1
                         _ShadowReceive              ("sReceiveShadow", Range(0, 1)) = 0
                         _Shadow2ndColor             ("2nd Color", Color) = (0.68,0.66,0.79,1)
         [NoScaleOffset] _Shadow2ndColorTex          ("2nd Color", 2D) = "black" {}
                         _Shadow2ndNormalStrength    ("sNormalStrength", Range(0, 1)) = 1.0
                         _Shadow2ndBorder            ("sBorder", Range(0, 1)) = 0.15
                         _Shadow2ndBlur              ("sBlur", Range(0, 1)) = 0.1
-                        _Shadow2ndReceive           ("sReceiveShadow", Range(0,  1)) = 0
+                        _Shadow2ndReceive           ("sReceiveShadow", Range(0, 1)) = 0
                         _Shadow3rdColor             ("3rd Color", Color) = (0,0,0,0)
         [NoScaleOffset] _Shadow3rdColorTex          ("3rd Color", 2D) = "black" {}
                         _Shadow3rdNormalStrength    ("sNormalStrength", Range(0, 1)) = 1.0
@@ -236,7 +236,7 @@ Shader "Hidden/ltspass_tess_cutout"
                         _MatCapBlend                ("Blend", Range(0, 1)) = 1
         [NoScaleOffset] _MatCapBlendMask            ("Mask", 2D) = "white" {}
                         _MatCapEnableLighting       ("sEnableLighting", Range(0, 1)) = 1
-                        _MatCapShadowMask           ("sShadowMask", Range(0,  1)) = 0
+                        _MatCapShadowMask           ("sShadowMask", Range(0, 1)) = 0
         [lilToggle]     _MatCapBackfaceMask         ("sBackfaceMask", Int) = 0
                         _MatCapLod                  ("sBlur", Range(0, 10)) = 0
         [lilEnum]       _MatCapBlendMode            ("sBlendModes", Int) = 1
@@ -275,7 +275,6 @@ Shader "Hidden/ltspass_tess_cutout"
         [lilHDR]        _RimColor                   ("sColor", Color) = (0.66,0.5,0.48,1)
         [NoScaleOffset] _RimColorTex                ("Texture", 2D) = "white" {}
                         _RimMainStrength            ("sMainColorPower", Range(0, 1)) = 0
-        [lilVec2R]      _RimBlendUV1                ("sBlendUV1", Vector) = (0,0,0,0)
                         _RimNormalStrength          ("sNormalStrength", Range(0, 1)) = 1.0
                         _RimBorder                  ("sBorder", Range(0, 1)) = 0.5
                         _RimBlur                    ("sBlur", Range(0, 1)) = 0.65
@@ -286,7 +285,7 @@ Shader "Hidden/ltspass_tess_cutout"
                         _RimVRParallaxStrength      ("sVRParallaxStrength", Range(0, 1)) = 1
         [lilToggle]     _RimApplyTransparency       ("sApplyTransparency", Int) = 1
                         _RimDirStrength             ("sRimLightDirection", Range(0, 1)) = 0
-                        _RimDirRange                ("sRimDirectionRange", Range(-1,  1)) = 0
+                        _RimDirRange                ("sRimDirectionRange", Range(-1, 1)) = 0
                         _RimIndirRange              ("sRimIndirectionRange", Range(-1, 1)) = 0
         [lilHDR]        _RimIndirColor              ("sColor", Color) = (1,1,1,1)
                         _RimIndirBorder             ("sBorder", Range(0, 1)) = 0.5
@@ -596,6 +595,12 @@ Shader "Hidden/ltspass_tess_cutout"
         [Enum(UnityEngine.Rendering.BlendMode)]         _OutlineDstBlendAlpha       ("sDstBlendAlpha", Int) = 10
         [Enum(UnityEngine.Rendering.BlendOp)]           _OutlineBlendOp             ("sBlendOpRGB", Int) = 0
         [Enum(UnityEngine.Rendering.BlendOp)]           _OutlineBlendOpAlpha        ("sBlendOpAlpha", Int) = 0
+        [Enum(UnityEngine.Rendering.BlendMode)]         _OutlineSrcBlendFA          ("sSrcBlendRGB", Int) = 1
+        [Enum(UnityEngine.Rendering.BlendMode)]         _OutlineDstBlendFA          ("sDstBlendRGB", Int) = 1
+        [Enum(UnityEngine.Rendering.BlendMode)]         _OutlineSrcBlendAlphaFA     ("sSrcBlendAlpha", Int) = 0
+        [Enum(UnityEngine.Rendering.BlendMode)]         _OutlineDstBlendAlphaFA     ("sDstBlendAlpha", Int) = 1
+        [Enum(UnityEngine.Rendering.BlendOp)]           _OutlineBlendOpFA           ("sBlendOpRGB", Int) = 4
+        [Enum(UnityEngine.Rendering.BlendOp)]           _OutlineBlendOpAlphaFA      ("sBlendOpAlpha", Int) = 4
         [lilToggle]                                     _OutlineZClip               ("sZClip", Int) = 1
         [lilToggle]                                     _OutlineZWrite              ("sZWrite", Int) = 1
         [Enum(UnityEngine.Rendering.CompareFunction)]   _OutlineZTest               ("sZTest", Int) = 2
@@ -787,8 +792,7 @@ Shader "Hidden/ltspass_tess_cutout"
             #pragma multi_compile _ DIRLIGHTMAP_COMBINED
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile _ DYNAMICLIGHTMAP_ON
-            // --- fog keywords (all stages)
-            #pragma multi_compile_fog
+            #pragma multi_compile_domain _ FOG_LINEAR FOG_EXP FOG_EXP2
             #pragma multi_compile _ DOTS_INSTANCING_ON
             #pragma multi_compile_instancing
             #pragma instancing_options renderinglayer
@@ -856,8 +860,7 @@ Shader "Hidden/ltspass_tess_cutout"
             #pragma multi_compile _ DIRLIGHTMAP_COMBINED
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile _ DYNAMICLIGHTMAP_ON
-            // --- fog keywords (all stages)
-            #pragma multi_compile_fog
+            #pragma multi_compile_domain _ FOG_LINEAR FOG_EXP FOG_EXP2
             #pragma multi_compile _ DOTS_INSTANCING_ON
             #pragma multi_compile_instancing
             #pragma instancing_options renderinglayer
@@ -1278,8 +1281,7 @@ Shader "Hidden/ltspass_tess_cutout"
             #pragma multi_compile _ DIRLIGHTMAP_COMBINED
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile _ DYNAMICLIGHTMAP_ON
-            // --- fog keywords (all stages)
-            #pragma multi_compile_fog
+            #pragma multi_compile_domain _ FOG_LINEAR FOG_EXP FOG_EXP2
             #pragma multi_compile_instancing
             #pragma instancing_options renderinglayer
             #define LIL_PASS_FORWARD
@@ -1346,8 +1348,7 @@ Shader "Hidden/ltspass_tess_cutout"
             #pragma multi_compile _ DIRLIGHTMAP_COMBINED
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile _ DYNAMICLIGHTMAP_ON
-            // --- fog keywords (all stages)
-            #pragma multi_compile_fog
+            #pragma multi_compile_domain _ FOG_LINEAR FOG_EXP FOG_EXP2
             #pragma multi_compile_instancing
             #pragma instancing_options renderinglayer
             #define LIL_PASS_FORWARD
