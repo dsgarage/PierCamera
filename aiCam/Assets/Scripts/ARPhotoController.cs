@@ -11,6 +11,7 @@ using UnityEngine.Android;
 
 /// <summary>
 /// 方法②：撮影の瞬間だけUIを非表示にし、AR背景＋3Dのみをスクショ保存。
+/// さらに「平面可視化(Plane)レイヤー」を撮影フレームだけカリングして写真に写さない。
 /// iOSのネイティブ撮影モード（互換）も従来どおり残しています。
 /// </summary>
 public sealed class ARPhotoController : MonoBehaviour
@@ -18,6 +19,7 @@ public sealed class ARPhotoController : MonoBehaviour
     [Header("References (optional)")]
     [SerializeField] private ARSession arSession;                 // 未割当なら自動取得
     [SerializeField] private OcclusionToggle occlusionToggle;     // 任意。なければ未設定でOK
+    [SerializeField] private Camera captureCamera;                // 撮影に使うカメラ（未設定なら Camera.main）
 
     [Header("UI Hiding (Method #2)")]
     [Tooltip("撮影時に一時的に不可視にするUI（CanvasGroup）を割り当て")]
@@ -27,6 +29,10 @@ public sealed class ARPhotoController : MonoBehaviour
 
     [Header("iOS Save Mode")]
     [SerializeField] private SaveModeIOS iosSaveMode = SaveModeIOS.CompositeScreenshot; // 既定: 合成スクショ
+
+    [Header("Plane Visualization")]
+    [Tooltip("平面可視化に使うレイヤー名（Plane Prefab のレイヤーと一致させる）")]
+    [SerializeField] private string planeVizLayerName = "ARPlaneViz"; // このレイヤーを撮影時だけ除外
 
     public enum SaveModeIOS
     {
@@ -41,10 +47,16 @@ public sealed class ARPhotoController : MonoBehaviour
 
     private bool _isCapturing;
 
+    //　撮影時に一時的にカメラの CullingMask を変更するための退避
+    private int _savedCullingMask;
+    private bool _maskPatched;
+
     private void Awake()
     {
         if (!arSession)
             arSession = UnityEngine.Object.FindFirstObjectByType<ARSession>(FindObjectsInactive.Include);
+        if (!captureCamera)
+            captureCamera = Camera.main; // ★ 追加：未指定ならメインカメラ
     }
 
     // ★ 修正：OcclusionToggleに依存せずローカルで深度を復帰
@@ -78,6 +90,7 @@ public sealed class ARPhotoController : MonoBehaviour
 
     /// <summary>
     /// 方法②：画面スクショ保存。ただし撮影直前にUI(CanvasGroup)を不可視化してUIだけを写さない。
+    /// さらに「Plane 可視化レイヤー」を一時的にカリングして写真に映さない。
     /// ARSessionは停止しないため安全。
     /// </summary>
     private IEnumerator CaptureCompositedAndSave()
@@ -88,11 +101,14 @@ public sealed class ARPhotoController : MonoBehaviour
             // --- ① UIを不可視化（描画・クリックともに無効化） ---
             SetUIVisible(false);
 
-            // レイアウト／キャンバスの反映を待つ → そのフレームの描画完了を待つ
+            // --- ② Plane 可視化レイヤーをカメラから除外（撮る瞬間だけ） ---
+            BeginExcludePlaneLayer();  // ★ 追加
+
+            // レイアウト／カリング反映を待つ → そのフレームの描画完了を待つ
             yield return null;
             yield return new WaitForEndOfFrame();
 
-            // --- ② 画面キャプチャ（= AR背景＋3Dのみ。UIは非表示のため入らない） ---
+            // --- ③ 画面キャプチャ（= AR背景＋3Dのみ。UI/Planeは非表示のため入らない） ---
             var tex = ScreenCapture.CaptureScreenshotAsTexture(); // RGBA32
             if (tex == null)
             {
@@ -137,10 +153,41 @@ public sealed class ARPhotoController : MonoBehaviour
         }
         finally
         {
-            // --- ③ UIを必ず復帰 ---
+            // --- ④ 平面レイヤーのカリングを元に戻す ---
+            EndExcludePlaneLayer();    // ★ 追加
+
+            // --- ⑤ UIを必ず復帰 ---
             SetUIVisible(true);
             _isCapturing = false;
         }
+    }
+
+    // ★ 追加：撮影の瞬間だけ Plane 可視化レイヤーを写さない
+    private void BeginExcludePlaneLayer()
+    {
+        if (!captureCamera) return;
+
+        int planeLayer = LayerMask.NameToLayer(planeVizLayerName);
+        if (planeLayer < 0)
+        {
+            // レイヤー未作成でも落ちないように注意喚起だけ
+            Debug.LogWarning($"[ARPhoto] Layer '{planeVizLayerName}' not found. " +
+                             "Project Settings > Tags and Layers で作成し、Plane Prefab に割り当ててください。");
+            return;
+        }
+
+        _savedCullingMask = captureCamera.cullingMask;
+        _maskPatched = true;
+
+        // 該当レイヤーのビットだけ落とす
+        captureCamera.cullingMask = _savedCullingMask & ~(1 << planeLayer);
+    }
+
+    private void EndExcludePlaneLayer()
+    {
+        if (!captureCamera || !_maskPatched) return;
+        captureCamera.cullingMask = _savedCullingMask;
+        _maskPatched = false;
     }
 
     // UIの表示/非表示をまとめて切り替え
@@ -159,7 +206,7 @@ public sealed class ARPhotoController : MonoBehaviour
 #if UNITY_IOS && !UNITY_EDITOR
     /// <summary>
     /// iOSネイティブ撮影（互換）。ARSession を一時停止するため、try/finallyで必ず復帰させる。
-    /// ※このモードはUIの可視/不可視に関わらず「画面キャプチャ」ではないので、UIはもともと写りません。
+    /// ※このモードはUIの可視/不可視に関わらず「画面キャプチャ」ではないので、UIやPlaneの可視化はそもそも写りません。
     /// </summary>
     private IEnumerator CaptureIOS_Native()
     {

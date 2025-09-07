@@ -13,7 +13,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
     [SerializeField] GameObject avatarPrefab;
 
     [Header("Managers")]
-    [SerializeField] ARPlaneManager  planeManager;
+    [SerializeField] ARPlaneManager planeManager;
     [SerializeField] ARAnchorManager anchorManager;   // 任意（安定化用）
     [SerializeField] FaceUIManager faceUIManager;
 
@@ -23,6 +23,11 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
     [Tooltip("対応端末では“床”分類の平面に限定（未対応端末では無視）")]
     [SerializeField] bool onlyFloorIfAvailable = false;
 
+    [Header("UI touch block")]
+    [Tooltip("この Canvas 上の UI（例: Capture ボタン）をタップしたときは配置を無効化する")]
+    [SerializeField] Canvas uiCanvas;                                  // ScreenPoint判定用
+    [SerializeField] List<RectTransform> touchBlockAreas = new();      // Capture ボタンなどの RectTransform を登録
+
     static readonly List<ARRaycastHit> s_Hits = new();
     ARRaycastManager rcMgr;
     GameObject avatar;
@@ -30,7 +35,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
     void Awake()
     {
         rcMgr = GetComponent<ARRaycastManager>();
-        if (!planeManager)  planeManager  = FindFirstObjectByType<ARPlaneManager>(FindObjectsInactive.Include);
+        if (!planeManager) planeManager = FindFirstObjectByType<ARPlaneManager>(FindObjectsInactive.Include);
         if (!anchorManager) anchorManager = FindFirstObjectByType<ARAnchorManager>(FindObjectsInactive.Include);
         if (!faceUIManager) faceUIManager = FindFirstObjectByType<FaceUIManager>(FindObjectsInactive.Include);
         // 床寄りにしたい場合は検出を水平に絞る（※壁検出を抑制）
@@ -43,6 +48,9 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         var touch = Input.GetTouch(0);
         if (touch.phase != TouchPhase.Began) return;
 
+        // ★ 追加：UI 上のタップは必ず無視（EventSystem か、明示登録したRectに入っていたら弾く）
+        if (IsTouchOverUI(touch)) return;
+
         // UI上のタップは無視
         if (EventSystem.current && EventSystem.current.IsPointerOverGameObject(touch.fingerId)) return;
 
@@ -50,7 +58,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         if (!rcMgr.Raycast(touch.position, s_Hits, TrackableType.PlaneWithinPolygon))
             return; // ← 平面外をタップ → 何もしない
 
-        var hit   = s_Hits[0];
+        var hit = s_Hits[0];
         var plane = planeManager ? planeManager.GetPlane(hit.trackableId) : hit.trackable as ARPlane;
         if (!plane) return;
 
@@ -95,5 +103,25 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         {
             avatar.transform.SetPositionAndRotation(pose.position, pose.rotation);
         }
+    }
+    
+    // UIヒット判定（EventSystem + 指定Rect）
+    bool IsTouchOverUI(Touch touch)
+    {
+        // 1) 標準の UI ヒット（GraphicRaycaster 必須）
+        if (EventSystem.current && EventSystem.current.IsPointerOverGameObject(touch.fingerId))
+            return true;
+
+        // 2) 明示登録した Rect（Capture ボタンなど）にヒットしているかを矩形で判定
+        //    Screen Space - Overlay なら camera は null でOK
+        var cam = uiCanvas ? uiCanvas.worldCamera : null;
+        for (int i = 0; i < touchBlockAreas.Count; i++)
+        {
+            var rt = touchBlockAreas[i];
+            if (!rt) continue;
+            if (RectTransformUtility.RectangleContainsScreenPoint(rt, touch.position, cam))
+                return true;
+        }
+        return false;
     }
 }

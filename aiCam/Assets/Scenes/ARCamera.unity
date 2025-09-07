@@ -597,9 +597,12 @@ MonoBehaviour:
   avatarPrefab: {fileID: 3448142631616145395, guid: 79394c4ca4eb06b47a2ef642893df631, type: 3}
   planeManager: {fileID: 207520395}
   anchorManager: {fileID: 207520396}
-  faceUIManager: {fileID: 0}
+  faceUIManager: {fileID: 272771475}
   onlyHorizontal: 1
   onlyFloorIfAvailable: 0
+  uiCanvas: {fileID: 152108866}
+  touchBlockAreas:
+  - {fileID: 537011081}
 --- !u!1 &272771473
 GameObject:
   m_ObjectHideFlags: 0
@@ -1203,10 +1206,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   arSession: {fileID: 948591574}
   occlusionToggle: {fileID: 431550396}
+  captureCamera: {fileID: 0}
   uiToHide:
   - {fileID: 152108868}
   allowConcurrentCapture: 0
   iosSaveMode: 0
+  planeVizLayerName: ARPlaneViz
 --- !u!114 &431550396
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1488,7 +1493,7 @@ GameObject:
   - component: {fileID: 537011083}
   - component: {fileID: 537011082}
   m_Layer: 5
-  m_Name: Button
+  m_Name: Btn_Capture
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4009,7 +4014,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 2095224786}
   m_HandleRect: {fileID: 2095224785}
   m_Direction: 2
-  m_Value: 0.99999887
+  m_Value: 0.9999986
   m_Size: 0.6025148
   m_NumberOfSteps: 0
   m_OnValueChanged:
