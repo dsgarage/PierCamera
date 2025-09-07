@@ -3151,7 +3151,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2635049816382258505}
   - component: {fileID: 8246582452220454707}
-  - component: {fileID: 2886560983387500416}
+  - component: {fileID: -5691299883411984982}
   m_Layer: 0
   m_Name: kyoko
   m_TagString: Untagged
@@ -3214,7 +3214,7 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!114 &2886560983387500416
+--- !u!114 &-5691299883411984982
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -3223,10 +3223,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 3448142631616145395}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5e658bfc1e524494b9e54a1c92d8c1e0, type: 3}
+  m_Script: {fileID: 11500000, guid: bc399f231710a45ffbdfc97ec2029045, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  animations:
+  faceClips:
   - {fileID: 7400000, guid: 3a051384b30d3e24689d23bf77c011e8, type: 2}
   - {fileID: 7400000, guid: 135dc43f31743b246bd9fd0063ba7728, type: 2}
   - {fileID: 7400000, guid: 4c0bd57911b1af74fac638e90326dc2a, type: 2}
@@ -3234,6 +3234,7 @@ MonoBehaviour:
   - {fileID: 7400000, guid: 5c01b71fc9148a24c956b3eee9bf55d3, type: 2}
   - {fileID: 7400000, guid: 336d7c4cd1bffe4499ed875525fc942f, type: 2}
   - {fileID: 7400000, guid: eb458a05ee5cb5246bb0fc5295ceb4ab, type: 2}
+  - {fileID: 7400000, guid: 364454f170077474e990ab3c957f8f20, type: 2}
   - {fileID: 7400000, guid: 0fc990e2517d0884ab74ea10333f844a, type: 2}
   - {fileID: 7400000, guid: 4044db00de141ac448aeef6c268138b1, type: 2}
   - {fileID: 7400000, guid: 0dcee6a5c6177ef438ed75a393f5a9be, type: 2}
@@ -3244,8 +3245,9 @@ MonoBehaviour:
   - {fileID: 7400000, guid: 0afdf0314c6be8143a23b220f886e8a8, type: 2}
   - {fileID: 7400000, guid: aaa5d68b3263ac249b13313262064643, type: 2}
   - {fileID: 7400000, guid: 17918eb0016e73245afaa1ec3c674e3e, type: 2}
-  delayWeight: 0.3
-  isKeepFace: 0
+  faceLayerIndex: 0
+  fadeOutSpeed: 5
+  keepFace: 0
 --- !u!1 &3505470705336719323
 GameObject:
   m_ObjectHideFlags: 0

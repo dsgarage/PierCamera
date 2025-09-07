@@ -15,6 +15,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
     [Header("Managers")]
     [SerializeField] ARPlaneManager  planeManager;
     [SerializeField] ARAnchorManager anchorManager;   // 任意（安定化用）
+    [SerializeField] FaceUIManager faceUIManager;
 
     [Header("Filters")]
     [Tooltip("水平面（床・テーブルなど）に限定")]
@@ -31,6 +32,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         rcMgr = GetComponent<ARRaycastManager>();
         if (!planeManager)  planeManager  = FindFirstObjectByType<ARPlaneManager>(FindObjectsInactive.Include);
         if (!anchorManager) anchorManager = FindFirstObjectByType<ARAnchorManager>(FindObjectsInactive.Include);
+        if (!faceUIManager) faceUIManager = FindFirstObjectByType<FaceUIManager>(FindObjectsInactive.Include);
         // 床寄りにしたい場合は検出を水平に絞る（※壁検出を抑制）
         if (planeManager) planeManager.requestedDetectionMode = PlaneDetectionMode.Horizontal;
     }
@@ -83,8 +85,15 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
 
         // 4) 生成 or 位置更新
         if (!avatar)
+        {
             avatar = Instantiate(avatarPrefab, pose.position, pose.rotation, parent);
+
+            // HUDを起動
+            faceUIManager?.InitializeWithAvatar(avatar);
+        }
         else
+        {
             avatar.transform.SetPositionAndRotation(pose.position, pose.rotation);
+        }
     }
 }
