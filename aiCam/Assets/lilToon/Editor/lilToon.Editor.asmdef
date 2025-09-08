@@ -1,8 +1,16 @@
 {
     "name": "lilToon.Editor",
+    "rootNamespace": "",
+    "references": [],
     "includePlatforms": [
         "Editor"
     ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
     "versionDefines": [
         {
             "name": "com.vrchat.avatars",
@@ -19,5 +27,6 @@
             "expression": "",
             "define": "LILTOON_VRCSDK3"
         }
-    ]
+    ],
+    "noEngineReferences": false
 }
