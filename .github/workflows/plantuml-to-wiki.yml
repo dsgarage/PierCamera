@@ -41,7 +41,10 @@ jobs:
           find . -name "*.puml" -type f | while read -r puml_file; do
             echo "Processing: $puml_file"
             dir=$(dirname "$puml_file")
-            plantuml -tpng -tsvg -o "$dir/rendered" "$puml_file"
+            mkdir -p "$dir/rendered"
+            plantuml -tpng -tsvg -o rendered "$puml_file"
+            echo "Generated files in $dir/rendered:"
+            ls -la "$dir/rendered/" || echo "No files generated"
           done
 
       # Wiki 側の出力ルートをクリアし、rendered/配下の画像だけをまとめてコピー
