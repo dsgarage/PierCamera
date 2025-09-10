@@ -35,30 +35,25 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y plantuml graphviz
 
-      # すべての .puml を再帰レンダリング（各ディレクトリ直下に rendered/ ができる）
-      - name: Render all .puml to PNG & SVG
+      # 既存のPNG画像を使用（PlantUMLフォルダ内の既存画像を直接利用）
+      - name: Copy existing PNG images
         run: |
-          find . -name "*.puml" -type f | while read -r puml_file; do
-            echo "Processing: $puml_file"
-            dir=$(dirname "$puml_file")
-            mkdir -p "$dir/rendered"
-            plantuml -tpng -tsvg -o rendered "$puml_file"
-            echo "Generated files in $dir/rendered:"
-            ls -la "$dir/rendered/" || echo "No files generated"
-          done
+          echo "Using existing PNG images from PlatUML folder"
+          ls -la PlatUML/*.png || echo "No PNG files found in PlatUML folder"
 
-      # Wiki 側の出力ルートをクリアし、rendered/配下の画像だけをまとめてコピー
-      - name: Sync rendered images into wiki/uml
+      # Wiki 側の出力ルートをクリアし、既存のPNG画像をコピー
+      - name: Sync existing images into wiki/uml
         run: |
           rm -rf wiki/uml
           mkdir -p wiki/uml
-          # rendered ディレクトリに出力された PNG/SVG を抽出して wiki/uml/ に集約
-          rsync -a --prune-empty-dirs \
-            --include='*/' \
-            --include='rendered/*.png' \
-            --include='rendered/*.svg' \
-            --exclude='*' \
-            . wiki/uml/
+          # PlatUMLフォルダの既存PNG画像をwiki/umlへコピー
+          if ls PlatUML/*.png 1> /dev/null 2>&1; then
+            cp PlatUML/*.png wiki/uml/
+            echo "Copied PNG files to wiki/uml:"
+            ls -la wiki/uml/
+          else
+            echo "No PNG files found in PlatUML folder"
+          fi
 
       # UML画像の一覧ページを自動生成（UML-Diagrams.md）。既存Home.mdが無ければ作成。
       - name: Generate Wiki index page
