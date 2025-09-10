@@ -1,0 +1,42 @@
+
+@startuml App_UI_Flow_Activity
+title App UI Flow (Activity Diagram)
+
+start
+:Appを開く;
+:Home Feed (SNSフィード) 表示;
+:Bottom Navから「Photo」を選択;
+
+:ARフォト撮影画面へ;
+
+if (World Lock On/Off?) then (On/Off)
+  :環境にアンカーして撮影準備;
+else (—)
+  :アンカーなしで撮影準備;
+endif
+
+if (アバター選択 On?) then (Yes)
+  :キャラクター選択\n- 一覧スクロール\n- サムネタップ\n- 固定/解除;
+  :アバター操作\n- 回転/移動/拡縮\n- 直接操作/コントローラー;
+else (No)
+  :デフォルト設定を維持;
+endif
+
+:ポーズ設定\n- ポーズ選択\n- カテゴリナビゲーション;
+:表情変更 (Blend Shape);
+:ライティング設定\n- 光源位置/色調整;
+:目線(Facing)設定\n- Eye Gaze調整;
+:Watermark設定 On/Off・向き調整・ロック/解除;
+
+if (サブスク画面に遷移?) then (Yes)
+  :Pier Maxの説明\n- 追加ストレージ\n- ウォーターマーク削除;
+  if (購入?) then (Yes)
+    :App Storeで購読処理;
+  else (No)
+    :購入せずに戻る;
+  endif
+endif
+
+:写真をSNSへ投稿;
+stop
+@enduml

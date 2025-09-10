@@ -1,0 +1,56 @@
+
+@startuml App_UI_Sequence_Capture
+title シークエンス図: 撮影〜編集〜投稿
+
+actor User as U
+participant "App (UI)" as App
+participant "AR Engine" as ARE
+participant "AvatarManager" as AM
+participant "LightingManager" as LM
+participant "WatermarkService" as WM
+participant "SubscriptionService" as SUB
+participant "SNS API" as SNS
+
+== 撮影準備 ==
+U -> App: App起動／Home Feed → Photoへ
+App -> ARE: セッション開始（カメラ・トラッキング）
+App -> AM: アバター選択状態の取得
+AM --> App: 選択済み/未選択
+
+alt World Lock On
+  App -> ARE: アンカー作成（平面検出）
+else World Lock Off
+  App -> ARE: アンカーなしで配置
+end
+
+== 構図・調整 ==
+U -> App: アバター操作（回転/移動/拡縮）
+App -> AM: 反映
+U -> App: ポーズ選択／表情変更
+App -> AM: ポーズ/BlendShape適用
+U -> App: ライティング/色調
+App -> LM: 照明・色を適用
+U -> App: 目線(Facing)調整
+App -> AM: EyeGaze適用
+
+== 撮影 ==
+U -> App: シャッター
+App -> ARE: フレームキャプチャ
+ARE --> App: 画像データ
+
+== ウォーターマーク & サブスク ==
+U -> App: ウォーターマーク On/Off
+App -> WM: 設定適用
+opt サブスク画面へ
+  U -> App: サブスク遷移
+  App -> SUB: プラン情報取得/決済開始
+  SUB --> App: 結果（成功/失敗）
+end
+
+== 投稿 ==
+U -> App: SNSに投稿
+App -> SNS: 画像アップロード/メタデータ
+SNS --> App: 成功
+App --> U: 投稿完了
+
+@enduml
