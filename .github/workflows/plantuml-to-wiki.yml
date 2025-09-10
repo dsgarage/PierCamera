@@ -1,0 +1,94 @@
+name: Render PlantUML to Wiki
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - '**/*.puml'
+  workflow_dispatch:
+
+permissions:
+  contents: write  # Wikiへのpushに必要
+
+concurrency:
+  group: plantuml-wiki-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  render-and-publish:
+    name: Render .puml and publish to Wiki
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout aiCamera repo
+        uses: actions/checkout@v4
+
+      # Wiki（<repo>.wiki）は別リポジトリとして存在します。別パスにチェックアウト
+      - name: Checkout Wiki repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}.wiki
+          path: wiki
+
+      - name: Install PlantUML & Graphviz
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y plantuml graphviz
+
+      # すべての .puml を再帰レンダリング（各ディレクトリ直下に rendered/ ができる）
+      - name: Render all .puml to PNG & SVG
+        run: |
+          plantuml -recurse -tpng -tsvg -o rendered .
+
+      # Wiki 側の出力ルートをクリアし、rendered/配下の画像だけをまとめてコピー
+      - name: Sync rendered images into wiki/uml
+        run: |
+          rm -rf wiki/uml
+          mkdir -p wiki/uml
+          # rendered ディレクトリに出力された PNG/SVG を抽出して wiki/uml/ に集約
+          rsync -a --prune-empty-dirs \
+            --include='*/' \
+            --include='rendered/*.png' \
+            --include='rendered/*.svg' \
+            --exclude='*' \
+            . wiki/uml/
+
+      # UML画像の一覧ページを自動生成（UML-Diagrams.md）。既存Home.mdが無ければ作成。
+      - name: Generate Wiki index page
+        shell: bash
+        run: |
+          INDEX_FILE="wiki/UML-Diagrams.md"
+          echo "# UML Diagrams (auto-generated)" > "$INDEX_FILE"
+          echo "" >> "$INDEX_FILE"
+          echo "_Updated from commit \`${GITHUB_SHA}\`_" >> "$INDEX_FILE"
+          echo "" >> "$INDEX_FILE"
+
+          # 画像一覧をMarkdownデータとして追記
+          while IFS= read -r -d '' IMG; do
+            REL="${IMG#wiki/}"
+            TITLE=$(basename "$REL")
+            echo "## ${TITLE}" >> "$INDEX_FILE"
+            echo "" >> "$INDEX_FILE"
+            echo "![${TITLE}](${REL})" >> "$INDEX_FILE"
+            echo "" >> "$INDEX_FILE"
+          done < <(find wiki/uml -type f \( -name '*.png' -o -name '*.svg' \) -print0 | sort -z)
+
+          # Home.md が無ければ作成（リンク追加）
+          if [ ! -f wiki/Home.md ]; then
+            {
+              echo "# aiCamera Wiki"
+              echo
+              echo "- [UML Diagrams](UML-Diagrams)"
+            } > wiki/Home.md
+          else
+            grep -q "UML Diagrams" wiki/Home.md || echo "- [UML Diagrams](UML-Diagrams)" >> wiki/Home.md
+          fi
+
+      - name: Commit & Push to Wiki
+        run: |
+          cd wiki
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Update UML diagrams from ${GITHUB_SHA}" || echo "No changes to commit"
+          git push
