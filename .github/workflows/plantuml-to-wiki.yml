@@ -38,7 +38,11 @@ jobs:
       # すべての .puml を再帰レンダリング（各ディレクトリ直下に rendered/ ができる）
       - name: Render all .puml to PNG & SVG
         run: |
-          plantuml -recurse -tpng -tsvg -o rendered .
+          find . -name "*.puml" -type f | while read -r puml_file; do
+            echo "Processing: $puml_file"
+            dir=$(dirname "$puml_file")
+            plantuml -tpng -tsvg -o "$dir/rendered" "$puml_file"
+          done
 
       # Wiki 側の出力ルートをクリアし、rendered/配下の画像だけをまとめてコピー
       - name: Sync rendered images into wiki/uml
