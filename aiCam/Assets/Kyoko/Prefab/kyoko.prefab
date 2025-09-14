@@ -3245,7 +3245,7 @@ MonoBehaviour:
   - {fileID: 7400000, guid: 0afdf0314c6be8143a23b220f886e8a8, type: 2}
   - {fileID: 7400000, guid: aaa5d68b3263ac249b13313262064643, type: 2}
   - {fileID: 7400000, guid: 17918eb0016e73245afaa1ec3c674e3e, type: 2}
-  faceLayerIndex: 0
+  faceLayerIndex: 1
   fadeOutSpeed: 5
   keepFace: 0
 --- !u!1 &3505470705336719323

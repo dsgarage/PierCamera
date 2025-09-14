@@ -8,7 +8,8 @@ public class FaceController : MonoBehaviour
     [SerializeField] private AnimationClip[] faceClips;
 
     [Header("表情用Animatorレイヤー")]
-    [SerializeField, Min(0)] private int faceLayerIndex = 0;
+    [SerializeField, Min(0)]
+    private int faceLayerIndex = 0;
 
     [Header("フェードアウト速度（秒^-1）")]
     [SerializeField, Min(0f)] private float fadeOutSpeed = 5f;
@@ -36,14 +37,21 @@ public class FaceController : MonoBehaviour
     private void Awake()
     {
         animator = GetComponent<Animator>();
+
+        var layerName = animator.GetLayerName(faceLayerIndex); // 例: "Face"
         stateHashByName.Clear();
+
         foreach (var clip in faceClips)
         {
             if (!clip) continue;
-            var name = clip.name;
-            var hash = Animator.StringToHash(name);
-            if (!stateHashByName.ContainsKey(name))
-                stateHashByName.Add(name, hash);
+
+            // ★レイヤー名込みのフルパスでハッシュ化（同名衝突/別レイヤー対策）
+            // サブステートマシンに置いているなら "Face.SubSM/StateName" のように
+            // Animator 上の実パスに合わせてください。
+            string statePath = $"{layerName}.{clip.name}";
+            int hash = Animator.StringToHash(statePath);
+
+            stateHashByName[clip.name] = hash;
         }
     }
 
@@ -64,6 +72,13 @@ public class FaceController : MonoBehaviour
             Debug.LogWarning($"[FaceController] face '{faceName}' not found.");
             return;
         }
+        if (!animator.HasState(faceLayerIndex, hash))
+        {
+            Debug.LogWarning($"[FaceController] state '{faceName}' not found on layer {faceLayerIndex}. " +
+                             $"Check layer index/name and state path.");
+            return;
+        }
+
         keepFace = keep;
         layerWeight = 1f;
         animator.SetLayerWeight(faceLayerIndex, layerWeight);
