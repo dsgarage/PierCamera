@@ -34,6 +34,24 @@ public sealed class ARPhotoController : MonoBehaviour
     [Tooltip("平面可視化に使うレイヤー名（Plane Prefab のレイヤーと一致させる）")]
     [SerializeField] private string planeVizLayerName = "ARPlaneViz"; // このレイヤーを撮影時だけ除外
 
+    // ★ 追加: 正方形保存オプション
+    [Header("Aspect / Crop")]
+    [Tooltip("true なら保存前に正方形へクロップします")]
+    [SerializeField] private bool saveAsSquare = false;
+
+    [Tooltip("正方形クロップの基準位置（既定: 中央）")]
+    [SerializeField] private SquareAnchor squareAnchor = SquareAnchor.Center;
+
+    // プレビュー側（UI）から参照するための Getter
+    public bool SaveAsSquare => saveAsSquare;
+    public SquareAnchor CurrentSquareAnchor => squareAnchor;
+
+    public enum SquareAnchor
+    {
+        Center, Top, Bottom, Left, Right,
+        TopLeft, TopRight, BottomLeft, BottomRight
+    }
+
     public enum SaveModeIOS
     {
         CompositeScreenshot,  // 推奨: 画面に見えるまま保存（ARSession停止なし、UIは本スクリプトで非表示化）
@@ -79,7 +97,8 @@ public sealed class ARPhotoController : MonoBehaviour
         if (!allowConcurrentCapture && _isCapturing) return;
 
 #if UNITY_IOS && !UNITY_EDITOR
-        if (iosSaveMode == SaveModeIOS.NativeCamera)
+        // ★ 修正: 正方形保存が有効なときはネイティブ撮影を避け、合成スクショ経由にフォールバック
+        if (iosSaveMode == SaveModeIOS.NativeCamera && !saveAsSquare)
         {
             StartCoroutine(CaptureIOS_Native());
             return;
@@ -116,8 +135,16 @@ public sealed class ARPhotoController : MonoBehaviour
                 yield break;
             }
 
+            // ★ 追加: 正方形クロップ（必要なときだけ）
+            if (saveAsSquare)
+            {
+                var sq = CropToSquare(tex, squareAnchor);
+                UnityEngine.Object.Destroy(tex);
+                tex = sq;
+            }
+
             var png = tex.EncodeToPNG();
-            Destroy(tex);
+            UnityEngine.Object.Destroy(tex);
 
             string fileName = $"aiCam_{DateTime.Now:yyyyMMdd_HHmmss}.png";
 
@@ -306,4 +333,46 @@ public sealed class ARPhotoController : MonoBehaviour
         }
     }
 #endif
+
+    // ★ 追加: 正方形クロップ関数（CPU側で安全に切り出し）
+    private static Texture2D CropToSquare(Texture2D src, SquareAnchor anchor)
+    {
+        var r = ComputeSquareCropRect(src.width, src.height, anchor);
+        Color[] pixels = src.GetPixels(r.x, r.y, r.width, r.height);
+        var dst = new Texture2D(r.width, r.height, TextureFormat.RGBA32, false);
+        dst.SetPixels(pixels);
+        dst.Apply();
+        return dst;
+    }
+    
+    // いまの画面サイズ基準の正方形トリミング矩形（ピクセル）
+    public RectInt GetCurrentSquareCropRectPixels()
+    {
+        return ComputeSquareCropRect(Screen.width, Screen.height, squareAnchor);
+    }
+    
+    // ★ 共通：幅・高さとアンカーから正方形の切り出し矩形を計算（左下原点, ピクセル）
+    public static RectInt ComputeSquareCropRect(int width, int height, SquareAnchor anchor)
+    {
+        int s = Mathf.Min(width, height);
+        int x = (width  - s) / 2;
+        int y = (height - s) / 2;
+    
+        switch (anchor)
+        {
+            case SquareAnchor.Top:         y = height - s; break;
+            case SquareAnchor.Bottom:      y = 0; break;
+            case SquareAnchor.Left:        x = 0; break;
+            case SquareAnchor.Right:       x = width - s; break;
+            case SquareAnchor.TopLeft:     x = 0; y = height - s; break;
+            case SquareAnchor.TopRight:    x = width - s; y = height - s; break;
+            case SquareAnchor.BottomLeft:  x = 0; y = 0; break;
+            case SquareAnchor.BottomRight: x = width - s; y = 0; break;
+            // Center は既定値
+        }
+    
+        x = Mathf.Clamp(x, 0, width  - s);
+        y = Mathf.Clamp(y, 0, height - s);
+        return new RectInt(x, y, s, s);
+    }
 }
