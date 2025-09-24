@@ -4,8 +4,9 @@ using UnityEngine.UI;
 
 /// <summary>
 /// 正方形プレビュー用オーバーレイ（手動更新のみ）。
-/// ※ 以前の挙動にロールバック：Canvas幅/高さでスケール換算（scaleFactor 未使用）
-///    → 端末によっては境界に「ごく薄いスキマ」が残る場合あり（元の状態に戻します）。
+/// ・ロールバック座標系（ux/uy換算）
+/// ・outerBleedPx でマスクを“外側へだけ”拡張（内側境界は固定）
+/// ・Image を Simple / preserveAspect=false に矯正して確実に矩形追従
 /// </summary>
 [RequireComponent(typeof(RectTransform))]
 public class SquareCropOverlay : MonoBehaviour
@@ -25,6 +26,10 @@ public class SquareCropOverlay : MonoBehaviour
     public bool previewSquareOn = true;
     public ARPhotoController.SquareAnchor previewAnchor = ARPhotoController.SquareAnchor.Center;
 
+    [Header("Mask Expansion")]
+    [Tooltip("マスクを“外側へだけ”拡張する量（ピクセル）。内側境界は動かない")]
+    [SerializeField, Min(0f)] private float outerBleedPx = 3f;
+
     private RectTransform canvasRect;
     private CanvasGroup cg;
 
@@ -35,6 +40,13 @@ public class SquareCropOverlay : MonoBehaviour
         if (!cg) cg = gameObject.AddComponent<CanvasGroup>();
         cg.blocksRaycasts = false;
         cg.interactable = false;
+
+        // マスク画像の設定を矯正
+        FixMaskImage(topMask);
+        FixMaskImage(bottomMask);
+        FixMaskImage(leftMask);
+        FixMaskImage(rightMask);
+        FixMaskImage(frame);
 
         DisableRaycastTarget(topMask);
         DisableRaycastTarget(bottomMask);
@@ -48,6 +60,13 @@ public class SquareCropOverlay : MonoBehaviour
     {
         if (!canvasRect) canvasRect = GetComponent<RectTransform>();
 
+        // 念のため毎回矯正（インスペクタ操作で戻っていても直す）
+        FixMaskImage(topMask);
+        FixMaskImage(bottomMask);
+        FixMaskImage(leftMask);
+        FixMaskImage(rightMask);
+        FixMaskImage(frame);
+
         GetPreviewDims(out int w, out int h);
         bool squareOn; ARPhotoController.SquareAnchor anchor;
         if (!TryReadPhotoConfig(out squareOn, out anchor))
@@ -58,6 +77,9 @@ public class SquareCropOverlay : MonoBehaviour
 
         Apply(w, h, anchor, squareOn);
 
+        // 変更の即時反映
+        Canvas.ForceUpdateCanvases();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(canvasRect);
 #if UNITY_EDITOR
         UnityEditor.EditorUtility.SetDirty(gameObject);
         if (topMask)    UnityEditor.EditorUtility.SetDirty(topMask);
@@ -65,6 +87,7 @@ public class SquareCropOverlay : MonoBehaviour
         if (leftMask)   UnityEditor.EditorUtility.SetDirty(leftMask);
         if (rightMask)  UnityEditor.EditorUtility.SetDirty(rightMask);
         if (frame)      UnityEditor.EditorUtility.SetDirty(frame);
+        UnityEditor.SceneView.RepaintAll();
 #endif
     }
 
@@ -98,13 +121,13 @@ public class SquareCropOverlay : MonoBehaviour
         return false;
     }
 
-    // ★ ロールバック版：編集時は Canvas の見た目サイズ（UI単位）をそのまま使用
+    // 編集時は Canvas の見た目サイズ（UI単位）をそのまま使用
     private void GetPreviewDims(out int w, out int h)
     {
 #if UNITY_EDITOR
         if (!Application.isPlaying && canvasRect)
         {
-            var size = canvasRect.rect.size;     // UI単位そのまま
+            var size = canvasRect.rect.size; // UI単位
             w = Mathf.Max(1, Mathf.RoundToInt(size.x));
             h = Mathf.Max(1, Mathf.RoundToInt(size.y));
             return;
@@ -115,7 +138,7 @@ public class SquareCropOverlay : MonoBehaviour
         h = Mathf.Max(1, Screen.height);
     }
 
-    // ★ ロールバック版：Canvas幅/高さで換算（ux/uy）。わずかなスキマが出る可能性あり
+    // マスクは“外側へだけ”広げる（内側境界は不変）
     private void Apply(int screenW, int screenH,
                        ARPhotoController.SquareAnchor anchor, bool squareOn)
     {
@@ -125,19 +148,26 @@ public class SquareCropOverlay : MonoBehaviour
         if (!canvasRect) canvasRect = GetComponent<RectTransform>();
         RectInt crop = ComputeSquareCropRect(screenW, screenH, anchor);
 
-        float ux = canvasRect.rect.width  / Mathf.Max(1, screenW);
-        float uy = canvasRect.rect.height / Mathf.Max(1, screenH);
+        float ux = canvasRect.rect.width  / Mathf.Max(1, screenW);  // UI単位 / px（横）
+        float uy = canvasRect.rect.height / Mathf.Max(1, screenH);  // UI単位 / px（縦）
 
+        // 正方形の“外側”の厚み（UI単位）
         float leftU   = crop.x * ux;
         float rightU  = (screenW - (crop.x + crop.width)) * ux;
         float bottomU = crop.y * uy;
         float topU    = (screenH - (crop.y + crop.height)) * uy;
 
-        if (topMask)    SetTop(topMask,    topU);
-        if (bottomMask) SetBottom(bottomMask, bottomU);
-        if (leftMask)   SetLeft(leftMask,  leftU);
-        if (rightMask)  SetRight(rightMask, rightU);
+        // 外側へだけ拡張する量（UI単位）
+        float bleedX = outerBleedPx * ux;
+        float bleedY = outerBleedPx * uy;
 
+        // 内側固定・外側のみ拡張（offsetMin/offsetMax 使用）
+        if (topMask)    SetTopOutset(topMask,    topU,    bleedY);
+        if (bottomMask) SetBottomOutset(bottomMask, bottomU, bleedY);
+        if (leftMask)   SetLeftOutset(leftMask,  leftU,  bleedX);
+        if (rightMask)  SetRightOutset(rightMask, rightU, bleedX);
+
+        // 枠は正方形境界ぴったり
         if (frame)
         {
             frame.anchorMin = Vector2.zero;
@@ -148,37 +178,72 @@ public class SquareCropOverlay : MonoBehaviour
         }
     }
 
-    private static void SetTop(RectTransform rt, float height)
+    // === “外側へだけ”広げる RectTransform ヘルパー（offsetMin/offsetMax 版） ===
+    private static void SetTopOutset(RectTransform rt, float insideHeightU, float bleedU)
     {
         rt.anchorMin = new Vector2(0, 1);
         rt.anchorMax = new Vector2(1, 1);
         rt.pivot     = new Vector2(0.5f, 1);
+        rt.sizeDelta = Vector2.zero;
         rt.anchoredPosition = Vector2.zero;
-        rt.sizeDelta = new Vector2(0, height);
+        rt.offsetMin = new Vector2(0f, -insideHeightU); // 内側境界
+        rt.offsetMax = new Vector2(0f, +bleedU);        // 外側へ拡張
     }
-    private static void SetBottom(RectTransform rt, float height)
+
+    private static void SetBottomOutset(RectTransform rt, float insideHeightU, float bleedU)
     {
         rt.anchorMin = new Vector2(0, 0);
         rt.anchorMax = new Vector2(1, 0);
         rt.pivot     = new Vector2(0.5f, 0);
+        rt.sizeDelta = Vector2.zero;
         rt.anchoredPosition = Vector2.zero;
-        rt.sizeDelta = new Vector2(0, height);
+        rt.offsetMin = new Vector2(0f, -bleedU);        // 外側へ拡張
+        rt.offsetMax = new Vector2(0f, +insideHeightU); // 内側境界
     }
-    private static void SetLeft(RectTransform rt, float width)
+
+    private static void SetLeftOutset(RectTransform rt, float insideWidthU, float bleedU)
     {
         rt.anchorMin = new Vector2(0, 0);
         rt.anchorMax = new Vector2(0, 1);
         rt.pivot     = new Vector2(0, 0.5f);
+        rt.sizeDelta = Vector2.zero;
         rt.anchoredPosition = Vector2.zero;
-        rt.sizeDelta = new Vector2(width, 0);
+        rt.offsetMin = new Vector2(-bleedU, 0f);        // 外側へ拡張
+        rt.offsetMax = new Vector2(+insideWidthU, 0f);  // 内側境界
     }
-    private static void SetRight(RectTransform rt, float width)
+
+    private static void SetRightOutset(RectTransform rt, float insideWidthU, float bleedU)
     {
         rt.anchorMin = new Vector2(1, 0);
         rt.anchorMax = new Vector2(1, 1);
         rt.pivot     = new Vector2(1, 0.5f);
+        rt.sizeDelta = Vector2.zero;
         rt.anchoredPosition = Vector2.zero;
-        rt.sizeDelta = new Vector2(width, 0);
+        rt.offsetMin = new Vector2(-insideWidthU, 0f);  // 内側境界
+        rt.offsetMax = new Vector2(+bleedU, 0f);        // 外側へ拡張
+    }
+
+    // === 画像の見た目が矩形に追従するよう矯正 ===
+    private static void FixMaskImage(RectTransform rt)
+    {
+        if (!rt) return;
+        var img = rt.GetComponent<Image>();
+        if (!img) return;
+
+        // 矩形いっぱいに塗る前提
+        img.type = Image.Type.Simple;
+        img.preserveAspect = false;
+        img.raycastTarget = false;
+
+        // 変更を即反映
+        img.SetVerticesDirty();
+        img.SetMaterialDirty();
+
+        // もし Sprite が未割り当てなら注意（RawImageを使うか、なんでも良いのでSpriteを割当）
+        if (img.sprite == null)
+        {
+            Debug.LogWarning($"[SquareCropOverlay] '{rt.name}' の Image.sprite が未設定です。色だけでは描画されません。何かしらのSpriteを割り当ててください。");
+        }
     }
 
     private static void DisableRaycastTarget(RectTransform rt)
