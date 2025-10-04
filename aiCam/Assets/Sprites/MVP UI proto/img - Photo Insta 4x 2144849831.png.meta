@@ -1,0 +1,1924 @@
+fileFormatVersion: 2
+guid: a0ecf002a834c4990a25d5b9c7f3d876
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 255889410366770714
+    second: img - Photo Insta 4x 2144849831_0
+  - first:
+      213: 447732325022074084
+    second: img - Photo Insta 4x 2144849831_1
+  - first:
+      213: 8214114306520810404
+    second: img - Photo Insta 4x 2144849831_2
+  - first:
+      213: -3311126899838008767
+    second: img - Photo Insta 4x 2144849831_3
+  - first:
+      213: -566421527944378688
+    second: img - Photo Insta 4x 2144849831_4
+  - first:
+      213: 4991881343476378415
+    second: img - Photo Insta 4x 2144849831_5
+  - first:
+      213: 2481267228334157141
+    second: img - Photo Insta 4x 2144849831_6
+  - first:
+      213: -2961256245164473840
+    second: img - Photo Insta 4x 2144849831_7
+  - first:
+      213: -2728296905592444759
+    second: img - Photo Insta 4x 2144849831_8
+  - first:
+      213: -6125234753270886473
+    second: img - Photo Insta 4x 2144849831_9
+  - first:
+      213: 936124784672570707
+    second: img - Photo Insta 4x 2144849831_10
+  - first:
+      213: 924625633423247744
+    second: img - Photo Insta 4x 2144849831_11
+  - first:
+      213: -5658054252251825266
+    second: img - Photo Insta 4x 2144849831_12
+  - first:
+      213: 1201739575204638485
+    second: img - Photo Insta 4x 2144849831_13
+  - first:
+      213: 4355652061292617244
+    second: img - Photo Insta 4x 2144849831_14
+  - first:
+      213: 1254581465200670820
+    second: img - Photo Insta 4x 2144849831_15
+  - first:
+      213: -5613840496076381986
+    second: img - Photo Insta 4x 2144849831_16
+  - first:
+      213: -7658697949045818959
+    second: img - Photo Insta 4x 2144849831_17
+  - first:
+      213: -7690992526297839190
+    second: img - Photo Insta 4x 2144849831_18
+  - first:
+      213: 8341880290426168643
+    second: img - Photo Insta 4x 2144849831_19
+  - first:
+      213: -8751733626977664418
+    second: img - Photo Insta 4x 2144849831_20
+  - first:
+      213: 611011342885326259
+    second: img - Photo Insta 4x 2144849831_21
+  - first:
+      213: -39459573048993796
+    second: img - Photo Insta 4x 2144849831_22
+  - first:
+      213: -3453686846154726304
+    second: img - Photo Insta 4x 2144849831_23
+  - first:
+      213: -634245474722433708
+    second: img - Photo Insta 4x 2144849831_24
+  - first:
+      213: 3766417168193029968
+    second: img - Photo Insta 4x 2144849831_25
+  - first:
+      213: -5875035409634990312
+    second: img - Photo Insta 4x 2144849831_26
+  - first:
+      213: 3012804205184050611
+    second: img - Photo Insta 4x 2144849831_27
+  - first:
+      213: 6077153558010834593
+    second: img - Photo Insta 4x 2144849831_28
+  - first:
+      213: 7627554829920722858
+    second: img - Photo Insta 4x 2144849831_29
+  - first:
+      213: -8474179062575597370
+    second: img - Photo Insta 4x 2144849831_30
+  - first:
+      213: 3091121049810168386
+    second: img - Photo Insta 4x 2144849831_31
+  - first:
+      213: -8552459742626523231
+    second: img - Photo Insta 4x 2144849831_32
+  - first:
+      213: 8665692592592893980
+    second: img - Photo Insta 4x 2144849831_33
+  - first:
+      213: 6139137933405317024
+    second: img - Photo Insta 4x 2144849831_34
+  - first:
+      213: 8435904918806944748
+    second: img - Photo Insta 4x 2144849831_35
+  - first:
+      213: 292420151978761011
+    second: img - Photo Insta 4x 2144849831_36
+  - first:
+      213: 1655490455698856311
+    second: img - Photo Insta 4x 2144849831_37
+  - first:
+      213: 611838741917425777
+    second: img - Photo Insta 4x 2144849831_38
+  - first:
+      213: 3292241167958375342
+    second: img - Photo Insta 4x 2144849831_39
+  - first:
+      213: -4107273072442843922
+    second: img - Photo Insta 4x 2144849831_40
+  - first:
+      213: 4511748509183812403
+    second: img - Photo Insta 4x 2144849831_41
+  - first:
+      213: 7205604136542668803
+    second: img - Photo Insta 4x 2144849831_42
+  - first:
+      213: 7076941845214206164
+    second: img - Photo Insta 4x 2144849831_43
+  - first:
+      213: -6425310202517394764
+    second: img - Photo Insta 4x 2144849831_44
+  - first:
+      213: -49867636293834007
+    second: img - Photo Insta 4x 2144849831_45
+  - first:
+      213: -7053377549636209216
+    second: img - Photo Insta 4x 2144849831_46
+  - first:
+      213: 7536903875194032402
+    second: img - Photo Insta 4x 2144849831_47
+  - first:
+      213: -3986951756625477611
+    second: img - Photo Insta 4x 2144849831_48
+  - first:
+      213: 1030849425017225653
+    second: img - Photo Insta 4x 2144849831_49
+  - first:
+      213: 6507649848214179475
+    second: img - Photo Insta 4x 2144849831_50
+  - first:
+      213: 2367067513235397476
+    second: img - Photo Insta 4x 2144849831_51
+  - first:
+      213: 8371054270472146280
+    second: img - Photo Insta 4x 2144849831_52
+  - first:
+      213: 5928668102359338225
+    second: img - Photo Insta 4x 2144849831_53
+  - first:
+      213: -2095400655132257184
+    second: img - Photo Insta 4x 2144849831_54
+  - first:
+      213: 8301904077622755841
+    second: img - Photo Insta 4x 2144849831_55
+  - first:
+      213: -5714892601890191342
+    second: img - Photo Insta 4x 2144849831_56
+  - first:
+      213: -557073150418496734
+    second: img - Photo Insta 4x 2144849831_57
+  - first:
+      213: 4532671692140219172
+    second: img - Photo Insta 4x 2144849831_58
+  - first:
+      213: -5557949189222835934
+    second: img - Photo Insta 4x 2144849831_59
+  - first:
+      213: 6300542835378751239
+    second: img - Photo Insta 4x 2144849831_60
+  - first:
+      213: 7086574216422370455
+    second: img - Photo Insta 4x 2144849831_61
+  - first:
+      213: -5981365201390069921
+    second: img - Photo Insta 4x 2144849831_62
+  - first:
+      213: -124361010756317919
+    second: img - Photo Insta 4x 2144849831_63
+  - first:
+      213: 1700675147024998217
+    second: img - Photo Insta 4x 2144849831_64
+  - first:
+      213: -5340549434996997939
+    second: img - Photo Insta 4x 2144849831_65
+  - first:
+      213: -495462780669306645
+    second: img - Photo Insta 4x 2144849831_66
+  - first:
+      213: -6626596307600062528
+    second: img - Photo Insta 4x 2144849831_67
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 1
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 1
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 4096
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_0
+      rect:
+        serializedVersion: 2
+        x: 40
+        y: 2196
+        width: 128
+        height: 128
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a1e02be101a1d8300800000000000000
+      internalID: 255889410366770714
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_1
+      rect:
+        serializedVersion: 2
+        x: 204
+        y: 2239
+        width: 33
+        height: 36
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4e4866b6d2aa63600800000000000000
+      internalID: 447732325022074084
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_2
+      rect:
+        serializedVersion: 2
+        x: 235
+        y: 2238
+        width: 18
+        height: 35
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4a380a801756ef170800000000000000
+      internalID: 8214114306520810404
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_3
+      rect:
+        serializedVersion: 2
+        x: 255
+        y: 2239
+        width: 8
+        height: 38
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1424ae0b0a38c02d0800000000000000
+      internalID: -3311126899838008767
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_4
+      rect:
+        serializedVersion: 2
+        x: 320
+        y: 2238
+        width: 17
+        height: 35
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0c6cdb11f9aa328f0800000000000000
+      internalID: -566421527944378688
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_5
+      rect:
+        serializedVersion: 2
+        x: 339
+        y: 2269
+        width: 9
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f2b2fce32a9b64540800000000000000
+      internalID: 4991881343476378415
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_6
+      rect:
+        serializedVersion: 2
+        x: 266
+        y: 2238
+        width: 24
+        height: 29
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 55deca9d56b3f6220800000000000000
+      internalID: 2481267228334157141
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_7
+      rect:
+        serializedVersion: 2
+        x: 294
+        y: 2239
+        width: 24
+        height: 28
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 012801a622187e6d0800000000000000
+      internalID: -2961256245164473840
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_8
+      rect:
+        serializedVersion: 2
+        x: 340
+        y: 2239
+        width: 8
+        height: 28
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9a86d546b64232ad0800000000000000
+      internalID: -2728296905592444759
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_9
+      rect:
+        serializedVersion: 2
+        x: 350
+        y: 2238
+        width: 24
+        height: 29
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7bf496dd17bcefaa0800000000000000
+      internalID: -6125234753270886473
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_10
+      rect:
+        serializedVersion: 2
+        x: 1487
+        y: 2253
+        width: 14
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 35df8d72888cdfc00800000000000000
+      internalID: 936124784672570707
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_11
+      rect:
+        serializedVersion: 2
+        x: 1507
+        y: 2253
+        width: 14
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 089c96e5d1ee4dc00800000000000000
+      internalID: 924625633423247744
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_12
+      rect:
+        serializedVersion: 2
+        x: 1527
+        y: 2253
+        width: 14
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e8b34ae92ad8a71b0800000000000000
+      internalID: -5658054252251825266
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_13
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 599
+        width: 1572
+        height: 1574
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 51fe99cc6cf6da010800000000000000
+      internalID: 1201739575204638485
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_14
+      rect:
+        serializedVersion: 2
+        x: 38
+        y: 466
+        width: 84
+        height: 73
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c1e5b86f872627c30800000000000000
+      internalID: 4355652061292617244
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_15
+      rect:
+        serializedVersion: 2
+        x: 184
+        y: 463
+        width: 80
+        height: 80
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 468331f023b296110800000000000000
+      internalID: 1254581465200670820
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_16
+      rect:
+        serializedVersion: 2
+        x: 326
+        y: 465
+        width: 84
+        height: 75
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ed02aadefc1a712b0800000000000000
+      internalID: -5613840496076381986
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_17
+      rect:
+        serializedVersion: 2
+        x: 713
+        y: 491
+        width: 26
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1b97c19fac6d6b590800000000000000
+      internalID: -7658697949045818959
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_18
+      rect:
+        serializedVersion: 2
+        x: 753
+        y: 491
+        width: 26
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: aa945d3cb0b144590800000000000000
+      internalID: -7690992526297839190
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_19
+      rect:
+        serializedVersion: 2
+        x: 793
+        y: 491
+        width: 26
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3452fad4def44c370800000000000000
+      internalID: 8341880290426168643
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_20
+      rect:
+        serializedVersion: 2
+        x: 833
+        y: 491
+        width: 26
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e52c72b82a89b8680800000000000000
+      internalID: -8751733626977664418
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_21
+      rect:
+        serializedVersion: 2
+        x: 1455
+        y: 459
+        width: 74
+        height: 86
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3bd0a6e349fba7800800000000000000
+      internalID: 611011342885326259
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_22
+      rect:
+        serializedVersion: 2
+        x: 34
+        y: 362
+        width: 38
+        height: 44
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cf71d653abfc37ff0800000000000000
+      internalID: -39459573048993796
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_23
+      rect:
+        serializedVersion: 2
+        x: 142
+        y: 362
+        width: 32
+        height: 45
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0642281ac1a0210d0800000000000000
+      internalID: -3453686846154726304
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_24
+      rect:
+        serializedVersion: 2
+        x: 333
+        y: 397
+        width: 11
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 45535c2e915b237f0800000000000000
+      internalID: -634245474722433708
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_25
+      rect:
+        serializedVersion: 2
+        x: 446
+        y: 359
+        width: 58
+        height: 58
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 057041a8570054430800000000000000
+      internalID: 3766417168193029968
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_26
+      rect:
+        serializedVersion: 2
+        x: 75
+        y: 362
+        width: 32
+        height: 34
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8176dd51c6ea77ea0800000000000000
+      internalID: -5875035409634990312
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_27
+      rect:
+        serializedVersion: 2
+        x: 109
+        y: 362
+        width: 31
+        height: 34
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3b56ccb4671afc920800000000000000
+      internalID: 3012804205184050611
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_28
+      rect:
+        serializedVersion: 2
+        x: 193
+        y: 363
+        width: 46
+        height: 33
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1aeacbe76f2665450800000000000000
+      internalID: 6077153558010834593
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_29
+      rect:
+        serializedVersion: 2
+        x: 242
+        y: 362
+        width: 32
+        height: 34
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: aaf5d3e84b48ad960800000000000000
+      internalID: 7627554829920722858
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_30
+      rect:
+        serializedVersion: 2
+        x: 277
+        y: 363
+        width: 21
+        height: 33
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6c8f02c6a0ba56a80800000000000000
+      internalID: -8474179062575597370
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_31
+      rect:
+        serializedVersion: 2
+        x: 300
+        y: 363
+        width: 29
+        height: 33
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 24aeaa3a73ed5ea20800000000000000
+      internalID: 3091121049810168386
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_32
+      rect:
+        serializedVersion: 2
+        x: 334
+        y: 363
+        width: 10
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1a7daec4d2f8f4980800000000000000
+      internalID: -8552459742626523231
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_33
+      rect:
+        serializedVersion: 2
+        x: 349
+        y: 363
+        width: 29
+        height: 33
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c18bb3a0089b24870800000000000000
+      internalID: 8665692592592893980
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_34
+      rect:
+        serializedVersion: 2
+        x: 381
+        y: 352
+        width: 31
+        height: 44
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0a7efb38c69923550800000000000000
+      internalID: 6139137933405317024
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_35
+      rect:
+        serializedVersion: 2
+        x: 416
+        y: 352
+        width: 12
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ceb557c04da521570800000000000000
+      internalID: 8435904918806944748
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_36
+      rect:
+        serializedVersion: 2
+        x: 33
+        y: 271
+        width: 36
+        height: 42
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 33b1cd33492ee0400800000000000000
+      internalID: 292420151978761011
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_37
+      rect:
+        serializedVersion: 2
+        x: 71
+        y: 306
+        width: 10
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 779dafc5ccb79f610800000000000000
+      internalID: 1655490455698856311
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_38
+      rect:
+        serializedVersion: 2
+        x: 174
+        y: 270
+        width: 31
+        height: 44
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1706fc71810bd7800800000000000000
+      internalID: 611838741917425777
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_39
+      rect:
+        serializedVersion: 2
+        x: 445
+        y: 270
+        width: 19
+        height: 41
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: eab731336e360bd20800000000000000
+      internalID: 3292241167958375342
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_40
+      rect:
+        serializedVersion: 2
+        x: 72
+        y: 271
+        width: 8
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: eec5481e6e80007c0800000000000000
+      internalID: -4107273072442843922
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_41
+      rect:
+        serializedVersion: 2
+        x: 84
+        y: 270
+        width: 29
+        height: 33
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 333acc56d53fc9e30800000000000000
+      internalID: 4511748509183812403
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_42
+      rect:
+        serializedVersion: 2
+        x: 114
+        y: 271
+        width: 43
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 30806b609c27ff360800000000000000
+      internalID: 7205604136542668803
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_43
+      rect:
+        serializedVersion: 2
+        x: 223
+        y: 270
+        width: 29
+        height: 33
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4d8171cec19563260800000000000000
+      internalID: 7076941845214206164
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_44
+      rect:
+        serializedVersion: 2
+        x: 254
+        y: 270
+        width: 30
+        height: 33
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4bae14fd966b4d6a0800000000000000
+      internalID: -6425310202517394764
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_45
+      rect:
+        serializedVersion: 2
+        x: 288
+        y: 271
+        width: 43
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9eaeae426a5de4ff0800000000000000
+      internalID: -49867636293834007
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_46
+      rect:
+        serializedVersion: 2
+        x: 336
+        y: 271
+        width: 43
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0c5f73f2d7e5d1e90800000000000000
+      internalID: -7053377549636209216
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_47
+      rect:
+        serializedVersion: 2
+        x: 383
+        y: 270
+        width: 29
+        height: 33
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 211943b6426789860800000000000000
+      internalID: 7536903875194032402
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_48
+      rect:
+        serializedVersion: 2
+        x: 416
+        y: 271
+        width: 27
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 51008b940808ba8c0800000000000000
+      internalID: -3986951756625477611
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_49
+      rect:
+        serializedVersion: 2
+        x: 466
+        y: 270
+        width: 26
+        height: 33
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5b1411327105e4e00800000000000000
+      internalID: 1030849425017225653
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_50
+      rect:
+        serializedVersion: 2
+        x: 39
+        y: 111
+        width: 102
+        height: 102
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 39e4e65de01df4a50800000000000000
+      internalID: 6507649848214179475
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_51
+      rect:
+        serializedVersion: 2
+        x: 174
+        y: 142
+        width: 36
+        height: 44
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 46b53cdac5389d020800000000000000
+      internalID: 2367067513235397476
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_52
+      rect:
+        serializedVersion: 2
+        x: 213
+        y: 142
+        width: 30
+        height: 33
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 86d420bd185fb2470800000000000000
+      internalID: 8371054270472146280
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_53
+      rect:
+        serializedVersion: 2
+        x: 247
+        y: 143
+        width: 43
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1fc41584a3cd64250800000000000000
+      internalID: 5928668102359338225
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_54
+      rect:
+        serializedVersion: 2
+        x: 295
+        y: 143
+        width: 43
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 06498b0c434abe2e0800000000000000
+      internalID: -2095400655132257184
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_55
+      rect:
+        serializedVersion: 2
+        x: 342
+        y: 142
+        width: 29
+        height: 33
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1024212f5c9463370800000000000000
+      internalID: 8301904077622755841
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_56
+      rect:
+        serializedVersion: 2
+        x: 375
+        y: 143
+        width: 27
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 218c3d6157f90b0b0800000000000000
+      internalID: -5714892601890191342
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_57
+      rect:
+        serializedVersion: 2
+        x: 404
+        y: 142
+        width: 19
+        height: 41
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 223d563dbe0e448f0800000000000000
+      internalID: -557073150418496734
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_58
+      rect:
+        serializedVersion: 2
+        x: 427
+        y: 142
+        width: 10
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 42b8c7d83e847ee30800000000000000
+      internalID: 4532671692140219172
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_59
+      rect:
+        serializedVersion: 2
+        x: 443
+        y: 142
+        width: 10
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 229d3b0e8a23ed2b0800000000000000
+      internalID: -5557949189222835934
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_60
+      rect:
+        serializedVersion: 2
+        x: 459
+        y: 142
+        width: 10
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 70702eab356007750800000000000000
+      internalID: 6300542835378751239
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_61
+      rect:
+        serializedVersion: 2
+        x: 34
+        y: 31
+        width: 25
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 79c2c4c14b1985260800000000000000
+      internalID: 7086574216422370455
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_62
+      rect:
+        serializedVersion: 2
+        x: 76
+        y: 31
+        width: 7
+        height: 38
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f57134b3a0cedfca0800000000000000
+      internalID: -5981365201390069921
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_63
+      rect:
+        serializedVersion: 2
+        x: 87
+        y: 61
+        width: 8
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 12d06f1d15e264ef0800000000000000
+      internalID: -124361010756317919
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_64
+      rect:
+        serializedVersion: 2
+        x: 99
+        y: 31
+        width: 24
+        height: 38
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 94f92c029030a9710800000000000000
+      internalID: 1700675147024998217
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_65
+      rect:
+        serializedVersion: 2
+        x: 88
+        y: 31
+        width: 7
+        height: 28
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dc04795959e82e5b0800000000000000
+      internalID: -5340549434996997939
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_66
+      rect:
+        serializedVersion: 2
+        x: 122
+        y: 30
+        width: 25
+        height: 29
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: be857ced933cf19f0800000000000000
+      internalID: -495462780669306645
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: img - Photo Insta 4x 2144849831_67
+      rect:
+        serializedVersion: 2
+        x: 149
+        y: 30
+        width: 23
+        height: 29
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0c7459774c99904a0800000000000000
+      internalID: -6626596307600062528
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 5e97eb03825dee720800000000000000
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      img - Photo Insta 4x 2144849831_0: 255889410366770714
+      img - Photo Insta 4x 2144849831_1: 447732325022074084
+      img - Photo Insta 4x 2144849831_10: 936124784672570707
+      img - Photo Insta 4x 2144849831_11: 924625633423247744
+      img - Photo Insta 4x 2144849831_12: -5658054252251825266
+      img - Photo Insta 4x 2144849831_13: 1201739575204638485
+      img - Photo Insta 4x 2144849831_14: 4355652061292617244
+      img - Photo Insta 4x 2144849831_15: 1254581465200670820
+      img - Photo Insta 4x 2144849831_16: -5613840496076381986
+      img - Photo Insta 4x 2144849831_17: -7658697949045818959
+      img - Photo Insta 4x 2144849831_18: -7690992526297839190
+      img - Photo Insta 4x 2144849831_19: 8341880290426168643
+      img - Photo Insta 4x 2144849831_2: 8214114306520810404
+      img - Photo Insta 4x 2144849831_20: -8751733626977664418
+      img - Photo Insta 4x 2144849831_21: 611011342885326259
+      img - Photo Insta 4x 2144849831_22: -39459573048993796
+      img - Photo Insta 4x 2144849831_23: -3453686846154726304
+      img - Photo Insta 4x 2144849831_24: -634245474722433708
+      img - Photo Insta 4x 2144849831_25: 3766417168193029968
+      img - Photo Insta 4x 2144849831_26: -5875035409634990312
+      img - Photo Insta 4x 2144849831_27: 3012804205184050611
+      img - Photo Insta 4x 2144849831_28: 6077153558010834593
+      img - Photo Insta 4x 2144849831_29: 7627554829920722858
+      img - Photo Insta 4x 2144849831_3: -3311126899838008767
+      img - Photo Insta 4x 2144849831_30: -8474179062575597370
+      img - Photo Insta 4x 2144849831_31: 3091121049810168386
+      img - Photo Insta 4x 2144849831_32: -8552459742626523231
+      img - Photo Insta 4x 2144849831_33: 8665692592592893980
+      img - Photo Insta 4x 2144849831_34: 6139137933405317024
+      img - Photo Insta 4x 2144849831_35: 8435904918806944748
+      img - Photo Insta 4x 2144849831_36: 292420151978761011
+      img - Photo Insta 4x 2144849831_37: 1655490455698856311
+      img - Photo Insta 4x 2144849831_38: 611838741917425777
+      img - Photo Insta 4x 2144849831_39: 3292241167958375342
+      img - Photo Insta 4x 2144849831_4: -566421527944378688
+      img - Photo Insta 4x 2144849831_40: -4107273072442843922
+      img - Photo Insta 4x 2144849831_41: 4511748509183812403
+      img - Photo Insta 4x 2144849831_42: 7205604136542668803
+      img - Photo Insta 4x 2144849831_43: 7076941845214206164
+      img - Photo Insta 4x 2144849831_44: -6425310202517394764
+      img - Photo Insta 4x 2144849831_45: -49867636293834007
+      img - Photo Insta 4x 2144849831_46: -7053377549636209216
+      img - Photo Insta 4x 2144849831_47: 7536903875194032402
+      img - Photo Insta 4x 2144849831_48: -3986951756625477611
+      img - Photo Insta 4x 2144849831_49: 1030849425017225653
+      img - Photo Insta 4x 2144849831_5: 4991881343476378415
+      img - Photo Insta 4x 2144849831_50: 6507649848214179475
+      img - Photo Insta 4x 2144849831_51: 2367067513235397476
+      img - Photo Insta 4x 2144849831_52: 8371054270472146280
+      img - Photo Insta 4x 2144849831_53: 5928668102359338225
+      img - Photo Insta 4x 2144849831_54: -2095400655132257184
+      img - Photo Insta 4x 2144849831_55: 8301904077622755841
+      img - Photo Insta 4x 2144849831_56: -5714892601890191342
+      img - Photo Insta 4x 2144849831_57: -557073150418496734
+      img - Photo Insta 4x 2144849831_58: 4532671692140219172
+      img - Photo Insta 4x 2144849831_59: -5557949189222835934
+      img - Photo Insta 4x 2144849831_6: 2481267228334157141
+      img - Photo Insta 4x 2144849831_60: 6300542835378751239
+      img - Photo Insta 4x 2144849831_61: 7086574216422370455
+      img - Photo Insta 4x 2144849831_62: -5981365201390069921
+      img - Photo Insta 4x 2144849831_63: -124361010756317919
+      img - Photo Insta 4x 2144849831_64: 1700675147024998217
+      img - Photo Insta 4x 2144849831_65: -5340549434996997939
+      img - Photo Insta 4x 2144849831_66: -495462780669306645
+      img - Photo Insta 4x 2144849831_67: -6626596307600062528
+      img - Photo Insta 4x 2144849831_7: -2961256245164473840
+      img - Photo Insta 4x 2144849831_8: -2728296905592444759
+      img - Photo Insta 4x 2144849831_9: -6125234753270886473
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
