@@ -2,12 +2,6 @@ using System.Reflection;
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>
-/// 正方形プレビュー用オーバーレイ（手動更新のみ）。
-/// ・ロールバック座標系（ux/uy換算）
-/// ・outerBleedPx でマスクを“外側へだけ”拡張（内側境界は固定）
-/// ・Image を Simple / preserveAspect=false に矯正して確実に矩形追従
-/// </summary>
 [RequireComponent(typeof(RectTransform))]
 public class SquareCropOverlay : MonoBehaviour
 {
@@ -30,6 +24,10 @@ public class SquareCropOverlay : MonoBehaviour
     [Tooltip("マスクを“外側へだけ”拡張する量（ピクセル）。内側境界は動かない")]
     [SerializeField, Min(0f)] private float outerBleedPx = 3f;
 
+    [Header("Manual Offset (Pixels)")]
+    [Tooltip("アンカー基準に加算するピクセルオフセット (X:右+, Y:上+)。0なら移動なし。")]
+    public Vector2 offsetPx = Vector2.zero;
+
     private RectTransform canvasRect;
     private CanvasGroup cg;
 
@@ -41,7 +39,6 @@ public class SquareCropOverlay : MonoBehaviour
         cg.blocksRaycasts = false;
         cg.interactable = false;
 
-        // マスク画像の設定を矯正
         FixMaskImage(topMask);
         FixMaskImage(bottomMask);
         FixMaskImage(leftMask);
@@ -60,7 +57,7 @@ public class SquareCropOverlay : MonoBehaviour
     {
         if (!canvasRect) canvasRect = GetComponent<RectTransform>();
 
-        // 念のため毎回矯正（インスペクタ操作で戻っていても直す）
+        // 念のため毎回矯正
         FixMaskImage(topMask);
         FixMaskImage(bottomMask);
         FixMaskImage(leftMask);
@@ -77,7 +74,6 @@ public class SquareCropOverlay : MonoBehaviour
 
         Apply(w, h, anchor, squareOn);
 
-        // 変更の即時反映
         Canvas.ForceUpdateCanvases();
         LayoutRebuilder.ForceRebuildLayoutImmediate(canvasRect);
 #if UNITY_EDITOR
@@ -138,7 +134,6 @@ public class SquareCropOverlay : MonoBehaviour
         h = Mathf.Max(1, Screen.height);
     }
 
-    // マスクは“外側へだけ”広げる（内側境界は不変）
     private void Apply(int screenW, int screenH,
                        ARPhotoController.SquareAnchor anchor, bool squareOn)
     {
@@ -146,7 +141,11 @@ public class SquareCropOverlay : MonoBehaviour
         if (cg) cg.alpha = 1f;
 
         if (!canvasRect) canvasRect = GetComponent<RectTransform>();
-        RectInt crop = ComputeSquareCropRect(screenW, screenH, anchor);
+
+        // ピクセルオフセット（0なら移動なし）
+        Vector2 appliedOffsetPx = offsetPx;
+
+        RectInt crop = ComputeSquareCropRect(screenW, screenH, anchor, appliedOffsetPx);
 
         float ux = canvasRect.rect.width  / Mathf.Max(1, screenW);  // UI単位 / px（横）
         float uy = canvasRect.rect.height / Mathf.Max(1, screenH);  // UI単位 / px（縦）
@@ -161,13 +160,13 @@ public class SquareCropOverlay : MonoBehaviour
         float bleedX = outerBleedPx * ux;
         float bleedY = outerBleedPx * uy;
 
-        // 内側固定・外側のみ拡張（offsetMin/offsetMax 使用）
+        // 内側固定・外側のみ拡張
         if (topMask)    SetTopOutset(topMask,    topU,    bleedY);
         if (bottomMask) SetBottomOutset(bottomMask, bottomU, bleedY);
         if (leftMask)   SetLeftOutset(leftMask,  leftU,  bleedX);
         if (rightMask)  SetRightOutset(rightMask, rightU, bleedX);
 
-        // 枠は正方形境界ぴったり
+        // 枠
         if (frame)
         {
             frame.anchorMin = Vector2.zero;
@@ -178,7 +177,7 @@ public class SquareCropOverlay : MonoBehaviour
         }
     }
 
-    // === “外側へだけ”広げる RectTransform ヘルパー（offsetMin/offsetMax 版） ===
+    // === “外側へだけ”広げる RectTransform ヘルパー ===
     private static void SetTopOutset(RectTransform rt, float insideHeightU, float bleedU)
     {
         rt.anchorMin = new Vector2(0, 1);
@@ -230,16 +229,13 @@ public class SquareCropOverlay : MonoBehaviour
         var img = rt.GetComponent<Image>();
         if (!img) return;
 
-        // 矩形いっぱいに塗る前提
         img.type = Image.Type.Simple;
         img.preserveAspect = false;
         img.raycastTarget = false;
 
-        // 変更を即反映
         img.SetVerticesDirty();
         img.SetMaterialDirty();
 
-        // もし Sprite が未割り当てなら注意（RawImageを使うか、なんでも良いのでSpriteを割当）
         if (img.sprite == null)
         {
             Debug.LogWarning($"[SquareCropOverlay] '{rt.name}' の Image.sprite が未設定です。色だけでは描画されません。何かしらのSpriteを割り当ててください。");
@@ -253,7 +249,9 @@ public class SquareCropOverlay : MonoBehaviour
         if (img) img.raycastTarget = false;
     }
 
-    private static RectInt ComputeSquareCropRect(int width, int height, ARPhotoController.SquareAnchor anchor)
+    private static RectInt ComputeSquareCropRect(int width, int height,
+                                                 ARPhotoController.SquareAnchor anchor,
+                                                 Vector2 extraOffsetPx)
     {
         int s = Mathf.Min(width, height);
         int x = (width  - s) / 2;
@@ -269,8 +267,17 @@ public class SquareCropOverlay : MonoBehaviour
             case ARPhotoController.SquareAnchor.TopRight:    x = width - s; y = height - s; break;
             case ARPhotoController.SquareAnchor.BottomLeft:  x = 0; y = 0; break;
             case ARPhotoController.SquareAnchor.BottomRight: x = width - s; y = 0; break;
+            // Center は初期値のまま
         }
 
+        // ピクセルオフセット（右+/上+）
+        if (extraOffsetPx.sqrMagnitude > 0f)
+        {
+            x += Mathf.RoundToInt(extraOffsetPx.x);
+            y += Mathf.RoundToInt(extraOffsetPx.y);
+        }
+
+        // 画面内に収まるようクランプ
         x = Mathf.Clamp(x, 0, width  - s);
         y = Mathf.Clamp(y, 0, height - s);
         return new RectInt(x, y, s, s);
