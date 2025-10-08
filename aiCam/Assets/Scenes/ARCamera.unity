@@ -882,6 +882,7 @@ GameObject:
   - component: {fileID: 431550397}
   - component: {fileID: 431550396}
   - component: {fileID: 431550395}
+  - component: {fileID: 431550399}
   m_Layer: 0
   m_Name: AR Camera
   m_TagString: MainCamera
@@ -1112,6 +1113,7 @@ MonoBehaviour:
   arSession: {fileID: 948591574}
   occlusionToggle: {fileID: 431550396}
   captureCamera: {fileID: 0}
+  squareOverlay: {fileID: 1442196503}
   uiToHide:
   - {fileID: 152108868}
   allowConcurrentCapture: 0
@@ -1194,6 +1196,20 @@ MonoBehaviour:
     m_MipBias: 0
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
+--- !u!114 &431550399
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 431550388}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6c2cf04899c24ca5a5c600d8719a4c8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  squareOverlay: {fileID: 1442196503}
+  shaderName: Hidden/URP/ARBackgroundOffset
 --- !u!1 &478162759
 GameObject:
   m_ObjectHideFlags: 0
@@ -1422,7 +1438,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 0}
   m_AnchoredPosition: {x: 0, y: -3.000122}
-  m_SizeDelta: {x: 0, y: 930.05396}
+  m_SizeDelta: {x: 0, y: 1580.0917}
   m_Pivot: {x: 0.5, y: 0}
 --- !u!114 &536337982
 MonoBehaviour:
@@ -3199,7 +3215,7 @@ MonoBehaviour:
   previewSquareOn: 1
   previewAnchor: 0
   outerBleedPx: 3
-  offsetPx: {x: 0, y: 0}
+  offsetPx: {x: 0, y: 650}
 --- !u!1 &1471496540
 GameObject:
   m_ObjectHideFlags: 0
@@ -3235,7 +3251,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 3.000122}
-  m_SizeDelta: {x: 0, y: 930.054}
+  m_SizeDelta: {x: 0, y: 280.01627}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &1471496542
 MonoBehaviour:
@@ -4054,8 +4070,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 2095224786}
   m_HandleRect: {fileID: 2095224785}
   m_Direction: 2
-  m_Value: 0.9999986
-  m_Size: 0.60251486
+  m_Value: 0.9999982
+  m_Size: 0.6025148
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:

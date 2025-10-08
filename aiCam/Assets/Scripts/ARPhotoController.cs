@@ -4,37 +4,33 @@ using System.IO;
 using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.XR.ARFoundation;
-using UnityEngine.XR.ARSubsystems; // ★ 追加：各種Depth列挙体
+using UnityEngine.XR.ARSubsystems;
 #if UNITY_ANDROID
 using UnityEngine.Android;
 #endif
 
-/// <summary>
-/// 方法②：撮影の瞬間だけUIを非表示にし、AR背景＋3Dのみをスクショ保存。
-/// さらに「平面可視化(Plane)レイヤー」を撮影フレームだけカリングして写真に写さない。
-/// iOSのネイティブ撮影モード（互換）も従来どおり残しています。
-/// </summary>
 public sealed class ARPhotoController : MonoBehaviour
 {
     [Header("References (optional)")]
-    [SerializeField] private ARSession arSession;                 // 未割当なら自動取得
-    [SerializeField] private OcclusionToggle occlusionToggle;     // 任意。なければ未設定でOK
-    [SerializeField] private Camera captureCamera;                // 撮影に使うカメラ（未設定なら Camera.main）
+    [SerializeField] private ARSession arSession;
+    [SerializeField] private OcclusionToggle occlusionToggle;
+    [SerializeField] private Camera captureCamera;
+
+    // ▼ 追加：マスクのピクセル移動量を参照するため
+    [Header("Square Overlay Binding (optional)")]
+    [Tooltip("保存時のクロップ位置を UI マスクの移動量(offsetPx)に同期させる場合に割り当て")]
+    [SerializeField] private SquareCropOverlay squareOverlay;
 
     [Header("UI Hiding (Method #2)")]
-    [Tooltip("撮影時に一時的に不可視にするUI（CanvasGroup）を割り当て")]
     [SerializeField] private CanvasGroup[] uiToHide;
-    [Tooltip("重複タップで多重撮影を許可するか")]
     [SerializeField] private bool allowConcurrentCapture = false;
 
     [Header("iOS Save Mode")]
-    [SerializeField] private SaveModeIOS iosSaveMode = SaveModeIOS.CompositeScreenshot; // 既定: 合成スクショ
+    [SerializeField] private SaveModeIOS iosSaveMode = SaveModeIOS.CompositeScreenshot;
 
     [Header("Plane Visualization")]
-    [Tooltip("平面可視化に使うレイヤー名（Plane Prefab のレイヤーと一致させる）")]
-    [SerializeField] private string planeVizLayerName = "ARPlaneViz"; // このレイヤーを撮影時だけ除外
+    [SerializeField] private string planeVizLayerName = "ARPlaneViz";
 
-    // ★ 追加: 正方形保存オプション
     [Header("Aspect / Crop")]
     [Tooltip("true なら保存前に正方形へクロップします")]
     [SerializeField] private bool saveAsSquare = false;
@@ -42,7 +38,6 @@ public sealed class ARPhotoController : MonoBehaviour
     [Tooltip("正方形クロップの基準位置（既定: 中央）")]
     [SerializeField] private SquareAnchor squareAnchor = SquareAnchor.Center;
 
-    // プレビュー側（UI）から参照するための Getter
     public bool SaveAsSquare => saveAsSquare;
     public SquareAnchor CurrentSquareAnchor => squareAnchor;
 
@@ -54,8 +49,8 @@ public sealed class ARPhotoController : MonoBehaviour
 
     public enum SaveModeIOS
     {
-        CompositeScreenshot,  // 推奨: 画面に見えるまま保存（ARSession停止なし、UIは本スクリプトで非表示化）
-        NativeCamera          // 互換: ネイティブ撮影（ARSession一時停止→必ず復帰）
+        CompositeScreenshot,
+        NativeCamera
     }
 
 #if UNITY_IOS && !UNITY_EDITOR
@@ -64,8 +59,6 @@ public sealed class ARPhotoController : MonoBehaviour
 #endif
 
     private bool _isCapturing;
-
-    //　撮影時に一時的にカメラの CullingMask を変更するための退避
     private int _savedCullingMask;
     private bool _maskPatched;
 
@@ -74,30 +67,25 @@ public sealed class ARPhotoController : MonoBehaviour
         if (!arSession)
             arSession = UnityEngine.Object.FindFirstObjectByType<ARSession>(FindObjectsInactive.Include);
         if (!captureCamera)
-            captureCamera = Camera.main; // ★ 追加：未指定ならメインカメラ
+            captureCamera = Camera.main;
     }
 
-    // ★ 修正：OcclusionToggleに依存せずローカルで深度を復帰
     private IEnumerator RestoreDepthNextFrame()
     {
-        yield return null; // 次フレームまで待つ
-
+        yield return null;
         var occ = UnityEngine.Object.FindFirstObjectByType<AROcclusionManager>(FindObjectsInactive.Exclude);
         if (!occ) yield break;
-
         try { occ.requestedEnvironmentDepthMode = EnvironmentDepthMode.Medium; } catch { }
         try { occ.requestedOcclusionPreferenceMode = OcclusionPreferenceMode.PreferEnvironmentOcclusion; } catch { }
         try { occ.requestedHumanDepthMode = HumanSegmentationDepthMode.Disabled; } catch { }
         try { occ.requestedHumanStencilMode = HumanSegmentationStencilMode.Disabled; } catch { }
     }
 
-    /// <summary>UIボタンなどから呼ぶ。</summary>
     public void Capture()
     {
         if (!allowConcurrentCapture && _isCapturing) return;
 
 #if UNITY_IOS && !UNITY_EDITOR
-        // ★ 修正: 正方形保存が有効なときはネイティブ撮影を避け、合成スクショ経由にフォールバック
         if (iosSaveMode == SaveModeIOS.NativeCamera && !saveAsSquare)
         {
             StartCoroutine(CaptureIOS_Native());
@@ -107,38 +95,37 @@ public sealed class ARPhotoController : MonoBehaviour
         StartCoroutine(CaptureCompositedAndSave());
     }
 
-    /// <summary>
-    /// 方法②：画面スクショ保存。ただし撮影直前にUI(CanvasGroup)を不可視化してUIだけを写さない。
-    /// さらに「Plane 可視化レイヤー」を一時的にカリングして写真に映さない。
-    /// ARSessionは停止しないため安全。
-    /// </summary>
     private IEnumerator CaptureCompositedAndSave()
     {
         _isCapturing = true;
         try
         {
-            // --- ① UIを不可視化（描画・クリックともに無効化） ---
             SetUIVisible(false);
+            BeginExcludePlaneLayer();
 
-            // --- ② Plane 可視化レイヤーをカメラから除外（撮る瞬間だけ） ---
-            BeginExcludePlaneLayer();  // ★ 追加
-
-            // レイアウト／カリング反映を待つ → そのフレームの描画完了を待つ
+            // レイアウト反映
             yield return null;
             yield return new WaitForEndOfFrame();
 
-            // --- ③ 画面キャプチャ（= AR背景＋3Dのみ。UI/Planeは非表示のため入らない） ---
+            // ① 画面キャプチャ（UI/Plane除外済み）
             var tex = ScreenCapture.CaptureScreenshotAsTexture(); // RGBA32
-            if (tex == null)
+            if (!tex)
             {
                 Debug.LogError("[ARPhoto] CaptureScreenshotAsTexture returned null");
                 yield break;
             }
 
-            // ★ 追加: 正方形クロップ（必要なときだけ）
+            // ② 正方形クロップ（オフセット追従を反映）
             if (saveAsSquare)
             {
-                var sq = CropToSquare(tex, squareAnchor);
+                // ★ MOD: 「中心ベース + SafeArea対応」の写像で保存テクスチャ上のRectを決定
+                var cropRect = ComputeSquareCropOnTexture_CenterBased(
+                    tex.width, tex.height,
+                    squareAnchor,
+                    (squareOverlay != null) ? squareOverlay.offsetPx : Vector2.zero
+                );
+
+                var sq = CropToRect(tex, cropRect);
                 UnityEngine.Object.Destroy(tex);
                 tex = sq;
             }
@@ -180,33 +167,23 @@ public sealed class ARPhotoController : MonoBehaviour
         }
         finally
         {
-            // --- ④ 平面レイヤーのカリングを元に戻す ---
-            EndExcludePlaneLayer();    // ★ 追加
-
-            // --- ⑤ UIを必ず復帰 ---
+            EndExcludePlaneLayer();
             SetUIVisible(true);
             _isCapturing = false;
         }
     }
 
-    // ★ 追加：撮影の瞬間だけ Plane 可視化レイヤーを写さない
     private void BeginExcludePlaneLayer()
     {
         if (!captureCamera) return;
-
         int planeLayer = LayerMask.NameToLayer(planeVizLayerName);
         if (planeLayer < 0)
         {
-            // レイヤー未作成でも落ちないように注意喚起だけ
-            Debug.LogWarning($"[ARPhoto] Layer '{planeVizLayerName}' not found. " +
-                             "Project Settings > Tags and Layers で作成し、Plane Prefab に割り当ててください。");
+            Debug.LogWarning($"[ARPhoto] Layer '{planeVizLayerName}' not found. Create it and assign to Plane prefab.");
             return;
         }
-
         _savedCullingMask = captureCamera.cullingMask;
         _maskPatched = true;
-
-        // 該当レイヤーのビットだけ落とす
         captureCamera.cullingMask = _savedCullingMask & ~(1 << planeLayer);
     }
 
@@ -217,7 +194,6 @@ public sealed class ARPhotoController : MonoBehaviour
         _maskPatched = false;
     }
 
-    // UIの表示/非表示をまとめて切り替え
     private void SetUIVisible(bool visible)
     {
         if (uiToHide == null) return;
@@ -231,44 +207,30 @@ public sealed class ARPhotoController : MonoBehaviour
     }
 
 #if UNITY_IOS && !UNITY_EDITOR
-    /// <summary>
-    /// iOSネイティブ撮影（互換）。ARSession を一時停止するため、try/finallyで必ず復帰させる。
-    /// ※このモードはUIの可視/不可視に関わらず「画面キャプチャ」ではないので、UIやPlaneの可視化はそもそも写りません。
-    /// </summary>
     private IEnumerator CaptureIOS_Native()
     {
-        // 1) 必要なら深度を一時停止
         occlusionToggle?.DisableDepthNow();
         yield return null;
 
-        // 2) セッションを止める（現在ONのときだけ）
         bool wasRunning = (arSession != null && arSession.enabled);
         if (arSession != null && wasRunning)
             arSession.enabled = false;
 
         try
         {
-            // 3) ネイティブ撮影呼び出し
             ARNative_CaptureOneShot();
-
-            // 端末側の保存完了を軽く待つ（必要に応じて調整）
             yield return new WaitForSeconds(0.8f);
         }
         finally
         {
-            // 4) 例外や早期returnがあっても必ず復帰（finally内ではyieldしない）
             if (arSession != null)
                 arSession.enabled = true;
-
-            // 深度復帰は次フレームに回す
             StartCoroutine(RestoreDepthNextFrame());
         }
     }
 #endif
 
 #if UNITY_ANDROID
-    // Android 10+ : MediaStore + RELATIVE_PATH で Pictures/aiCam に保存
-    // Android 9-  : 旧外部ストレージ直書き + MediaScanner フォールバック
     private static void SavePngToAndroidGallery(byte[] pngBytes, string fileName)
     {
         using (var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
@@ -277,9 +239,7 @@ public sealed class ARPhotoController : MonoBehaviour
         {
             int sdkInt;
             using (var version = new AndroidJavaClass("android.os.Build$VERSION"))
-            {
                 sdkInt = version.GetStatic<int>("SDK_INT");
-            }
 
             if (sdkInt >= 29)
             {
@@ -299,7 +259,6 @@ public sealed class ARPhotoController : MonoBehaviour
                         var uri = resolver.Call<AndroidJavaObject>("insert",
                             mediaStoreImagesMedia.GetStatic<AndroidJavaObject>("EXTERNAL_CONTENT_URI"),
                             values);
-
                         if (uri == null) throw new Exception("resolver.insert returned null Uri");
 
                         using (var os = resolver.Call<AndroidJavaObject>("openOutputStream", uri))
@@ -315,10 +274,9 @@ public sealed class ARPhotoController : MonoBehaviour
             {
                 string picturesDir;
                 using (var environment = new AndroidJavaClass("android.os.Environment"))
-                {
                     picturesDir = environment.CallStatic<AndroidJavaObject>("getExternalStoragePublicDirectory",
                         environment.GetStatic<string>("DIRECTORY_PICTURES")).Call<string>("getAbsolutePath");
-                }
+
                 var folder = Path.Combine(picturesDir, "aiCam");
                 if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
 
@@ -326,38 +284,44 @@ public sealed class ARPhotoController : MonoBehaviour
                 File.WriteAllBytes(absPath, pngBytes);
 
                 using (var ms = new AndroidJavaClass("android.media.MediaScannerConnection"))
-                {
                     ms.CallStatic("scanFile", activity, new string[] { absPath }, null, null);
-                }
             }
         }
     }
 #endif
 
-    // ★ 追加: 正方形クロップ関数（CPU側で安全に切り出し）
-    private static Texture2D CropToSquare(Texture2D src, SquareAnchor anchor)
+    // -------------------- ここからクロップ系（オフセット対応） --------------------
+
+    // 任意の矩形で安全に切り出す（テクスチャ座標系）
+    private static Texture2D CropToRect(Texture2D src, RectInt r)
     {
-        var r = ComputeSquareCropRect(src.width, src.height, anchor);
-        Color[] pixels = src.GetPixels(r.x, r.y, r.width, r.height);
-        var dst = new Texture2D(r.width, r.height, TextureFormat.RGBA32, false);
+        // 範囲保護
+        int x = Mathf.Clamp(r.x, 0, Mathf.Max(0, src.width  - 1));
+        int y = Mathf.Clamp(r.y, 0, Mathf.Max(0, src.height - 1));
+        int w = Mathf.Clamp(r.width,  1, src.width  - x);
+        int h = Mathf.Clamp(r.height, 1, src.height - y);
+
+        Color[] pixels = src.GetPixels(x, y, w, h);
+        var dst = new Texture2D(w, h, TextureFormat.RGBA32, false);
         dst.SetPixels(pixels);
         dst.Apply();
         return dst;
     }
-    
-    // いまの画面サイズ基準の正方形トリミング矩形（ピクセル）
+
+    // 現在の画面サイズ基準の正方形トリミング矩形（UIオフセットも反映）
     public RectInt GetCurrentSquareCropRectPixels()
     {
-        return ComputeSquareCropRect(Screen.width, Screen.height, squareAnchor);
+        Vector2 uiOffsetPx = (squareOverlay != null) ? squareOverlay.offsetPx : Vector2.zero;
+        return ComputeSquareCropRect(Screen.width, Screen.height, squareAnchor, uiOffsetPx);
     }
-    
-    // ★ 共通：幅・高さとアンカーから正方形の切り出し矩形を計算（左下原点, ピクセル）
-    public static RectInt ComputeSquareCropRect(int width, int height, SquareAnchor anchor)
+
+    // 幅・高さとアンカー＋ピクセルオフセットから正方形の切り出し矩形を計算（左下原点, ピクセル）
+    public static RectInt ComputeSquareCropRect(int width, int height, SquareAnchor anchor, Vector2 extraOffsetPx)
     {
         int s = Mathf.Min(width, height);
         int x = (width  - s) / 2;
         int y = (height - s) / 2;
-    
+
         switch (anchor)
         {
             case SquareAnchor.Top:         y = height - s; break;
@@ -370,9 +334,59 @@ public sealed class ARPhotoController : MonoBehaviour
             case SquareAnchor.BottomRight: x = width - s; y = 0; break;
             // Center は既定値
         }
-    
+
+        // UIで動かした分（右+/上+）を加算
+        if (extraOffsetPx.sqrMagnitude > 0f)
+        {
+            x += Mathf.RoundToInt(extraOffsetPx.x);
+            y += Mathf.RoundToInt(extraOffsetPx.y);
+        }
+
+        // 画面内に収まるようクランプ
         x = Mathf.Clamp(x, 0, width  - s);
         y = Mathf.Clamp(y, 0, height - s);
         return new RectInt(x, y, s, s);
+    }
+
+    // 互換：オフセット無し（既存APIを残す）
+    public static RectInt ComputeSquareCropRect(int width, int height, SquareAnchor anchor)
+        => ComputeSquareCropRect(width, height, anchor, Vector2.zero);
+
+    // ★ MOD: 中心ベース + Safe Area 対応で保存テクスチャ上の正方形Rectを算出
+    private RectInt ComputeSquareCropOnTexture_CenterBased(
+        int texW, int texH, SquareAnchor anchor, Vector2 uiOffsetPx)
+    {
+        // 1) SafeArea内で最終スクエアを計算（SquareCropOverlayと整合）
+        Rect sa = Screen.safeArea;
+        int saW = Mathf.RoundToInt(sa.width);
+        int saH = Mathf.RoundToInt(sa.height);
+        RectInt sqInSafe = ComputeSquareCropRect(saW, saH, anchor, uiOffsetPx);
+
+        // 2) 画面（SafeArea原点込み）の中心（左下原点）
+        float scrCX = (sa.x / 2) + (sqInSafe.x + sqInSafe.width  * 0.5f);
+        float scrCY = (sa.y / 2) + (sqInSafe.y + sqInSafe.height * 0.5f);
+
+        // 3) Screen→tex の線形写像
+        float sx = texW / Mathf.Max(1f, (float)Screen.width);
+        float sy = texH / Mathf.Max(1f, (float)Screen.height);
+
+        int texCX = Mathf.RoundToInt(scrCX * sx);
+        int texCY = Mathf.RoundToInt(scrCY * sy);
+
+        // 4) サイズは“実際のUI枠幅”を等方スケール（見た目そのまま）
+        int sideOnTex = Mathf.Max(1, Mathf.RoundToInt(sqInSafe.width * Mathf.Min(sx, sy)));
+
+        // 5) 左下原点は Floor で上方向の+1pxブレを抑制 → クランプ
+        int tx = Mathf.FloorToInt(texCX - sideOnTex / 2f);
+        int ty = Mathf.FloorToInt(texCY - sideOnTex / 2f);
+
+        tx = Mathf.Clamp(tx, 0, texW - sideOnTex);
+        ty = Mathf.Clamp(ty, 0, texH - sideOnTex);
+
+        Debug.Log($"[ARPhoto] Screen {Screen.width}x{Screen.height}  tex {texW}x{texH}");
+        Debug.Log($"[ARPhoto] sqInSafe={sqInSafe}  sx={sx:F3} sy={sy:F3}  sideOnTex={sideOnTex}");
+        Debug.Log($"[ARPhoto] tx,ty={tx},{ty}  texCX,texCY={texCX},{texCY}");
+
+        return new RectInt(tx, ty, sideOnTex, sideOnTex);
     }
 }
