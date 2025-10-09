@@ -16,6 +16,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
     [SerializeField] ARPlaneManager planeManager;
     [SerializeField] ARAnchorManager anchorManager;   // 任意（安定化用）
     [SerializeField] FaceUIManager faceUIManager;
+    [SerializeField] ExpressionGridLayout expressionGridLayout;
 
     [Header("Filters")]
     [Tooltip("水平面（床・テーブルなど）に限定")]
@@ -31,6 +32,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
     static readonly List<ARRaycastHit> s_Hits = new();
     ARRaycastManager rcMgr;
     GameObject avatar;
+    FaceController avatarFaceController;
 
     void Awake()
     {
@@ -44,6 +46,12 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
 
     void Update()
     {
+        if(!avatar && avatarFaceController)
+        {
+            avatarFaceController = null;
+            expressionGridLayout?.SetTargetController(null);
+        }
+
         if (Input.touchCount == 0) return;
         var touch = Input.GetTouch(0);
         if (touch.phase != TouchPhase.Began) return;
@@ -98,6 +106,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         if (!avatar)
         {
             avatar = Instantiate(avatarPrefab, pose.position, pose.rotation, parent);
+            BindAvatarFaceController();
 
             // HUDを起動
             faceUIManager?.InitializeWithAvatar(avatar);
@@ -105,9 +114,11 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         else
         {
             avatar.transform.SetPositionAndRotation(pose.position, pose.rotation);
+            if (!avatarFaceController)
+                BindAvatarFaceController();
         }
     }
-    
+
     // UIヒット判定（EventSystem + 指定Rect）
     bool IsTouchOverUI(Touch touch)
     {
@@ -127,5 +138,17 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         }
 
         return false;
+    }
+
+    void BindAvatarFaceController()
+    {
+        avatarFaceController = avatar ? avatar.GetComponent<FaceController>() : null;
+        expressionGridLayout?.SetTargetController(avatarFaceController);
+    }
+
+    void OnDisable()
+    {
+        avatarFaceController = null;
+        expressionGridLayout?.SetTargetController(null);
     }
 }

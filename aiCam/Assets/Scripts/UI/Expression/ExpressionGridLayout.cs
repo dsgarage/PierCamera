@@ -14,6 +14,10 @@ public class ExpressionGridLayout : MonoBehaviour
     [Header("Editor 用ターゲット（固定生成に使用）")]
     public FaceController editorTargetController;
 
+    [Header("Runtime Target")]
+    [SerializeField, ReadOnly]
+    private FaceController runtimeTargetController;
+
     [Header("Target Area (ScrollRect Content 推奨)")]
     [SerializeField] private RectTransform contentRect;
 
@@ -92,6 +96,12 @@ public class ExpressionGridLayout : MonoBehaviour
         }
     }
 
+    public void SetTargetController(FaceController controller)
+    {
+        runtimeTargetController = controller;
+        ApplyTargetControllerToChildren();
+    }
+
     /// <summary>
     /// レイアウト・データバインド本体
     /// </summary>
@@ -140,6 +150,8 @@ public class ExpressionGridLayout : MonoBehaviour
                              : (it.clip ? it.clip.name : "(None)");
                 slot.Bind(it.clip, i, it.thumbnail, label);
             }
+
+            ConfigureButtonForIndex(child.GetComponent<ButtonFaceAction>(), i);
         }
 
         // 余剰分は非表示（fullRebuildOnUpdate=true なら基本来ないが安全のため）
@@ -219,8 +231,7 @@ public class ExpressionGridLayout : MonoBehaviour
 #else
             go = Instantiate(slotPrefab, contentRect);
 #endif
-            var btnFaceAct = go.GetComponent<ButtonFaceAction>();
-            if (btnFaceAct) btnFaceAct.faceName = items[i].clip.name;
+            ConfigureButtonForIndex(go.GetComponent<ButtonFaceAction>(), i);
             go.name = $"Slot_{i:000}";
             go.SetActive(true);
         }
@@ -233,7 +244,15 @@ public class ExpressionGridLayout : MonoBehaviour
     {
         int current = contentRect.childCount;
         for (int i = 0; i < current; i++)
-            contentRect.GetChild(i).gameObject.SetActive(i < needed);
+        {
+            var child = contentRect.GetChild(i).gameObject;
+            bool active = i < needed;
+            child.SetActive(active);
+            if(active)
+            {
+                ConfigureButtonForIndex(child.GetComponent<ButtonFaceAction>(), i);
+            }
+        }
 
         for (int i = current; i < needed; i++)
         {
@@ -246,6 +265,7 @@ public class ExpressionGridLayout : MonoBehaviour
 #else
             go = Instantiate(slotPrefab, contentRect);
 #endif
+            ConfigureButtonForIndex(go.GetComponent<ButtonFaceAction>(), i);
             go.name = $"Slot_{i:000}";
             go.SetActive(true);
         }
@@ -262,6 +282,37 @@ public class ExpressionGridLayout : MonoBehaviour
             rt.anchorMin = new Vector2(0, 1);
             rt.anchorMax = new Vector2(1, 1);
             rt.anchoredPosition = new Vector2(0, rt.anchoredPosition.y);
+        }
+    }
+
+    private FaceController ResolveTargetController()
+    {
+        return runtimeTargetController ? runtimeTargetController : editorTargetController;
+    }
+
+    private void ConfigureButtonForIndex(ButtonFaceAction action, int index)
+    {
+        if (!action) return;
+        action.controller = ResolveTargetController();
+        action.faceName = GetFaceNameForIndex(index);
+    }
+
+    private string GetFaceNameForIndex(int index)
+    {
+        if (index < 0 || index >= items.Count) return string.Empty;
+        var clip = items[index].clip;
+        return clip ? clip.name : string.Empty;
+    }
+
+    private void ApplyTargetControllerToChildren()
+    {
+        if (!contentRect) return;
+        var target = ResolveTargetController();
+        for(int i = 0; i < contentRect.childCount; i++)
+        {
+            var button = contentRect.GetChild(i).GetComponent<ButtonFaceAction>();
+            if (!button) continue;
+            button.controller = target;
         }
     }
 
