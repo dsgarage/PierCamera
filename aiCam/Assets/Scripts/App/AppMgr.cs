@@ -47,6 +47,8 @@ public class AppMgr : MonoBehaviour
     {
         // 写真撮影に遷移
         State = AppState.PhotoGraphy;
+        // メイン画面に遷移
+        UIMgr.instance.State = UIMgr.UIState.Home;
     }
 
 

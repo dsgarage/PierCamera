@@ -48,7 +48,10 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         var touch = Input.GetTouch(0);
         if (touch.phase != TouchPhase.Began) return;
 
-        // ★ 追加：UI 上のタップは必ず無視（EventSystem か、明示登録したRectに入っていたら弾く）
+        // Main画面以外は無視
+        if (UIMgr.instance.State != UIMgr.UIState.Home) return;
+
+        // UI 上のタップは必ず無視（EventSystem か、明示登録したRectに入っていたら弾く）
         if (IsTouchOverUI(touch)) return;
 
         // UI上のタップは無視
@@ -122,6 +125,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
             if (RectTransformUtility.RectangleContainsScreenPoint(rt, touch.position, cam))
                 return true;
         }
+
         return false;
     }
 }

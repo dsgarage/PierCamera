@@ -19,6 +19,9 @@ public class ButtonFaceAction : MonoBehaviour
 
     public void Apply()
     {
+        Debug.Log($"{this}：{nameof(Apply)}");
+        Debug.Log($"{nameof(FaceController)}：{controller}");
+        Debug.Log($"{faceName}：{faceName}");
         if (controller && !string.IsNullOrEmpty(faceName))
             controller.SetFace(faceName, keep, crossFadeTime);
     }
