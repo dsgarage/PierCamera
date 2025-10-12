@@ -11,6 +11,13 @@ using UnityEditor.Experimental.SceneManagement;
 [ExecuteAlways]
 public class PoseGridLayout : MonoBehaviour
 {
+    [Header("Editor 用ターゲット（固定生成に使用）")]
+    public Animator editorTargetAnimator;
+
+    [Header("Runtime Target")]
+    [SerializeField, ReadOnly]
+    private Animator runtimeTargetAnimator;
+
     [Header("Target Area (ScrollRect Content 推奨)")]
     [SerializeField] private RectTransform contentRect;
 
@@ -28,6 +35,10 @@ public class PoseGridLayout : MonoBehaviour
     [SerializeField] private bool squareCell = true;
     [Min(0)] [SerializeField] private float minCellWidth = 0f;
     [SerializeField] private bool autoScrollToTop = true;
+
+    [Header("Animator Settings")]
+    [SerializeField, Min(0)] private int targetLayerIndex = 0;
+    [SerializeField, Min(0f)] private float crossFadeTime = 0.1f;
 
     [Header("Rebuild Policy")]
     [Tooltip("Update 押下時に一度すべての子を削除し、必要数だけ新規生成します。")]
@@ -132,8 +143,10 @@ public class PoseGridLayout : MonoBehaviour
                 string label = !string.IsNullOrEmpty(it.displayNameOverride)
                              ? it.displayNameOverride
                              : (it.clip ? it.clip.name : "(None)");
-                slot.Bind(it.clip, i, it.thumbnail, label);
+                slot.Bind(it.clip, i, it.thumbnail, label, it.statePath);
             }
+
+            ConfigureButtonForIndex(child.GetComponent<ButtonPoseAction>(), i);
         }
 
         // 余剰分は非表示（fullRebuildOnUpdate=true なら基本来ないが安全のため）
@@ -210,6 +223,7 @@ public class PoseGridLayout : MonoBehaviour
 #else
             go = Instantiate(slotPrefab, contentRect);
 #endif
+            ConfigureButtonForIndex(go.GetComponent<ButtonPoseAction>(), i);
             go.name = $"Slot_{i:000}";
             go.SetActive(true);
         }
@@ -222,7 +236,15 @@ public class PoseGridLayout : MonoBehaviour
     {
         int current = contentRect.childCount;
         for (int i = 0; i < current; i++)
-            contentRect.GetChild(i).gameObject.SetActive(i < needed);
+        {
+            var child = contentRect.GetChild(i).gameObject;
+            bool active = i < needed;
+            child.SetActive(active);
+            if (active)
+            {
+                ConfigureButtonForIndex(child.GetComponent<ButtonPoseAction>(), i);
+            }
+        }
 
         for (int i = current; i < needed; i++)
         {
@@ -235,6 +257,7 @@ public class PoseGridLayout : MonoBehaviour
 #else
             go = Instantiate(slotPrefab, contentRect);
 #endif
+            ConfigureButtonForIndex(go.GetComponent<ButtonPoseAction>(), i);
             go.name = $"Slot_{i:000}";
             go.SetActive(true);
         }
@@ -251,6 +274,49 @@ public class PoseGridLayout : MonoBehaviour
             rt.anchorMin = new Vector2(0, 1);
             rt.anchorMax = new Vector2(1, 1);
             rt.anchoredPosition = new Vector2(0, rt.anchoredPosition.y);
+        }
+    }
+
+    public int TargetLayerIndex => targetLayerIndex;
+
+    public float CrossFadeTime => crossFadeTime;
+
+    public void SetTargetAnimator(Animator animator)
+    {
+        runtimeTargetAnimator = animator;
+        ApplyTargetAnimatorToChildren();
+    }
+
+    private Animator ResolveTargetAnimator()
+    {
+        return runtimeTargetAnimator ? runtimeTargetAnimator : editorTargetAnimator;
+    }
+
+    private void ConfigureButtonForIndex(ButtonPoseAction action, int index)
+    {
+        if (!action) return;
+        var targetAnimator = ResolveTargetAnimator();
+        var statePath = GetStatePathForIndex(index);
+        var clip = (index >= 0 && index < items.Count) ? items[index].clip : null;
+        action.Configure(targetAnimator, statePath, clip, crossFadeTime, targetLayerIndex);
+    }
+
+    private string GetStatePathForIndex(int index)
+    {
+        if (index < 0 || index >= items.Count) return string.Empty;
+        var it = items[index];
+        if (!string.IsNullOrEmpty(it.statePath)) return it.statePath;
+        return it.clip ? it.clip.name : string.Empty;
+    }
+
+    private void ApplyTargetAnimatorToChildren()
+    {
+        if (!contentRect) return;
+        for (int i = 0; i < contentRect.childCount; i++)
+        {
+            var action = contentRect.GetChild(i).GetComponent<ButtonPoseAction>();
+            if (!action) continue;
+            ConfigureButtonForIndex(action, i);
         }
     }
 
