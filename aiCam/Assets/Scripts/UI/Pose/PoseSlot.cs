@@ -14,15 +14,17 @@ public class PoseSlot : MonoBehaviour
     private AnimationClip clip;
     private int index;
     private string label;
+    private string statePath;
 
     /// <summary>
     /// thumbnail: null 可 / label: null または空なら clip.name を使う
     /// </summary>
-    public void Bind(AnimationClip clip, int index, Sprite thumbnail = null, string label = null)
+    public void Bind(AnimationClip clip, int index, Sprite thumbnail = null, string label = null, string statePath = null)
     {
         this.clip = clip;
         this.index = index;
         this.label = string.IsNullOrEmpty(label) ? (clip ? clip.name : "(None)") : label;
+        this.statePath = string.IsNullOrEmpty(statePath) ? (clip ? clip.name : string.Empty) : statePath;
 
         Image image = GetComponent<Image>();
         if(image) image.sprite = thumbnail;
@@ -42,8 +44,15 @@ public class PoseSlot : MonoBehaviour
 
     public void OnClick()
     {
-        Debug.Log($"Pose clicked: {index} - {clip?.name}");
-        // TODO: ここでアバターへ適用・選択制御など
+        var action = GetComponent<ButtonPoseAction>();
+        if (action)
+        {
+            action.Apply();
+        }
+        else
+        {
+            Debug.Log($"Pose clicked: {index} - {clip?.name} ({statePath})");
+        }
         SetSelected(true);
     }
 }

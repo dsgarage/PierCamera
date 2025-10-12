@@ -7,4 +7,6 @@ public class PoseItem
     public Sprite thumbnail;
     [Tooltip("空なら clip.name を使う")]
     public string displayNameOverride;
+    [Tooltip("Animator のステートパス (例: SubState.State)")]
+    public string statePath;
 }
