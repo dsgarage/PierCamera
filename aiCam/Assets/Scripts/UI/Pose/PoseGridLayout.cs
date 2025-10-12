@@ -37,7 +37,7 @@ public class PoseGridLayout : MonoBehaviour
     [SerializeField] private bool autoScrollToTop = true;
 
     [Header("Animator Settings")]
-    [SerializeField, Min(0)] private int targetLayerIndex = 2;
+    [SerializeField, Min(0)] private int targetLayerIndex = 0;
     [SerializeField, Min(0f)] private float crossFadeTime = 0.1f;
 
     [Header("Rebuild Policy")]

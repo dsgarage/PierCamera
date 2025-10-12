@@ -133,9 +133,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 86067133153394a73a70d958e38b9da8, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
+  icon: {fileID: 0}
   tmpText: {fileID: 6573363265125866751}
+  selected: {fileID: 0}
 --- !u!114 &-4032288765432198765
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -146,12 +148,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 174e3f16018e4fd3977ed12ae8c1f533, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   animator: {fileID: 0}
-  layerIndex: 2
+  layerIndex: 0
   crossFadeTime: 0.1
-  statePath:
+  statePath: 
   clip: {fileID: 0}
 --- !u!1 &3306106851116749376
 GameObject:
