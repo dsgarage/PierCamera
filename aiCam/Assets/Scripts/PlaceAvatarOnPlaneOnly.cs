@@ -17,6 +17,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
     [SerializeField] ARAnchorManager anchorManager;   // 任意（安定化用）
     [SerializeField] FaceUIManager faceUIManager;
     [SerializeField] ExpressionGridLayout expressionGridLayout;
+    [SerializeField] PoseGridLayout poseGridLayout;
 
     [Header("Filters")]
     [Tooltip("水平面（床・テーブルなど）に限定")]
@@ -33,6 +34,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
     ARRaycastManager rcMgr;
     GameObject avatar;
     FaceController avatarFaceController;
+    Animator avatarAnimator;
 
     void Awake()
     {
@@ -40,16 +42,26 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         if (!planeManager) planeManager = FindFirstObjectByType<ARPlaneManager>(FindObjectsInactive.Include);
         if (!anchorManager) anchorManager = FindFirstObjectByType<ARAnchorManager>(FindObjectsInactive.Include);
         if (!faceUIManager) faceUIManager = FindFirstObjectByType<FaceUIManager>(FindObjectsInactive.Include);
+        if (!poseGridLayout) poseGridLayout = FindFirstObjectByType<PoseGridLayout>(FindObjectsInactive.Include);
         // 床寄りにしたい場合は検出を水平に絞る（※壁検出を抑制）
         if (planeManager) planeManager.requestedDetectionMode = PlaneDetectionMode.Horizontal;
     }
 
     void Update()
     {
-        if(!avatar && avatarFaceController)
+        if (!avatar)
         {
-            avatarFaceController = null;
-            expressionGridLayout?.SetTargetController(null);
+            if (avatarFaceController)
+            {
+                avatarFaceController = null;
+                expressionGridLayout?.SetTargetController(null);
+            }
+
+            if (avatarAnimator)
+            {
+                avatarAnimator = null;
+                poseGridLayout?.SetTargetAnimator(null);
+            }
         }
 
         if (Input.touchCount == 0) return;
@@ -114,7 +126,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         else
         {
             avatar.transform.SetPositionAndRotation(pose.position, pose.rotation);
-            if (!avatarFaceController)
+            if (!avatarFaceController || !avatarAnimator)
                 BindAvatarFaceController();
         }
     }
@@ -143,12 +155,16 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
     void BindAvatarFaceController()
     {
         avatarFaceController = avatar ? avatar.GetComponent<FaceController>() : null;
+        avatarAnimator = avatar ? avatar.GetComponent<Animator>() : null;
         expressionGridLayout?.SetTargetController(avatarFaceController);
+        poseGridLayout?.SetTargetAnimator(avatarAnimator);
     }
 
     void OnDisable()
     {
         avatarFaceController = null;
         expressionGridLayout?.SetTargetController(null);
+        avatarAnimator = null;
+        poseGridLayout?.SetTargetAnimator(null);
     }
 }
