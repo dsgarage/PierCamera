@@ -2,6 +2,7 @@ using UnityEditor;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEditor.Animations;
 
 [CustomEditor(typeof(ExpressionGridLayout))]
 public class ExpressionGridLayoutEditor : Editor
@@ -93,26 +94,89 @@ public class ExpressionGridLayoutEditor : Editor
                     return;
                 }
 
-                // RuntimeAnimatorController から全 AnimationClip を収集（OverrideController も展開）
+                // Animator Controller のレイヤー1のみから AnimationClip を収集
+                const int targetLayerIndex = 1;
                 var rac = animator.runtimeAnimatorController;
                 var clips = new List<AnimationClip>();
 
-                void CollectClips(RuntimeAnimatorController ctrl)
+                bool TryCollectLayerClips(RuntimeAnimatorController ctrl, int layerIndex, List<AnimationClip> destination)
                 {
-                    if (ctrl == null) return;
-                    if (ctrl is AnimatorOverrideController aoc)
+                    if (ctrl == null) return false;
+
+                    var overrideMap = new Dictionary<AnimationClip, AnimationClip>();
+                    AnimatorController baseController = null;
+
+                    void Traverse(RuntimeAnimatorController current)
                     {
-                        // 元コントローラを辿る
-                        CollectClips(aoc.runtimeAnimatorController);
-                        // 上書き後のClipも追加
-                        clips.AddRange(aoc.animationClips.Where(c => c));
+                        switch (current)
+                        {
+                            case AnimatorOverrideController aoc:
+                                Traverse(aoc.runtimeAnimatorController);
+                                var overrides = new List<KeyValuePair<AnimationClip, AnimationClip>>();
+                                aoc.GetOverrides(overrides);
+                                foreach (var pair in overrides)
+                                {
+                                    if (pair.Value != null)
+                                        overrideMap[pair.Key] = pair.Value;
+                                    else
+                                        overrideMap.Remove(pair.Key);
+                                }
+                                break;
+                            case AnimatorController ac:
+                                baseController = ac;
+                                break;
+                        }
                     }
-                    else
+
+                    Traverse(ctrl);
+
+                    if (baseController == null) return false;
+                    if (layerIndex < 0 || layerIndex >= baseController.layers.Length) return false;
+
+                    AnimationClip ResolveClip(AnimationClip original)
                     {
-                        clips.AddRange(ctrl.animationClips.Where(c => c));
+                        if (original == null) return null;
+                        if (overrideMap.TryGetValue(original, out var overridden) && overridden != null)
+                            return overridden;
+                        return original;
                     }
+
+                    void CollectFromMotion(Motion motion)
+                    {
+                        if (motion == null) return;
+                        switch (motion)
+                        {
+                            case AnimationClip clip:
+                                var resolved = ResolveClip(clip);
+                                if (resolved != null)
+                                    destination.Add(resolved);
+                                break;
+                            case BlendTree blendTree:
+                                foreach (var child in blendTree.children)
+                                    CollectFromMotion(child.motion);
+                                break;
+                        }
+                    }
+
+                    void CollectFromStateMachine(AnimatorStateMachine stateMachine)
+                    {
+                        foreach (var childState in stateMachine.states)
+                            CollectFromMotion(childState.state.motion);
+
+                        foreach (var childMachine in stateMachine.stateMachines)
+                            CollectFromStateMachine(childMachine.stateMachine);
+                    }
+
+                    CollectFromStateMachine(baseController.layers[layerIndex].stateMachine);
+                    return true;
                 }
-                CollectClips(rac);
+
+                if (!TryCollectLayerClips(rac, targetLayerIndex, clips))
+                {
+                    EditorUtility.DisplayDialog("Animator レイヤーが見つかりません",
+                        $"Animator Controller にレイヤー {targetLayerIndex} が存在しません。FaceController の Animator を確認してください。", "OK");
+                    return;
+                }
 
                 // 重複除去（同一インスタンス）＆名前でソート
                 var unique = clips
