@@ -430,36 +430,39 @@ public class AnimatorStateScreenshotWindow : EditorWindow
                 try
                 {
                     // 1) ポーズ適用
-                    if (!ApplyStatePoseBySampling(targetObject, entry, normalizedTime))
+                    if (!TryApplyStatePoseBySampling(targetObject, entry, normalizedTime, out var samplingScope))
                     {
                         Debug.LogWarning($"State '{entry.fullPath}'：サンプルできる AnimationClip が見つかりませんでした。スキップします。");
                         continue;
                     }
 
-                    // 2) レンダリング
-                    RenderTexture.active = rt;
-                    if (transparentBackground)
+                    using (samplingScope)
                     {
-                        GL.PushMatrix();
-                        GL.LoadPixelMatrix(0, captureWidth, captureHeight, 0);
-                        GL.Clear(true, true, backgroundColor);
-                        GL.PopMatrix();
+                        // 2) レンダリング
+                        RenderTexture.active = rt;
+                        if (transparentBackground)
+                        {
+                            GL.PushMatrix();
+                            GL.LoadPixelMatrix(0, captureWidth, captureHeight, 0);
+                            GL.Clear(true, true, backgroundColor);
+                            GL.PopMatrix();
+                        }
+                        cam.Render();
+
+                        // 3) PNG保存
+                        var tex = new Texture2D(captureWidth, captureHeight, TextureFormat.RGBA32, false, false);
+                        tex.ReadPixels(new Rect(0, 0, captureWidth, captureHeight), 0, 0, false);
+                        tex.Apply(false, false);
+                        var png = tex.EncodeToPNG();
+                        UnityEngine.Object.DestroyImmediate(tex);
+
+                        string fname = $"{filePrefix}{entry.FileSafeName(includeSubStatePathInFileName)}.png";
+                        string path = Path.Combine(outputDirectory, fname);
+                        File.WriteAllBytes(path, png);
+
+                        success++;
+                        Debug.Log($"Saved: {path}");
                     }
-                    cam.Render();
-
-                    // 3) PNG保存
-                    var tex = new Texture2D(captureWidth, captureHeight, TextureFormat.RGBA32, false, false);
-                    tex.ReadPixels(new Rect(0, 0, captureWidth, captureHeight), 0, 0, false);
-                    tex.Apply(false, false);
-                    var png = tex.EncodeToPNG();
-                    UnityEngine.Object.DestroyImmediate(tex);
-
-                    string fname = $"{filePrefix}{entry.FileSafeName(includeSubStatePathInFileName)}.png";
-                    string path = Path.Combine(outputDirectory, fname);
-                    File.WriteAllBytes(path, png);
-
-                    success++;
-                    Debug.Log($"Saved: {path}");
                 }
                 catch (Exception e)
                 {
@@ -499,8 +502,9 @@ public class AnimatorStateScreenshotWindow : EditorWindow
     /// 指定Stateの Motion を辿って AnimationClip を見つけ、AnimationMode.SampleAnimationClip で静的ポーズを適用。
     /// BlendTree の場合は「全パラメータ=0」で到達できる最初の AnimationClip を選びます（ネストにも対応）。
     /// </summary>
-    private static bool ApplyStatePoseBySampling(GameObject target, StateEntry entry, float normalized)
+    private static bool TryApplyStatePoseBySampling(GameObject target, StateEntry entry, float normalized, out AnimationModeScope samplingScope)
     {
+        samplingScope = null;
         // Motion から Clip を探索
         if (!TryGetRepresentativeClip(entry.motion, out var clip))
             return false;
@@ -509,19 +513,43 @@ public class AnimatorStateScreenshotWindow : EditorWindow
 
         // Editorのアニメーションモードでサンプル
         // 既存ポーズを壊さないよう、開始〜終了を囲む
-        AnimationMode.StartAnimationMode();
+        var scope = AnimationModeScope.Start();
         try
         {
             // NOTE: SampleAnimationClip は target 配下の全Transform/SkinnedMeshRendererのカーブを適用します
             AnimationMode.SampleAnimationClip(target, clip, t);
             // 反映をUIにも通知
             UnityEditorInternal.InternalEditorUtility.RepaintAllViews();
+            samplingScope = scope;
         }
         finally
         {
-            AnimationMode.StopAnimationMode();
+            if (samplingScope == null)
+            {
+                scope.Dispose();
+            }
         }
         return true;
+    }
+
+    private sealed class AnimationModeScope : IDisposable
+    {
+        private bool _disposed;
+
+        private AnimationModeScope() { }
+
+        public static AnimationModeScope Start()
+        {
+            AnimationMode.StartAnimationMode();
+            return new AnimationModeScope();
+        }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            AnimationMode.StopAnimationMode();
+            _disposed = true;
+        }
     }
 
     /// <summary>
