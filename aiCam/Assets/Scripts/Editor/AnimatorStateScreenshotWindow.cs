@@ -40,7 +40,7 @@ public class AnimatorStateScreenshotWindow : EditorWindow
     [SerializeField] private string outputDirectory = "";
     [SerializeField] private string filePrefix = "State_";
     [SerializeField] private bool includeSubStatePathInFileName = true;
-    [SerializeField] private bool openFolderAfterSave = true;
+    [SerializeField] private bool openFolderAfterSave = false;
 
     [Header("デバッグ")]
     [SerializeField] private bool debugMode = false;
@@ -252,9 +252,6 @@ public class AnimatorStateScreenshotWindow : EditorWindow
         openFolderAfterSave = EditorGUILayout.Toggle(new GUIContent("保存後にフォルダを開く"), openFolderAfterSave);
 
         EditorGUILayout.Space();
-        DrawDebugModeUI();
-
-        EditorGUILayout.Space();
         DrawStateListUI();
 
         EditorGUILayout.Space();
@@ -274,14 +271,8 @@ public class AnimatorStateScreenshotWindow : EditorWindow
             }
         }
 
-        EditorGUILayout.Space(8);
-        using (new EditorGUI.DisabledScope(!CanRun()))
-        {
-            if (GUILayout.Button("全Stateをスクリーンショット保存", GUILayout.Height(32)))
-            {
-                ExecuteCapture(allStates: true);
-            }
-        }
+        EditorGUILayout.Space();
+        DrawCaptureModeUI();
 
         EditorGUILayout.Space();
         EditorGUILayout.HelpBox(
@@ -307,14 +298,6 @@ public class AnimatorStateScreenshotWindow : EditorWindow
         EditorGUILayout.LabelField("サムネイルサイズ", GUILayout.Width(120));
         _previewThumbnailSize = (int)EditorGUILayout.Slider(_previewThumbnailSize, 64, 256);
         EditorGUILayout.EndHorizontal();
-
-        EditorGUILayout.Space();
-
-        // 再読み込みボタン
-        if (GUILayout.Button("プレビューを更新", GUILayout.Height(24)))
-        {
-            LoadPreviewThumbnails();
-        }
 
         EditorGUILayout.Space();
 
@@ -474,64 +457,56 @@ public class AnimatorStateScreenshotWindow : EditorWindow
         return finalPath;
     }
 
-    private void DrawDebugModeUI()
+    private void DrawCaptureModeUI()
     {
-        EditorGUILayout.LabelField("デバッグモード", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("撮影モード", EditorStyles.boldLabel);
 
         using (new EditorGUILayout.HorizontalScope())
         {
-            debugMode = EditorGUILayout.Toggle("デバッグモード有効", debugMode);
-
-            if (debugMode)
-            {
-                EditorGUI.BeginDisabledGroup(_isDebugRunning);
-                debugSwitchInterval = EditorGUILayout.FloatField("切替間隔(秒)", Mathf.Max(0.5f, debugSwitchInterval));
-                EditorGUI.EndDisabledGroup();
-            }
+            EditorGUI.BeginDisabledGroup(_isDebugRunning);
+            debugSwitchInterval = EditorGUILayout.FloatField("切替間隔(秒)", Mathf.Max(0.5f, debugSwitchInterval));
+            EditorGUI.EndDisabledGroup();
         }
 
-        if (debugMode)
+        EditorGUI.BeginDisabledGroup(_isDebugRunning);
+        debugAutoCapture = EditorGUILayout.Toggle("自動撮影", debugAutoCapture);
+        EditorGUI.EndDisabledGroup();
+
+        using (new EditorGUILayout.HorizontalScope())
         {
-            EditorGUI.BeginDisabledGroup(_isDebugRunning);
-            debugAutoCapture = EditorGUILayout.Toggle("自動撮影", debugAutoCapture);
+            // 自動撮影時は出力先も必要
+            bool canStart = debugAutoCapture ? CanRun() : CanRunDebug();
+            EditorGUI.BeginDisabledGroup(!canStart || _entries.Count == 0);
+
+            if (!_isDebugRunning)
+            {
+                string buttonLabel = debugAutoCapture ? "撮影" : "Animation確認";
+                if (GUILayout.Button(buttonLabel, GUILayout.Height(32)))
+                {
+                    StartDebugMode();
+                }
+            }
+            else
+            {
+                if (GUILayout.Button("停止", GUILayout.Height(32)))
+                {
+                    StopDebugMode();
+                }
+
+                string statusText = _entries.Count > 0
+                    ? (debugAutoCapture
+                        ? $"実行中: {_debugCurrentIndex + 1}/{_entries.Count} - {_entries[_debugCurrentIndex].fullPath} (撮影数: {_debugCaptureCount})"
+                        : $"実行中: {_debugCurrentIndex + 1}/{_entries.Count} - {_entries[_debugCurrentIndex].fullPath}")
+                    : "実行中";
+                EditorGUILayout.LabelField(statusText, EditorStyles.wordWrappedLabel);
+            }
+
             EditorGUI.EndDisabledGroup();
+        }
 
-            using (new EditorGUILayout.HorizontalScope())
-            {
-                // 自動撮影時は出力先も必要
-                bool canStart = debugAutoCapture ? CanRun() : CanRunDebug();
-                EditorGUI.BeginDisabledGroup(!canStart || _entries.Count == 0);
-
-                if (!_isDebugRunning)
-                {
-                    string buttonLabel = debugAutoCapture ? "デバッグ開始（自動撮影）" : "デバッグ開始（自動切替）";
-                    if (GUILayout.Button(buttonLabel, GUILayout.Height(28)))
-                    {
-                        StartDebugMode();
-                    }
-                }
-                else
-                {
-                    if (GUILayout.Button("デバッグ停止", GUILayout.Height(28)))
-                    {
-                        StopDebugMode();
-                    }
-
-                    string statusText = _entries.Count > 0
-                        ? (debugAutoCapture
-                            ? $"実行中: {_debugCurrentIndex + 1}/{_entries.Count} - {_entries[_debugCurrentIndex].fullPath} (撮影数: {_debugCaptureCount})"
-                            : $"実行中: {_debugCurrentIndex + 1}/{_entries.Count} - {_entries[_debugCurrentIndex].fullPath}")
-                        : "実行中";
-                    EditorGUILayout.LabelField(statusText, EditorStyles.wordWrappedLabel);
-                }
-
-                EditorGUI.EndDisabledGroup();
-            }
-
-            if (debugAutoCapture && string.IsNullOrEmpty(outputDirectory))
-            {
-                EditorGUILayout.HelpBox("自動撮影を有効にする場合は出力先フォルダを指定してください。", MessageType.Warning);
-            }
+        if (debugAutoCapture && string.IsNullOrEmpty(outputDirectory))
+        {
+            EditorGUILayout.HelpBox("自動撮影を有効にする場合は出力先フォルダを指定してください。", MessageType.Warning);
         }
     }
 
@@ -756,14 +731,39 @@ public class AnimatorStateScreenshotWindow : EditorWindow
             {
                 try
                 {
-                    // 1) ポーズ適用
+                    // 1) AnimatorでStateを切り替え（Scene Viewでの表示用）
+                    if (entry.state != null)
+                    {
+                        // Animatorを一時的に有効化
+                        bool wasEnabled = animator.enabled;
+                        if (!wasEnabled) animator.enabled = true;
+
+                        // Stateを再生
+                        animator.Play(entry.state.nameHash, layerIndex, normalizedTime);
+
+                        // 少し更新してStateを反映
+                        animator.Update(0.01f);
+
+                        Debug.Log($"[ExecuteCapture] State切替: {entry.fullPath} (Hash: {entry.state.nameHash})");
+
+                        // Animatorを無効に戻す
+                        animator.enabled = false;
+                    }
+
+                    // 2) ポーズ適用（撮影用）
                     if (!ApplyStatePoseBySampling(targetObject, entry, normalizedTime))
                     {
                         Debug.LogWarning($"State '{entry.fullPath}'：サンプルできる AnimationClip が見つかりませんでした。スキップします。");
                         continue;
                     }
 
-                    // 2) レンダリング
+                    // カメラ位置を各Stateごとに更新（全身を入れる設定またはカメラ未指定の場合）
+                    if (createdTempCamera || fitWholeBody)
+                    {
+                        SetupCameraPosition(cam);
+                    }
+
+                    // 3) レンダリング
                     RenderTexture.active = rt;
                     if (transparentBackground)
                     {
@@ -774,19 +774,38 @@ public class AnimatorStateScreenshotWindow : EditorWindow
                     }
                     cam.Render();
 
-                    // 3) PNG保存
+                    // 4) PNG保存
                     var tex = new Texture2D(captureWidth, captureHeight, TextureFormat.RGBA32, false, false);
                     tex.ReadPixels(new Rect(0, 0, captureWidth, captureHeight), 0, 0, false);
                     tex.Apply(false, false);
                     var png = tex.EncodeToPNG();
                     UnityEngine.Object.DestroyImmediate(tex);
 
+                    // 保存先ディレクトリを取得（デバッグモードと同じ動作）
+                    string saveDirectory = GetOutputDirectory();
+                    if (string.IsNullOrEmpty(saveDirectory))
+                    {
+                        Debug.LogError($"[ExecuteCapture] 保存先ディレクトリが取得できませんでした。");
+                        fail++;
+                        continue;
+                    }
+
+                    // ディレクトリが存在しない場合は作成
+                    if (!Directory.Exists(saveDirectory))
+                    {
+                        Directory.CreateDirectory(saveDirectory);
+                        Debug.Log($"[ExecuteCapture] ディレクトリ作成: {saveDirectory}");
+                    }
+
                     string fname = $"{filePrefix}{entry.FileSafeName(includeSubStatePathInFileName)}.png";
-                    string path = Path.Combine(outputDirectory, fname);
+                    string path = Path.Combine(saveDirectory, fname);
                     File.WriteAllBytes(path, png);
 
                     success++;
                     Debug.Log($"Saved: {path}");
+
+                    // Scene Viewを更新
+                    UnityEditorInternal.InternalEditorUtility.RepaintAllViews();
                 }
                 catch (Exception e)
                 {
@@ -827,6 +846,29 @@ public class AnimatorStateScreenshotWindow : EditorWindow
         }
 
         EditorUtility.DisplayDialog("完了", $"スクリーンショット完了\n成功: {success}\n失敗: {fail}\n出力先: {outputDirectory}", "OK");
+
+        // 撮影成功時は自動的にプレビュータブに切り替えて更新
+        if (success > 0)
+        {
+            // プレビューキャッシュをクリア
+            foreach (var kvp in _previewTextures)
+            {
+                if (kvp.Value != null)
+                {
+                    UnityEngine.Object.DestroyImmediate(kvp.Value);
+                }
+            }
+            _previewTextures.Clear();
+
+            // プレビュータブに切り替え
+            _currentTab = 1;
+
+            // UIを再描画
+            Repaint();
+
+            Debug.Log("[ExecuteCapture] プレビュータブに切り替えました。");
+        }
+
         if (openFolderAfterSave && success > 0) EditorUtility.RevealInFinder(outputDirectory);
     }
 
@@ -943,12 +985,34 @@ public class AnimatorStateScreenshotWindow : EditorWindow
             if (debugAutoCapture)
             {
                 Debug.Log($"デバッグモード停止。撮影完了: {_debugCaptureCount}枚");
-                if (_debugCaptureCount > 0 && openFolderAfterSave)
+
+                if (_debugCaptureCount > 0)
                 {
-                    string saveDirectory = GetOutputDirectory();
-                    if (!string.IsNullOrEmpty(saveDirectory))
+                    // プレビューキャッシュをクリア
+                    foreach (var kvp in _previewTextures)
                     {
-                        EditorUtility.RevealInFinder(saveDirectory);
+                        if (kvp.Value != null)
+                        {
+                            UnityEngine.Object.DestroyImmediate(kvp.Value);
+                        }
+                    }
+                    _previewTextures.Clear();
+
+                    // プレビュータブに切り替え
+                    _currentTab = 1;
+
+                    // UIを再描画
+                    Repaint();
+
+                    Debug.Log("[StopDebugMode] プレビュータブに切り替えました。");
+
+                    if (openFolderAfterSave)
+                    {
+                        string saveDirectory = GetOutputDirectory();
+                        if (!string.IsNullOrEmpty(saveDirectory))
+                        {
+                            EditorUtility.RevealInFinder(saveDirectory);
+                        }
                     }
                 }
             }
