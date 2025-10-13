@@ -509,6 +509,9 @@ public class AnimatorStateScreenshotWindow : EditorWindow
         if (!TryGetRepresentativeClip(entry.motion, out var clip))
             return false;
 
+        // AnimationMode 開始前のレンダラー状態を記録（BlendShape や Enabled フラグを保持するため）
+        var rendererState = RendererStateSnapshot.Capture(target, clip);
+
         float t = Mathf.Clamp01(normalized) * Mathf.Max(clip.length, 0.0001f);
 
         // Editorのアニメーションモードでサンプル
@@ -518,6 +521,8 @@ public class AnimatorStateScreenshotWindow : EditorWindow
         {
             // NOTE: SampleAnimationClip は target 配下の全Transform/SkinnedMeshRendererのカーブを適用します
             AnimationMode.SampleAnimationClip(target, clip, t);
+            // サンプリング時に初期値へ戻されたフェイシャルなどを復元
+            rendererState.Restore();
             // 反映をUIにも通知
             UnityEditorInternal.InternalEditorUtility.RepaintAllViews();
             samplingScope = scope;
@@ -549,6 +554,239 @@ public class AnimatorStateScreenshotWindow : EditorWindow
             if (_disposed) return;
             AnimationMode.StopAnimationMode();
             _disposed = true;
+        }
+    }
+
+    /// <summary>
+    /// AnimationMode 開始前の Renderer / SkinnedMeshRenderer 状態を保存し、サンプル後に復元するためのスナップショット。
+    /// </summary>
+    private sealed class RendererStateSnapshot
+    {
+        private readonly List<RendererState> _states;
+        private readonly HashSet<AnimatedBindingKey> _animatedBindings;
+
+        private RendererStateSnapshot(List<RendererState> states, HashSet<AnimatedBindingKey> animatedBindings)
+        {
+            _states = states;
+            _animatedBindings = animatedBindings;
+        }
+
+        public static RendererStateSnapshot Capture(GameObject root, AnimationClip clip)
+        {
+            var states = new List<RendererState>();
+            if (root == null)
+            {
+                return new RendererStateSnapshot(states, new HashSet<AnimatedBindingKey>());
+            }
+
+            var animatedBindings = CollectAnimatedBindings(clip);
+            var renderers = root.GetComponentsInChildren<Renderer>(true);
+            foreach (var renderer in renderers)
+            {
+                var path = AnimationUtility.CalculateTransformPath(renderer.transform, root.transform);
+                states.Add(RendererState.Capture(path, renderer));
+            }
+
+            return new RendererStateSnapshot(states, animatedBindings);
+        }
+
+        public void Restore()
+        {
+            foreach (var state in _states)
+            {
+                state.Restore(_animatedBindings);
+            }
+        }
+
+        private static HashSet<AnimatedBindingKey> CollectAnimatedBindings(AnimationClip clip)
+        {
+            var set = new HashSet<AnimatedBindingKey>();
+            if (clip == null)
+            {
+                return set;
+            }
+
+            foreach (var binding in AnimationUtility.GetCurveBindings(clip))
+            {
+                set.Add(new AnimatedBindingKey(binding));
+            }
+
+            foreach (var binding in AnimationUtility.GetObjectReferenceCurveBindings(clip))
+            {
+                set.Add(new AnimatedBindingKey(binding));
+            }
+
+            return set;
+        }
+
+        private readonly struct RendererState
+        {
+            private readonly string _path;
+            private readonly Renderer _renderer;
+            private readonly bool _enabled;
+            private readonly BlendShapeState _blendShapes;
+
+            private RendererState(string path, Renderer renderer, bool enabled, BlendShapeState blendShapes)
+            {
+                _path = path;
+                _renderer = renderer;
+                _enabled = enabled;
+                _blendShapes = blendShapes;
+            }
+
+            public static RendererState Capture(string path, Renderer renderer)
+            {
+                BlendShapeState blendShapeState = default;
+                if (renderer is SkinnedMeshRenderer skin)
+                {
+                    blendShapeState = BlendShapeState.Capture(skin);
+                }
+
+                return new RendererState(path, renderer, renderer.enabled, blendShapeState);
+            }
+
+            public void Restore(HashSet<AnimatedBindingKey> animatedBindings)
+            {
+                if (_renderer == null)
+                    return;
+
+                var rendererType = _renderer.GetType();
+                if (!animatedBindings.Contains(AnimatedBindingKey.ForEnabled(_path, rendererType)) &&
+                    !animatedBindings.Contains(AnimatedBindingKey.ForEnabled(_path, typeof(Renderer))))
+                {
+                    _renderer.enabled = _enabled;
+                }
+
+                if (_blendShapes.IsValid && _renderer is SkinnedMeshRenderer skin)
+                {
+                    _blendShapes.Restore(animatedBindings, _path, skin);
+                }
+            }
+        }
+
+        private readonly struct BlendShapeState
+        {
+            private readonly bool _hasData;
+            private readonly string[] _names;
+            private readonly float[] _weights;
+
+            private BlendShapeState(bool hasData, string[] names, float[] weights)
+            {
+                _hasData = hasData;
+                _names = names;
+                _weights = weights;
+            }
+
+            public bool IsValid => _hasData && _names != null && _weights != null;
+
+            public static BlendShapeState Capture(SkinnedMeshRenderer skin)
+            {
+                var mesh = skin.sharedMesh;
+                if (mesh == null)
+                {
+                    return default;
+                }
+
+                int count = mesh.blendShapeCount;
+                if (count <= 0)
+                {
+                    return default;
+                }
+
+                var names = new string[count];
+                var weights = new float[count];
+                for (int i = 0; i < count; i++)
+                {
+                    names[i] = mesh.GetBlendShapeName(i);
+                    weights[i] = skin.GetBlendShapeWeight(i);
+                }
+
+                return new BlendShapeState(true, names, weights);
+            }
+
+            public void Restore(HashSet<AnimatedBindingKey> animatedBindings, string path, SkinnedMeshRenderer skin)
+            {
+                if (!IsValid)
+                {
+                    return;
+                }
+
+                var mesh = skin.sharedMesh;
+                if (mesh == null)
+                {
+                    return;
+                }
+
+                for (int i = 0; i < _names.Length && i < _weights.Length; i++)
+                {
+                    string name = _names[i];
+                    if (string.IsNullOrEmpty(name))
+                    {
+                        continue;
+                    }
+
+                    if (animatedBindings.Contains(AnimatedBindingKey.ForBlendShape(path, name)))
+                    {
+                        continue;
+                    }
+
+                    int index = mesh.GetBlendShapeIndex(name);
+                    if (index >= 0)
+                    {
+                        skin.SetBlendShapeWeight(index, _weights[i]);
+                    }
+                }
+            }
+        }
+
+        private readonly struct AnimatedBindingKey
+        {
+            private readonly string _path;
+            private readonly Type _type;
+            private readonly string _propertyName;
+
+            private AnimatedBindingKey(string path, Type type, string propertyName)
+            {
+                _path = path ?? string.Empty;
+                _type = type;
+                _propertyName = propertyName ?? string.Empty;
+            }
+
+            public AnimatedBindingKey(EditorCurveBinding binding)
+                : this(binding.path, binding.type, binding.propertyName)
+            {
+            }
+
+            public static AnimatedBindingKey ForEnabled(string path, Type rendererType)
+            {
+                return new AnimatedBindingKey(path, rendererType, "m_Enabled");
+            }
+
+            public static AnimatedBindingKey ForBlendShape(string path, string blendShapeName)
+            {
+                return new AnimatedBindingKey(path, typeof(SkinnedMeshRenderer), $"blendShape.{blendShapeName}");
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (obj is AnimatedBindingKey other)
+                {
+                    return _type == other._type && _path == other._path && _propertyName == other._propertyName;
+                }
+                return false;
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    int hash = 17;
+                    hash = hash * 31 + (_path != null ? _path.GetHashCode() : 0);
+                    hash = hash * 31 + (_type != null ? _type.GetHashCode() : 0);
+                    hash = hash * 31 + (_propertyName != null ? _propertyName.GetHashCode() : 0);
+                    return hash;
+                }
+            }
         }
     }
 
