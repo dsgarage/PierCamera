@@ -115,9 +115,9 @@ public class AnimatorStateScreenshotWindow : EditorWindow
         double currentTime = EditorApplication.timeSinceStartup;
         if (currentTime - _debugLastSwitchTime >= debugSwitchInterval)
         {
-            SwitchToNextDebugState();
-            // SwitchToNextDebugStateの後に時刻を更新
+            // 先に時刻を更新して、処理中に再度呼ばれるのを防ぐ
             _debugLastSwitchTime = currentTime;
+            SwitchToNextDebugState();
         }
     }
 
@@ -531,11 +531,37 @@ public class AnimatorStateScreenshotWindow : EditorWindow
                 // 選択されたStateに切り替える
                 if (_selectedIndex >= 0 && _selectedIndex < _entries.Count && targetObject != null)
                 {
-                    var entry = _entries[_selectedIndex];
-                    Debug.Log($"[個別撮影] State選択: {entry.fullPath}");
+                    var animator = targetObject.GetComponent<Animator>();
+                    if (animator != null)
+                    {
+                        var entry = _entries[_selectedIndex];
+                        Debug.Log($"[個別撮影] State選択: {entry.fullPath}");
 
-                    // Animatorでポーズを適用してプレビュー
-                    ApplyStatePoseBySampling(targetObject, entry, normalizedTime);
+                        // まずAnimatorでStateを切り替え（Scene Viewでの表示用）
+                        if (entry.state != null)
+                        {
+                            // Animatorを有効化
+                            bool wasEnabled = animator.enabled;
+                            if (!wasEnabled) animator.enabled = true;
+
+                            // Stateを再生
+                            animator.Play(entry.state.nameHash, layerIndex, normalizedTime);
+
+                            // 少し更新してStateを反映
+                            animator.Update(0.01f);
+
+                            Debug.Log($"[個別撮影] State切替完了: {entry.fullPath} (Hash: {entry.state.nameHash})");
+
+                            // Animatorを元に戻す
+                            if (!wasEnabled) animator.enabled = false;
+                        }
+
+                        // ポーズを適用（撮影用の正確なポーズ）
+                        ApplyStatePoseBySampling(targetObject, entry, normalizedTime);
+
+                        // Scene Viewを更新
+                        UnityEditorInternal.InternalEditorUtility.RepaintAllViews();
+                    }
                 }
             }
 
@@ -967,14 +993,44 @@ public class AnimatorStateScreenshotWindow : EditorWindow
         }
 
         _isDebugRunning = true;
-        _debugCurrentIndex = -1; // -1から始めて、最初の呼び出しでState 0になる
+        _debugCurrentIndex = -1; // -1から始めて、次のフレームでState 0を撮影
         _debugCaptureCount = 0;
-
-        // OnEditorUpdateで即座に最初のStateに切り替わるように、過去の時刻を設定
-        _debugLastSwitchTime = EditorApplication.timeSinceStartup - debugSwitchInterval;
 
         string modeText = debugAutoCapture ? "自動撮影モード" : "プレビューモード";
         Debug.Log($"デバッグモード開始 ({modeText}): {_entries.Count}個のStateを{debugSwitchInterval}秒間隔で切り替えます。");
+
+        // 最初のState（index 0）に切り替えて表示（撮影はしない）
+        var animator = targetObject.GetComponent<Animator>();
+        if (animator != null && _entries.Count > 0)
+        {
+            var firstEntry = _entries[0];
+            if (firstEntry.state != null)
+            {
+                // Animatorを有効化
+                bool wasEnabled = animator.enabled;
+                if (!wasEnabled) animator.enabled = true;
+
+                // 最初のStateを再生
+                animator.Play(firstEntry.state.nameHash, layerIndex, normalizedTime);
+
+                // 少し更新してStateを反映
+                animator.Update(0.01f);
+
+                Debug.Log($"[StartDebugMode] 最初のStateに切り替え: {firstEntry.fullPath}");
+
+                // Animatorを元に戻す
+                if (!wasEnabled) animator.enabled = false;
+            }
+
+            // ポーズを適用（表示用）
+            ApplyStatePoseBySampling(targetObject, firstEntry, normalizedTime);
+
+            // Scene Viewを更新
+            UnityEditorInternal.InternalEditorUtility.RepaintAllViews();
+        }
+
+        // 次のフレームから撮影を開始するため、現在時刻を設定
+        _debugLastSwitchTime = EditorApplication.timeSinceStartup;
     }
 
     private void StopDebugMode()
@@ -1033,8 +1089,8 @@ public class AnimatorStateScreenshotWindow : EditorWindow
         _debugCurrentIndex++;
         Debug.Log($"[SwitchToNextDebugState] インデックスを更新: {_debugCurrentIndex}");
 
-        // 全State撮影完了チェック
-        if (_debugCurrentIndex >= _entries.Count)
+        // 全State撮影完了チェック（+1フレーム多く処理するため、_entries.Count+1で終了）
+        if (_debugCurrentIndex > _entries.Count)
         {
             Debug.Log($"[デバッグ] 全{_entries.Count}個のState切り替え完了。自動停止します。");
             StopDebugMode();
@@ -1049,8 +1105,16 @@ public class AnimatorStateScreenshotWindow : EditorWindow
             return;
         }
 
-        var entry = _entries[_debugCurrentIndex];
-        Debug.Log($"[SwitchToNextDebugState] 処理するState: Index={_debugCurrentIndex}, Name={entry.fullPath}");
+        // 次に表示するStateのインデックス（現在のフレームで切り替えるState）
+        int nextStateIndex = _debugCurrentIndex;
+        if (nextStateIndex >= _entries.Count)
+        {
+            // 最後のフレーム（撮影のみで切り替えなし）
+            nextStateIndex = _entries.Count - 1;
+        }
+
+        var entry = _entries[nextStateIndex];
+        Debug.Log($"[SwitchToNextDebugState] 次に表示するState: Index={nextStateIndex}, Name={entry.fullPath}");
 
         // まずAnimatorでStateを切り替え（Scene Viewでの表示用）
         if (entry.state != null)
@@ -1065,35 +1129,42 @@ public class AnimatorStateScreenshotWindow : EditorWindow
             // 少し更新してStateを反映
             animator.Update(0.01f);
 
-            Debug.Log($"[デバッグ] State切替完了: {_debugCurrentIndex + 1}/{_entries.Count} - {entry.fullPath} (Hash: {entry.state.nameHash})");
+            Debug.Log($"[デバッグ] State切替完了: {nextStateIndex + 1}/{_entries.Count} - {entry.fullPath} (Hash: {entry.state.nameHash})");
         }
         else
         {
             Debug.LogWarning($"State '{entry.fullPath}'：Stateオブジェクトが見つかりません。");
         }
 
-        // 自動撮影が有効な場合、スクリーンショットを撮影
-        if (debugAutoCapture)
+        // 自動撮影が有効な場合、「前のフレームで表示したState」を撮影
+        // つまり、最初のフレーム（_debugCurrentIndex == 0）はスキップ
+        if (debugAutoCapture && _debugCurrentIndex > 0)
         {
-            Debug.Log($"[SwitchToNextDebugState] 自動撮影開始 - State: {entry.fullPath}");
+            // 撮影するStateのインデックス（前のフレームで表示したState）
+            int captureStateIndex = _debugCurrentIndex - 1;
+            if (captureStateIndex < _entries.Count)
+            {
+                var captureEntry = _entries[captureStateIndex];
+                Debug.Log($"[SwitchToNextDebugState] 自動撮影開始 - State: {captureEntry.fullPath} (Index: {captureStateIndex})");
 
-            // ポーズ適用（通常撮影と同じ方法で）
-            if (!ApplyStatePoseBySampling(targetObject, entry, normalizedTime))
-            {
-                Debug.LogWarning($"State '{entry.fullPath}'：サンプルできる AnimationClip が見つかりませんでした。スキップします。");
-            }
-            else
-            {
-                // 全身を入れる設定またはカメラ未指定の場合は自動配置、それ以外は指定カメラをそのまま使用
-                if (fitWholeBody || captureCamera == null)
+                // ポーズ適用（通常撮影と同じ方法で）
+                if (!ApplyStatePoseBySampling(targetObject, captureEntry, normalizedTime))
                 {
-                    CaptureScreenshotWithAutoPosition(entry);
+                    Debug.LogWarning($"State '{captureEntry.fullPath}'：サンプルできる AnimationClip が見つかりませんでした。スキップします。");
                 }
                 else
                 {
-                    CaptureScreenshotWithFixedCamera(entry);
+                    // 全身を入れる設定またはカメラ未指定の場合は自動配置、それ以外は指定カメラをそのまま使用
+                    if (fitWholeBody || captureCamera == null)
+                    {
+                        CaptureScreenshotWithAutoPosition(captureEntry);
+                    }
+                    else
+                    {
+                        CaptureScreenshotWithFixedCamera(captureEntry);
+                    }
+                    Debug.Log($"[SwitchToNextDebugState] 自動撮影完了 - State: {captureEntry.fullPath}");
                 }
-                Debug.Log($"[SwitchToNextDebugState] 自動撮影完了 - State: {entry.fullPath}");
             }
         }
 
