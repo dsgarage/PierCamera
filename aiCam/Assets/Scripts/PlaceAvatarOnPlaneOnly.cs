@@ -1,10 +1,8 @@
-// PlaceAvatarOnPlaneOnly.cs
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
-
 
 [RequireComponent(typeof(ARRaycastManager))]
 public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
@@ -24,6 +22,12 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
     [SerializeField] bool onlyHorizontal = true;
     [Tooltip("対応端末では“床”分類の平面に限定（未対応端末では無視）")]
     [SerializeField] bool onlyFloorIfAvailable = false;
+
+    [Header("Camera / Facing")]
+    [Tooltip("AR カメラ（未指定なら Camera.main を使用）")]
+    [SerializeField] Camera arCamera;
+    [Tooltip("配置時にアバターをカメラの方向に向ける")]
+    [SerializeField] bool faceCameraOnPlace = true;
 
     [Header("UI touch block")]
     [Tooltip("この Canvas 上の UI（例: Capture ボタン）をタップしたときは配置を無効化する")]
@@ -45,6 +49,9 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         if (!poseGridLayout) poseGridLayout = FindFirstObjectByType<PoseGridLayout>(FindObjectsInactive.Include);
         // 床寄りにしたい場合は検出を水平に絞る（※壁検出を抑制）
         if (planeManager) planeManager.requestedDetectionMode = PlaneDetectionMode.Horizontal;
+
+        // ARカメラ未指定なら自動取得
+        if (!arCamera) arCamera = Camera.main;
     }
 
     void Update()
@@ -114,10 +121,12 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
             if (anchor) parent = anchor.transform;
         }
 
-        // 4) 生成 or 位置更新
+        // 4) 生成 or 位置更新（ここでカメラ方向を向かせる）
+        var rot = faceCameraOnPlace ? GetFaceCameraRotation(pose.position, plane.alignment) : pose.rotation;
+
         if (!avatar)
         {
-            avatar = Instantiate(avatarPrefab, pose.position, pose.rotation, parent);
+            avatar = Instantiate(avatarPrefab, pose.position, rot, parent);
             BindAvatarFaceController();
 
             // HUDを起動
@@ -125,10 +134,43 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         }
         else
         {
-            avatar.transform.SetPositionAndRotation(pose.position, pose.rotation);
+            avatar.transform.SetPositionAndRotation(pose.position, rot);
             if (!avatarFaceController || !avatarAnimator)
                 BindAvatarFaceController();
         }
+    }
+
+    // アバターを「カメラの方向」に向ける回転を作る
+    // ・水平面上に投影して自然な向きを維持（Y軸でスピンしない）
+    // ・下向き水平面（天井）に誤って置くケースも一応考慮
+    Quaternion GetFaceCameraRotation(Vector3 placePos, PlaneAlignment alignment)
+    {
+        var cam = arCamera ? arCamera.transform : null;
+        if (!cam) return Quaternion.identity;
+
+        // 平面のUpベクトル（通常は世界のUpを使う）
+        Vector3 up = Vector3.up;
+        if (alignment == PlaneAlignment.HorizontalDown) up = -Vector3.up;
+
+        // カメラ方向ベクトル（水平面に投影）
+        Vector3 toCam = cam.position - placePos;
+        // 「上下の傾き成分」を落として、水平面上の向きだけを採用
+        toCam -= Vector3.Dot(toCam, up) * up;
+
+        if (toCam.sqrMagnitude < 1e-6f)
+        {
+            // ほぼ同一点/真上真下などで向きが出せない時のフォールバック
+            // カメラの前方を同様に投影して使う
+            Vector3 fwd = cam.forward - Vector3.Dot(cam.forward, up) * up;
+            if (fwd.sqrMagnitude < 1e-6f) fwd = Vector3.forward;
+            toCam = fwd.normalized;
+        }
+        else
+        {
+            toCam.Normalize();
+        }
+
+        return Quaternion.LookRotation(toCam, up);
     }
 
     // UIヒット判定（EventSystem + 指定Rect）

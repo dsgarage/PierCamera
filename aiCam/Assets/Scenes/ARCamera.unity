@@ -1061,6 +1061,8 @@ MonoBehaviour:
   poseGridLayout: {fileID: 0}
   onlyHorizontal: 1
   onlyFloorIfAvailable: 0
+  arCamera: {fileID: 431550394}
+  faceCameraOnPlace: 1
   uiCanvas: {fileID: 152108866}
   touchBlockAreas:
   - {fileID: 537011081}
