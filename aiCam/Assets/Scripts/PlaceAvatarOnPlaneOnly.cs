@@ -43,6 +43,8 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
     [SerializeField] float followDistance = 1.5f;
     [Tooltip("追従の滑らかさ（0-1）")]
     [SerializeField] float followSmoothness = 0.15f;
+    [Tooltip("デバッグログを表示")]
+    [SerializeField] bool enableDebugLog = true;
 
     static readonly List<ARRaycastHit> s_Hits = new();
     ARRaycastManager rcMgr;
@@ -99,29 +101,65 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         var touch = Input.GetTouch(0);
         if (touch.phase != TouchPhase.Began) return;
 
+        if (enableDebugLog)
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] Touch detected at {touch.position}");
+
         // Main画面以外は無視
-        if (UIMgr.instance.State != UIMgr.UIState.Home) return;
+        if (UIMgr.instance.State != UIMgr.UIState.Home)
+        {
+            if (enableDebugLog)
+                Debug.Log($"[PlaceAvatarOnPlaneOnly] Touch ignored - not in Home state (current: {UIMgr.instance.State})");
+            return;
+        }
 
         // UI 上のタップは必ず無視（EventSystem か、明示登録したRectに入っていたら弾く）
-        if (IsTouchOverUI(touch)) return;
+        if (IsTouchOverUI(touch))
+        {
+            if (enableDebugLog)
+                Debug.Log("[PlaceAvatarOnPlaneOnly] Touch ignored - over UI");
+            return;
+        }
 
         // UI上のタップは無視
-        if (EventSystem.current && EventSystem.current.IsPointerOverGameObject(touch.fingerId)) return;
+        if (EventSystem.current && EventSystem.current.IsPointerOverGameObject(touch.fingerId))
+        {
+            if (enableDebugLog)
+                Debug.Log("[PlaceAvatarOnPlaneOnly] Touch ignored - EventSystem detected UI");
+            return;
+        }
 
         // ダブルタップ検出（追従モード切替）
         if (enableFollowMode && avatar && CheckDoubleTap(touch.position))
         {
+            if (enableDebugLog)
+                Debug.Log("[PlaceAvatarOnPlaneOnly] Double tap detected! Toggling follow mode...");
             ToggleFollowMode();
             return; // ダブルタップ時は配置しない
         }
 
+        if (enableDebugLog)
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] Single tap - checking for plane at {touch.position}");
+
+
         // 1) 平面ポリゴン内だけにRaycast
         if (!rcMgr.Raycast(touch.position, s_Hits, TrackableType.PlaneWithinPolygon))
+        {
+            if (enableDebugLog)
+                Debug.Log("[PlaceAvatarOnPlaneOnly] No plane hit detected at tap position");
             return; // ← 平面外をタップ → 何もしない
+        }
 
         var hit = s_Hits[0];
         var plane = planeManager ? planeManager.GetPlane(hit.trackableId) : hit.trackable as ARPlane;
-        if (!plane) return;
+        if (!plane)
+        {
+            if (enableDebugLog)
+                Debug.Log("[PlaceAvatarOnPlaneOnly] Plane reference not found");
+            return;
+        }
+
+        if (enableDebugLog)
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] Plane hit detected: {plane.trackableId}, alignment: {plane.alignment}");
 
         // 2) 追加フィルタ（任意）
         if (onlyHorizontal && !(plane.alignment == PlaneAlignment.HorizontalUp || plane.alignment == PlaneAlignment.HorizontalDown))
@@ -166,7 +204,8 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
             // HUDを起動
             faceUIManager?.InitializeWithAvatar(avatar);
 
-            Debug.Log("[PlaceAvatarOnPlaneOnly] Avatar placed. Tap avatar twice to toggle follow mode.");
+            if (enableDebugLog)
+                Debug.Log($"[PlaceAvatarOnPlaneOnly] Avatar placed at {pose.position}. Tap twice to toggle follow mode.");
         }
         else
         {
@@ -175,6 +214,9 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
             currentFollowMode = FollowMode.Off; // 再配置時はOff
             if (!avatarFaceController || !avatarAnimator)
                 BindAvatarFaceController();
+
+            if (enableDebugLog)
+                Debug.Log($"[PlaceAvatarOnPlaneOnly] Avatar repositioned to {pose.position}. Follow mode reset to Off.");
         }
     }
 
@@ -273,7 +315,11 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         {
             case FollowMode.Off:
                 currentFollowMode = FollowMode.PlaneLocked;
-                Debug.Log("[PlaceAvatarOnPlaneOnly] Follow Mode: PlaneLocked (平面追従)");
+                if (enableDebugLog)
+                {
+                    float distance = arCamera && avatar ? Vector3.Distance(arCamera.transform.position, avatar.transform.position) : 0f;
+                    Debug.Log($"[PlaceAvatarOnPlaneOnly] Follow Mode: PlaneLocked (平面追従) - Current distance: {distance:F2}m");
+                }
                 break;
             case FollowMode.PlaneLocked:
                 currentFollowMode = FollowMode.CameraLocked;
@@ -285,12 +331,15 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
                     float camYaw = arCamera.transform.eulerAngles.y;
                     Quaternion invCamRot = Quaternion.Inverse(Quaternion.Euler(0, camYaw, 0));
                     cameraLocalOffset = invCamRot * (avatarPos - camPos);
+
+                    if (enableDebugLog)
+                        Debug.Log($"[PlaceAvatarOnPlaneOnly] Follow Mode: CameraLocked (カメラ追従) - Offset: {cameraLocalOffset}, CamYaw: {camYaw:F1}°");
                 }
-                Debug.Log("[PlaceAvatarOnPlaneOnly] Follow Mode: CameraLocked (カメラ追従)");
                 break;
             case FollowMode.CameraLocked:
                 currentFollowMode = FollowMode.Off;
-                Debug.Log("[PlaceAvatarOnPlaneOnly] Follow Mode: Off");
+                if (enableDebugLog)
+                    Debug.Log("[PlaceAvatarOnPlaneOnly] Follow Mode: Off (固定)");
                 break;
         }
     }
@@ -333,6 +382,16 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         // 滑らかに移動
         avatar.transform.position = Vector3.Lerp(avatar.transform.position, targetPos, followSmoothness);
 
+        if (enableDebugLog && Time.frameCount % 30 == 0) // 30フレームごとにログ
+        {
+            float currentDistance = Vector3.Distance(camPos, avatar.transform.position);
+            float horizontalDistance = Vector3.Distance(
+                new Vector3(camPos.x, 0, camPos.z),
+                new Vector3(avatar.transform.position.x, 0, avatar.transform.position.z)
+            );
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] PlaneLocked: Distance={currentDistance:F2}m (target={followDistance:F2}m), Horizontal={horizontalDistance:F2}m");
+        }
+
         // カメラを向く
         Vector3 lookDir = camPos - avatar.transform.position;
         lookDir.y = 0;
@@ -357,6 +416,12 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
 
         // 滑らかに移動
         avatar.transform.position = Vector3.Lerp(avatar.transform.position, targetPos, followSmoothness);
+
+        if (enableDebugLog && Time.frameCount % 30 == 0) // 30フレームごとにログ
+        {
+            float currentDistance = Vector3.Distance(camPos, avatar.transform.position);
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] CameraLocked: Distance={currentDistance:F2}m (target={followDistance:F2}m), CamYaw={camYaw:F1}°");
+        }
 
         // カメラを向く
         Vector3 lookDir = camPos - avatar.transform.position;
