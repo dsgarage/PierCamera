@@ -355,16 +355,15 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
             case FollowMode.PlaneLocked:
                 currentFollowMode = FollowMode.CameraLocked;
                 avatarRotationY = 0f;  // 回転リセット
-                // カメラ相対オフセットを計算
+                // カメラ相対オフセットを計算（カメラの完全な回転を使用）
                 if (arCamera && avatar)
                 {
                     Vector3 camPos = arCamera.transform.position;
                     Vector3 avatarPos = avatar.transform.position;
-                    float camYaw = arCamera.transform.eulerAngles.y;
-                    Quaternion invCamRot = Quaternion.Inverse(Quaternion.Euler(0, camYaw, 0));
+                    Quaternion invCamRot = Quaternion.Inverse(arCamera.transform.rotation);
                     cameraLocalOffset = invCamRot * (avatarPos - camPos);
 
-                    Debug.Log($"[PlaceAvatarOnPlaneOnly] Follow Mode: CameraLocked (カメラ追従) - Offset: {cameraLocalOffset}, CamYaw: {camYaw:F1}°");
+                    Debug.Log($"[PlaceAvatarOnPlaneOnly] Follow Mode: CameraLocked (カメラ追従) - Offset: {cameraLocalOffset}");
                 }
                 break;
             case FollowMode.CameraLocked:
@@ -447,8 +446,8 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
             return;
 
         Vector3 camPos = arCamera.transform.position;
-        float camYaw = arCamera.transform.eulerAngles.y;
-        Quaternion camRot = Quaternion.Euler(0, camYaw, 0);
+        // カメラの完全な回転を使用（pitch/yaw/roll全て対応）
+        Quaternion camRot = arCamera.transform.rotation;
 
         // カメラ相対位置をしっかり維持（スワイプ距離調整を反映）
         Vector3 offset = cameraLocalOffset.normalized * followDistance;
@@ -461,7 +460,8 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         if (enableDebugLog && Time.frameCount % 30 == 0) // 30フレームごとにログ
         {
             float currentDistance = Vector3.Distance(camPos, avatar.transform.position);
-            Debug.Log($"[PlaceAvatarOnPlaneOnly] CameraLocked: Distance={currentDistance:F2}m (target={followDistance:F2}m), CamYaw={camYaw:F1}°, Smoothness={cameraLockSmoothness:F2}");
+            Vector3 camEuler = arCamera.transform.eulerAngles;
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] CameraLocked: Distance={currentDistance:F2}m (target={followDistance:F2}m), CamRot=({camEuler.x:F1}°, {camEuler.y:F1}°, {camEuler.z:F1}°), Smoothness={cameraLockSmoothness:F2}");
         }
 
         // カメラを向く（手動回転を考慮）
