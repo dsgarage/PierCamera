@@ -46,6 +46,20 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
     [Tooltip("デバッグログを表示")]
     [SerializeField] bool enableDebugLog = true;
 
+    [Header("Avatar Interaction (アバター操作)")]
+    [Tooltip("スワイプで距離調整を有効化")]
+    [SerializeField] bool enableSwipeDistance = true;
+    [Tooltip("スワイプで回転を有効化")]
+    [SerializeField] bool enableSwipeRotation = true;
+    [Tooltip("上下スワイプの距離感度（ピクセル/メートル）")]
+    [SerializeField] float swipeDistanceSensitivity = 200f;  // 200ピクセルで1m
+    [Tooltip("左右スワイプの回転感度（度/ピクセル）")]
+    [SerializeField] float swipeRotationSensitivity = 0.3f;  // 1ピクセルで0.3度
+    [Tooltip("距離の最小値（メートル）")]
+    [SerializeField] float minDistance = 0.5f;
+    [Tooltip("距離の最大値（メートル）")]
+    [SerializeField] float maxDistance = 5.0f;
+
     static readonly List<ARRaycastHit> s_Hits = new();
     ARRaycastManager rcMgr;
     GameObject avatar;
@@ -59,6 +73,11 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
     Vector3 cameraLocalOffset; // CameraLocked用のオフセット
     float lastTapTime = -1f;
     Vector2 lastTapPosition;
+
+    // スワイプ操作用
+    bool isSwipeActive = false;
+    Vector2 swipeStartPosition;
+    float avatarRotationY = 0f;  // アバターのY軸回転（手動調整分）
 
     void Awake()
     {
@@ -95,6 +114,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
                 poseGridLayout?.SetTargetAnimator(null);
             }
             currentFollowMode = FollowMode.Off; // アバターがないときはOff
+            isSwipeActive = false; // スワイプもリセット
         }
         else
         {
@@ -102,7 +122,18 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
             UpdateFollowMode();
         }
 
-        if (Input.touchCount == 0) return;
+        // スワイプ操作の処理（固定モード時のみ）
+        if (currentFollowMode != FollowMode.Off && avatar && Input.touchCount > 0)
+        {
+            HandleSwipeInteraction();
+        }
+
+        if (Input.touchCount == 0)
+        {
+            isSwipeActive = false;
+            return;
+        }
+
         var touch = Input.GetTouch(0);
         if (touch.phase != TouchPhase.Began) return;
 
@@ -310,11 +341,13 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         {
             case FollowMode.Off:
                 currentFollowMode = FollowMode.PlaneLocked;
+                avatarRotationY = 0f;  // 回転リセット
                 float distance = arCamera && avatar ? Vector3.Distance(arCamera.transform.position, avatar.transform.position) : 0f;
                 Debug.Log($"[PlaceAvatarOnPlaneOnly] Follow Mode: PlaneLocked (平面追従) - Current distance: {distance:F2}m");
                 break;
             case FollowMode.PlaneLocked:
                 currentFollowMode = FollowMode.CameraLocked;
+                avatarRotationY = 0f;  // 回転リセット
                 // カメラ相対オフセットを計算
                 if (arCamera && avatar)
                 {
@@ -382,13 +415,22 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
             Debug.Log($"[PlaceAvatarOnPlaneOnly] PlaneLocked: Distance={currentDistance:F2}m (target={followDistance:F2}m), Horizontal={horizontalDistance:F2}m");
         }
 
-        // カメラを向く
+        // カメラを向く（手動回転を考慮）
         Vector3 lookDir = camPos - avatar.transform.position;
         lookDir.y = 0;
         if (lookDir.sqrMagnitude > 0.01f)
         {
-            Quaternion targetRot = Quaternion.LookRotation(lookDir);
-            avatar.transform.rotation = Quaternion.Slerp(avatar.transform.rotation, targetRot, followSmoothness);
+            Quaternion baseLookRot = Quaternion.LookRotation(lookDir);
+            if (Mathf.Abs(avatarRotationY) > 0.1f)
+            {
+                // 手動回転が設定されている場合はそれを適用
+                Quaternion manualRot = Quaternion.Euler(0, avatarRotationY, 0);
+                avatar.transform.rotation = Quaternion.Slerp(avatar.transform.rotation, baseLookRot * manualRot, followSmoothness);
+            }
+            else
+            {
+                avatar.transform.rotation = Quaternion.Slerp(avatar.transform.rotation, baseLookRot, followSmoothness);
+            }
         }
     }
 
@@ -413,13 +455,86 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
             Debug.Log($"[PlaceAvatarOnPlaneOnly] CameraLocked: Distance={currentDistance:F2}m (target={followDistance:F2}m), CamYaw={camYaw:F1}°");
         }
 
-        // カメラを向く
-        Vector3 lookDir = camPos - avatar.transform.position;
-        lookDir.y = 0;
-        if (lookDir.sqrMagnitude > 0.01f)
+        // カメラを向く（回転調整がない場合のみ）
+        if (Mathf.Abs(avatarRotationY) < 0.1f)
         {
-            Quaternion targetRot = Quaternion.LookRotation(lookDir);
-            avatar.transform.rotation = Quaternion.Slerp(avatar.transform.rotation, targetRot, followSmoothness);
+            Vector3 lookDir = camPos - avatar.transform.position;
+            lookDir.y = 0;
+            if (lookDir.sqrMagnitude > 0.01f)
+            {
+                Quaternion targetRot = Quaternion.LookRotation(lookDir);
+                avatar.transform.rotation = Quaternion.Slerp(avatar.transform.rotation, targetRot, followSmoothness);
+            }
+        }
+        else
+        {
+            // 手動回転が設定されている場合はそれを適用
+            Vector3 lookDir = camPos - avatar.transform.position;
+            lookDir.y = 0;
+            if (lookDir.sqrMagnitude > 0.01f)
+            {
+                Quaternion baseLookRot = Quaternion.LookRotation(lookDir);
+                Quaternion manualRot = Quaternion.Euler(0, avatarRotationY, 0);
+                avatar.transform.rotation = Quaternion.Slerp(avatar.transform.rotation, baseLookRot * manualRot, followSmoothness);
+            }
+        }
+    }
+
+    // ========== スワイプインタラクション ==========
+
+    void HandleSwipeInteraction()
+    {
+        if (Input.touchCount == 0) return;
+
+        Touch touch = Input.GetTouch(0);
+
+        // UI上のタッチは無視
+        if (IsTouchOverUI(touch)) return;
+        if (EventSystem.current && EventSystem.current.IsPointerOverGameObject(touch.fingerId)) return;
+
+        switch (touch.phase)
+        {
+            case TouchPhase.Began:
+                // スワイプ開始
+                isSwipeActive = true;
+                swipeStartPosition = touch.position;
+                break;
+
+            case TouchPhase.Moved:
+                if (!isSwipeActive) return;
+
+                Vector2 delta = touch.position - swipeStartPosition;
+
+                // 上下スワイプ: 距離調整
+                if (enableSwipeDistance && Mathf.Abs(delta.y) > Mathf.Abs(delta.x))
+                {
+                    // 上にスワイプ(+Y) = 遠くに、下にスワイプ(-Y) = 近くに
+                    float distanceDelta = -delta.y / swipeDistanceSensitivity;  // 符号反転
+                    followDistance = Mathf.Clamp(followDistance + distanceDelta, minDistance, maxDistance);
+
+                    Debug.Log($"[PlaceAvatarOnPlaneOnly] Swipe distance adjust: {followDistance:F2}m (delta: {distanceDelta:F2}m)");
+                }
+                // 左右スワイプ: 回転
+                else if (enableSwipeRotation && Mathf.Abs(delta.x) > Mathf.Abs(delta.y))
+                {
+                    float rotationDelta = delta.x * swipeRotationSensitivity;
+                    avatarRotationY += rotationDelta;
+
+                    // -180〜180度に正規化
+                    while (avatarRotationY > 180f) avatarRotationY -= 360f;
+                    while (avatarRotationY < -180f) avatarRotationY += 360f;
+
+                    Debug.Log($"[PlaceAvatarOnPlaneOnly] Swipe rotation adjust: {avatarRotationY:F1}° (delta: {rotationDelta:F1}°)");
+                }
+
+                // 次のフレーム用に更新
+                swipeStartPosition = touch.position;
+                break;
+
+            case TouchPhase.Ended:
+            case TouchPhase.Canceled:
+                isSwipeActive = false;
+                break;
         }
     }
 }
