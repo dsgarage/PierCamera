@@ -520,7 +520,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
                 // 左右スワイプ: 回転
                 else if (enableSwipeRotation && Mathf.Abs(delta.x) > Mathf.Abs(delta.y))
                 {
-                    float rotationDelta = delta.x * swipeRotationSensitivity;
+                    float rotationDelta = -delta.x * swipeRotationSensitivity;
                     avatarRotationY += rotationDelta;
 
                     // -180〜180度に正規化
