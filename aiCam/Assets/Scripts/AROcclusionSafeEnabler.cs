@@ -80,29 +80,47 @@ public class AROcclusionSafeEnabler : MonoBehaviour
         return;
 #endif
 
+        Debug.Log("[AROcclusionSafeEnabler] Awake called on device");
+
         // 実機環境でのみ実行
         // AROcclusionManagerは既にInspectorで無効化されているはず
-        if (occlusion != null && !occlusion.enabled)
+        if (occlusion == null)
+        {
+            Debug.LogError("[AROcclusionSafeEnabler] Awake: occlusion reference is null!");
+            return;
+        }
+
+        if (!occlusion.enabled)
         {
             SetAllModesDisabled();
+            Debug.Log("[AROcclusionSafeEnabler] Awake: AROcclusionManager was disabled, modes set to Disabled");
         }
-        else if (occlusion != null && occlusion.enabled)
+        else
         {
-            Debug.LogError("[AROcclusionSafeEnabler] AROcclusionManager should be disabled in Inspector! Please disable it manually.");
+            Debug.LogWarning("[AROcclusionSafeEnabler] Awake: AROcclusionManager is already enabled! This may cause issues. Disabling now...");
+            occlusion.enabled = false;
+            SetAllModesDisabled();
         }
     }
 
     void OnEnable()
     {
+        Debug.Log("[AROcclusionSafeEnabler] OnEnable called");
+
         // Playモードでのみ実行
         if (!Application.isPlaying)
+        {
+            Debug.Log("[AROcclusionSafeEnabler] Not in play mode, skipping");
             return;
+        }
 
 #if UNITY_EDITOR
         // Editor環境では何もしない
+        Debug.Log("[AROcclusionSafeEnabler] In editor, skipping");
         return;
 #endif
 
+        Debug.Log("[AROcclusionSafeEnabler] Starting EnableWhenReady coroutine from OnEnable");
         // サブシステムが稼働してから必要モードを要求
         StartCoroutine(EnableWhenReady());
     }
@@ -110,7 +128,12 @@ public class AROcclusionSafeEnabler : MonoBehaviour
     IEnumerator EnableWhenReady()
     {
         if (occlusion == null)
+        {
+            Debug.LogError("[AROcclusionSafeEnabler] EnableWhenReady: occlusion is null!");
             yield break;
+        }
+
+        Debug.Log("[AROcclusionSafeEnabler] Starting EnableWhenReady coroutine...");
 
         // ARSessionの初期化を十分に待つ
         yield return new WaitForSeconds(0.5f);
@@ -119,25 +142,36 @@ public class AROcclusionSafeEnabler : MonoBehaviour
         for (int i = 0; i < Mathf.Max(0, warmupFrames); i++)
             yield return null;
 
+        Debug.Log("[AROcclusionSafeEnabler] Warmup complete. Enabling AROcclusionManager to start subsystem...");
+
+        // まずAROcclusionManagerを有効化してサブシステムを起動
+        SetAllModesDisabled();
+        yield return null;
+
+        occlusion.enabled = true;
+        isOcclusionEnabled = true;
+        Debug.Log("[AROcclusionSafeEnabler] AROcclusionManager enabled, waiting for subsystem...");
+        yield return null;
+
         // サブシステムの準備を確認
         int retryCount = 0;
-        const int maxRetries = 20;
+        const int maxRetries = 30; // リトライ回数を増やす
 
         while (retryCount < maxRetries)
         {
-            if (occlusion.subsystem != null && occlusion.subsystem.running)
-            {
-                // サブシステムが稼働していることを確認してから設定を適用
-                SetAllModesDisabled();
-                yield return null;
+            bool subsystemExists = occlusion.subsystem != null;
+            bool subsystemRunning = subsystemExists && occlusion.subsystem.running;
 
-                // AROcclusionManagerを有効化
-                occlusion.enabled = true;
-                isOcclusionEnabled = true;
-                yield return null;
+            Debug.Log($"[AROcclusionSafeEnabler] Retry {retryCount}/{maxRetries}: subsystem={subsystemExists}, running={subsystemRunning}");
+
+            if (subsystemExists && subsystemRunning)
+            {
+                // サブシステムが稼働したら設定を適用
+                Debug.Log("[AROcclusionSafeEnabler] Subsystem is ready! Applying occlusion modes...");
 
                 // 必要なモードを適用
                 ApplyRequestedModes();
+                Debug.Log($"[AROcclusionSafeEnabler] Occlusion modes applied - EnvDepth: {occlusion.currentEnvironmentDepthMode}, Preference: {occlusion.currentOcclusionPreferenceMode}");
                 yield break;
             }
 
@@ -145,8 +179,11 @@ public class AROcclusionSafeEnabler : MonoBehaviour
             yield return new WaitForSeconds(0.1f);
         }
 
-        // タイムアウト: オクルージョンは無効のまま
-        Debug.LogWarning("[AROcclusionSafeEnabler] Occlusion subsystem did not become ready in time. Occlusion will remain disabled.");
+        // タイムアウト: サブシステムが起動しなかった
+        Debug.LogWarning("[AROcclusionSafeEnabler] Occlusion subsystem did not start. Device may not support occlusion.");
+        Debug.LogWarning("[AROcclusionSafeEnabler] Disabling AROcclusionManager...");
+        occlusion.enabled = false;
+        isOcclusionEnabled = false;
     }
 
     void OnDisable()
