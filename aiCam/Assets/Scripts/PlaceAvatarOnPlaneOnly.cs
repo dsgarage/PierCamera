@@ -34,11 +34,29 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
     [SerializeField] Canvas uiCanvas;                                  // ScreenPoint判定用
     [SerializeField] List<RectTransform> touchBlockAreas = new();      // Capture ボタンなどの RectTransform を登録
 
+    [Header("Avatar Follow (追従機能)")]
+    [Tooltip("アバターをダブルタップで追従モードを切り替える")]
+    [SerializeField] bool enableFollowMode = true;
+    [Tooltip("ダブルタップの最大間隔（秒）")]
+    [SerializeField] float doubleTapInterval = 0.3f;
+    [Tooltip("維持する距離（メートル）")]
+    [SerializeField] float followDistance = 1.5f;
+    [Tooltip("追従の滑らかさ（0-1）")]
+    [SerializeField] float followSmoothness = 0.15f;
+
     static readonly List<ARRaycastHit> s_Hits = new();
     ARRaycastManager rcMgr;
     GameObject avatar;
+    ARPlane avatarPlane; // アバターが配置された平面
     FaceController avatarFaceController;
     Animator avatarAnimator;
+
+    // 追従モード
+    enum FollowMode { Off, PlaneLocked, CameraLocked }
+    FollowMode currentFollowMode = FollowMode.Off;
+    Vector3 cameraLocalOffset; // CameraLocked用のオフセット
+    float lastTapTime = -1f;
+    Vector2 lastTapPosition;
 
     void Awake()
     {
@@ -69,6 +87,12 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
                 avatarAnimator = null;
                 poseGridLayout?.SetTargetAnimator(null);
             }
+            currentFollowMode = FollowMode.Off; // アバターがないときはOff
+        }
+        else
+        {
+            // 追従モード更新
+            UpdateFollowMode();
         }
 
         if (Input.touchCount == 0) return;
@@ -83,6 +107,13 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
 
         // UI上のタップは無視
         if (EventSystem.current && EventSystem.current.IsPointerOverGameObject(touch.fingerId)) return;
+
+        // ダブルタップ検出（追従モード切替）
+        if (enableFollowMode && avatar && CheckDoubleTap(touch.position))
+        {
+            ToggleFollowMode();
+            return; // ダブルタップ時は配置しない
+        }
 
         // 1) 平面ポリゴン内だけにRaycast
         if (!rcMgr.Raycast(touch.position, s_Hits, TrackableType.PlaneWithinPolygon))
@@ -127,22 +158,21 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         if (!avatar)
         {
             avatar = Instantiate(avatarPrefab, pose.position, rot, parent);
-
-            // 動的にロードされたアバターの場合は自動セットアップ
-            if (avatar.GetComponent<AR.AvatarAutoSetup>() == null)
-            {
-                // AvatarAutoSetupコンポーネントがない場合は静的メソッドでセットアップ
-                AR.AvatarAutoSetup.Setup(avatar);
-            }
+            avatarPlane = plane; // 配置した平面を記憶
+            currentFollowMode = FollowMode.Off; // 初期はOff
 
             BindAvatarFaceController();
 
             // HUDを起動
             faceUIManager?.InitializeWithAvatar(avatar);
+
+            Debug.Log("[PlaceAvatarOnPlaneOnly] Avatar placed. Tap avatar twice to toggle follow mode.");
         }
         else
         {
             avatar.transform.SetPositionAndRotation(pose.position, rot);
+            avatarPlane = plane; // 再配置時も平面を更新
+            currentFollowMode = FollowMode.Off; // 再配置時はOff
             if (!avatarFaceController || !avatarAnimator)
                 BindAvatarFaceController();
         }
@@ -216,5 +246,125 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         expressionGridLayout?.SetTargetController(null);
         avatarAnimator = null;
         poseGridLayout?.SetTargetAnimator(null);
+    }
+
+    // ========== 追従機能 ==========
+
+    bool CheckDoubleTap(Vector2 position)
+    {
+        float currentTime = Time.time;
+
+        if (currentTime - lastTapTime <= doubleTapInterval &&
+            Vector2.Distance(lastTapPosition, position) < 50f) // 50ピクセル以内
+        {
+            lastTapTime = -1f; // リセット
+            return true; // ダブルタップ検出
+        }
+
+        lastTapTime = currentTime;
+        lastTapPosition = position;
+        return false;
+    }
+
+    void ToggleFollowMode()
+    {
+        // Off → PlaneLocked → CameraLocked → Off
+        switch (currentFollowMode)
+        {
+            case FollowMode.Off:
+                currentFollowMode = FollowMode.PlaneLocked;
+                Debug.Log("[PlaceAvatarOnPlaneOnly] Follow Mode: PlaneLocked (平面追従)");
+                break;
+            case FollowMode.PlaneLocked:
+                currentFollowMode = FollowMode.CameraLocked;
+                // カメラ相対オフセットを計算
+                if (arCamera && avatar)
+                {
+                    Vector3 camPos = arCamera.transform.position;
+                    Vector3 avatarPos = avatar.transform.position;
+                    float camYaw = arCamera.transform.eulerAngles.y;
+                    Quaternion invCamRot = Quaternion.Inverse(Quaternion.Euler(0, camYaw, 0));
+                    cameraLocalOffset = invCamRot * (avatarPos - camPos);
+                }
+                Debug.Log("[PlaceAvatarOnPlaneOnly] Follow Mode: CameraLocked (カメラ追従)");
+                break;
+            case FollowMode.CameraLocked:
+                currentFollowMode = FollowMode.Off;
+                Debug.Log("[PlaceAvatarOnPlaneOnly] Follow Mode: Off");
+                break;
+        }
+    }
+
+    void UpdateFollowMode()
+    {
+        if (currentFollowMode == FollowMode.Off || !avatar || !arCamera)
+            return;
+
+        if (currentFollowMode == FollowMode.PlaneLocked)
+        {
+            UpdatePlaneLocked();
+        }
+        else if (currentFollowMode == FollowMode.CameraLocked)
+        {
+            UpdateCameraLocked();
+        }
+    }
+
+    void UpdatePlaneLocked()
+    {
+        if (!avatarPlane)
+            return;
+
+        Vector3 camPos = arCamera.transform.position;
+        Vector3 camForwardFlat = Vector3.ProjectOnPlane(arCamera.transform.forward, Vector3.up).normalized;
+
+        if (camForwardFlat.sqrMagnitude < 0.01f)
+            camForwardFlat = Vector3.forward;
+
+        // カメラから followDistance 離れた位置
+        Vector3 targetPosFlat = camPos + camForwardFlat * followDistance;
+
+        // 平面上に投影
+        Vector3 planeCenter = avatarPlane.center;
+        Vector3 planeNormal = avatarPlane.normal;
+        float distance = Vector3.Dot(planeNormal, targetPosFlat - planeCenter);
+        Vector3 targetPos = targetPosFlat - planeNormal * distance;
+
+        // 滑らかに移動
+        avatar.transform.position = Vector3.Lerp(avatar.transform.position, targetPos, followSmoothness);
+
+        // カメラを向く
+        Vector3 lookDir = camPos - avatar.transform.position;
+        lookDir.y = 0;
+        if (lookDir.sqrMagnitude > 0.01f)
+        {
+            Quaternion targetRot = Quaternion.LookRotation(lookDir);
+            avatar.transform.rotation = Quaternion.Slerp(avatar.transform.rotation, targetRot, followSmoothness);
+        }
+    }
+
+    void UpdateCameraLocked()
+    {
+        if (!arCamera || !avatar)
+            return;
+
+        Vector3 camPos = arCamera.transform.position;
+        float camYaw = arCamera.transform.eulerAngles.y;
+        Quaternion camRot = Quaternion.Euler(0, camYaw, 0);
+
+        // カメラ相対位置を維持
+        Vector3 targetPos = camPos + (camRot * cameraLocalOffset.normalized) * followDistance;
+
+        // 滑らかに移動
+        avatar.transform.position = Vector3.Lerp(avatar.transform.position, targetPos, followSmoothness);
+
+        // カメラを向く
+        Vector3 lookDir = camPos - avatar.transform.position;
+        lookDir.y = 0;
+        if (lookDir.sqrMagnitude > 0.01f)
+        {
+            Quaternion targetRot = Quaternion.LookRotation(lookDir);
+            avatar.transform.rotation = Quaternion.Slerp(avatar.transform.rotation, targetRot, followSmoothness);
+        }
     }
 }
