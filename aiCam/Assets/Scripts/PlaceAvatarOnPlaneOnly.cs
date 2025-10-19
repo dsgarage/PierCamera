@@ -13,6 +13,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
     [Header("Managers")]
     [SerializeField] ARPlaneManager planeManager;
     [SerializeField] ARAnchorManager anchorManager;   // 任意（安定化用）
+    [SerializeField] AROcclusionManager occlusionManager;
     [SerializeField] FaceUIManager faceUIManager;
     [SerializeField] ExpressionGridLayout expressionGridLayout;
     [SerializeField] PoseGridLayout poseGridLayout;
@@ -79,6 +80,12 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
     Vector2 swipeStartPosition;
     float avatarRotationY = 0f;  // アバターのY軸回転（手動調整分）
 
+    // 視覚フィードバック用
+    Color defaultPlaneColor = new Color(1f, 1f, 1f, 0.1f);  // 通常の薄い白
+    Color planeLockedColor = new Color(1f, 0.6f, 0.2f, 0.3f);  // 薄いオレンジ
+    Color cameraLockedColor = new Color(0.6f, 0.4f, 1f, 0.3f);  // 薄い紫
+    EnvironmentDepthMode originalDepthMode = EnvironmentDepthMode.Best;
+
     void Awake()
     {
         // 起動確認ログ（常に出力）
@@ -87,6 +94,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         rcMgr = GetComponent<ARRaycastManager>();
         if (!planeManager) planeManager = FindFirstObjectByType<ARPlaneManager>(FindObjectsInactive.Include);
         if (!anchorManager) anchorManager = FindFirstObjectByType<ARAnchorManager>(FindObjectsInactive.Include);
+        if (!occlusionManager) occlusionManager = FindFirstObjectByType<AROcclusionManager>(FindObjectsInactive.Include);
         if (!faceUIManager) faceUIManager = FindFirstObjectByType<FaceUIManager>(FindObjectsInactive.Include);
         if (!poseGridLayout) poseGridLayout = FindFirstObjectByType<PoseGridLayout>(FindObjectsInactive.Include);
         // 床寄りにしたい場合は検出を水平に絞る（※壁検出を抑制）
@@ -94,6 +102,12 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
 
         // ARカメラ未指定なら自動取得
         if (!arCamera) arCamera = Camera.main;
+
+        // オクルージョンの初期設定を保存
+        if (occlusionManager)
+        {
+            originalDepthMode = occlusionManager.requestedEnvironmentDepthMode;
+        }
 
         Debug.Log($"[PlaceAvatarOnPlaneOnly] Initialized - FollowMode: {enableFollowMode}, Distance: {followDistance}m");
     }
@@ -350,6 +364,11 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
                 currentFollowMode = FollowMode.PlaneLocked;
                 avatarRotationY = 0f;  // 回転リセット
                 float distance = arCamera && avatar ? Vector3.Distance(arCamera.transform.position, avatar.transform.position) : 0f;
+
+                // 視覚フィードバック: 平面をオレンジに、オクルージョンON
+                SetPlaneColor(planeLockedColor);
+                SetOcclusion(true);
+
                 Debug.Log($"[PlaceAvatarOnPlaneOnly] Follow Mode: PlaneLocked (平面追従) - Current distance: {distance:F2}m");
                 break;
             case FollowMode.PlaneLocked:
@@ -365,9 +384,19 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
 
                     Debug.Log($"[PlaceAvatarOnPlaneOnly] Follow Mode: CameraLocked (カメラ追従) - Offset: {cameraLocalOffset}");
                 }
+
+                // 視覚フィードバック: 平面を紫に、オクルージョンOFF
+                SetPlaneColor(cameraLockedColor);
+                SetOcclusion(false);
+
                 break;
             case FollowMode.CameraLocked:
                 currentFollowMode = FollowMode.Off;
+
+                // 視覚フィードバック: 平面をデフォルトに、オクルージョンを元に戻す
+                SetPlaneColor(defaultPlaneColor);
+                SetOcclusion(true);
+
                 Debug.Log("[PlaceAvatarOnPlaneOnly] Follow Mode: Off (固定)");
                 break;
         }
@@ -538,6 +567,43 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
             case TouchPhase.Canceled:
                 isSwipeActive = false;
                 break;
+        }
+    }
+
+    // ========== 視覚フィードバック ==========
+
+    void SetPlaneColor(Color color)
+    {
+        if (!planeManager) return;
+
+        // 全ての検出済み平面の色を変更
+        foreach (var plane in planeManager.trackables)
+        {
+            var meshRenderer = plane.GetComponent<MeshRenderer>();
+            if (meshRenderer && meshRenderer.material)
+            {
+                meshRenderer.material.color = color;
+            }
+        }
+
+        Debug.Log($"[PlaceAvatarOnPlaneOnly] Plane color changed to: {color}");
+    }
+
+    void SetOcclusion(bool enabled)
+    {
+        if (!occlusionManager) return;
+
+        if (enabled)
+        {
+            // オクルージョンを有効化（元の設定に戻す）
+            occlusionManager.requestedEnvironmentDepthMode = originalDepthMode;
+            Debug.Log("[PlaceAvatarOnPlaneOnly] Occlusion enabled");
+        }
+        else
+        {
+            // オクルージョンを無効化
+            occlusionManager.requestedEnvironmentDepthMode = EnvironmentDepthMode.Disabled;
+            Debug.Log("[PlaceAvatarOnPlaneOnly] Occlusion disabled");
         }
     }
 }
