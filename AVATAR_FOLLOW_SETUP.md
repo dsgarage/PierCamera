@@ -55,9 +55,35 @@
 - `Plane Manager`: XR Originの `ARPlaneManager` を参照
 - `AR Camera`: MainCamera を参照
 
-### 2. アバターPrefabの設定（自動セットアップ）
+### 2. アバターの設定（自動セットアップ）
 
-配置するアバターPrefabに `AvatarAutoSetup` コンポーネントを追加するだけで、自動的にセットアップされます。
+アバターは **自動的にセットアップ** されます。Prefabでの事前設定は不要です。
+
+#### 方法1: FBXから動的にロード（推奨）
+
+FBXからAssimpなどで動的にロードする場合：
+
+```csharp
+// アバターをロード（Assimp等）
+GameObject avatar = LoadAvatarFromFBX(fbxPath);
+
+// 自動セットアップは不要！
+// PlanePlacementController または PlaceAvatarOnPlaneOnly が
+// Instantiate時に自動的に AvatarAutoSetup.Setup(avatar) を呼び出します
+```
+
+**内部動作:**
+- `PlanePlacementController.PlaceAvatar()` または `PlaceAvatarOnPlaneOnly` でInstantiate時
+- `AvatarAutoSetup` コンポーネントがアタッチされていない場合
+- 自動的に `AvatarAutoSetup.Setup(avatar)` が呼ばれる
+- 以下が自動実行される：
+  - `AvatarFollowController` の追加と参照の自動設定
+  - `BoxCollider` の追加（デフォルトサイズ: 0.5x1.8x0.5）
+  - ARRaycastManager、ARPlaneManager、MainCamera の自動検索と設定
+
+#### 方法2: Prefabに事前にコンポーネントをアタッチ
+
+Prefabを使う場合は、事前に `AvatarAutoSetup` をアタッチできます：
 
 1. **AvatarAutoSetup コンポーネントを追加**
    - アバターPrefabのルートに `AvatarAutoSetup` (Assets/Scripts/AR/AvatarAutoSetup.cs) を追加
@@ -81,27 +107,36 @@
 
 3. **自動セットアップ内容**
 
-   インスタンス化時に以下が自動実行されます：
+   インスタンス化時（Awake）に以下が自動実行されます：
    - `AvatarFollowController` の追加と参照の自動設定
    - `BoxCollider` の追加（サイズは設定値に基づく）
    - レイヤーの設定（指定した場合）
    - ARRaycastManager、ARPlaneManager、MainCamera の自動検索と設定
 
-4. **（オプション）ARAvatar レイヤーの作成**
-   - Project Settings > Tags and Layers で `ARAvatar` レイヤーを作成
-   - `AvatarAutoSetup` の `Avatar Layer Name` に "ARAvatar" を入力
-   - `AvatarTapHandler` の `Avatar Layer Mask` を `ARAvatar` のみに限定
+#### 方法3: カスタム設定で動的セットアップ
 
-#### 手動セットアップ（非推奨）
+コードから直接セットアップする場合：
 
-自動セットアップを使わない場合は、以下を手動で行う必要があります：
+```csharp
+// アバターをロード
+GameObject avatar = LoadAvatarFromFBX(fbxPath);
 
-1. **AvatarFollowController コンポーネントを追加**
-   - 全ての参照フィールドを手動で設定
+// カスタム設定でセットアップ
+var config = new AR.AvatarAutoSetup.SetupConfig
+{
+    desiredDistance = 2.0f,  // 2mの距離を維持
+    colliderSize = new Vector3(0.6f, 2.0f, 0.6f),  // カスタムサイズ
+    avatarLayerName = "ARAvatar"  // レイヤー指定
+};
 
-2. **Collider を追加**（タップ検出用）
-   - `BoxCollider` または `SphereCollider` を追加
-   - サイズはアバター全体をカバーする程度に設定
+AR.AvatarAutoSetup.Setup(avatar, config);
+```
+
+#### （オプション）ARAvatar レイヤーの作成
+
+タップ検出を最適化したい場合：
+- Project Settings > Tags and Layers で `ARAvatar` レイヤーを作成
+- `AvatarTapHandler` の `Avatar Layer Mask` を `ARAvatar` のみに限定
 
 ### 3. Input System の設定
 

@@ -127,6 +127,14 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         if (!avatar)
         {
             avatar = Instantiate(avatarPrefab, pose.position, rot, parent);
+
+            // 動的にロードされたアバターの場合は自動セットアップ
+            if (avatar.GetComponent<AR.AvatarAutoSetup>() == null)
+            {
+                // AvatarAutoSetupコンポーネントがない場合は静的メソッドでセットアップ
+                AR.AvatarAutoSetup.Setup(avatar);
+            }
+
             BindAvatarFaceController();
 
             // HUDを起動

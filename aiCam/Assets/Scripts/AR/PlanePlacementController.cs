@@ -103,6 +103,13 @@ namespace AR
             currentAvatar = Instantiate(placedPrefab, pose.position, pose.rotation);
             Debug.Log($"[PlanePlacementController] Avatar placed at {pose.position}");
 
+            // 動的にロードされたアバターの場合は自動セットアップ
+            if (currentAvatar.GetComponent<AvatarAutoSetup>() == null)
+            {
+                // AvatarAutoSetupコンポーネントがない場合は静的メソッドでセットアップ
+                AvatarAutoSetup.Setup(currentAvatar);
+            }
+
             // AvatarFollowController がアタッチされていれば初期化
             var followController = currentAvatar.GetComponent<AvatarFollowController>();
             if (followController != null && lastHitPlane != null)
