@@ -1058,6 +1058,7 @@ MonoBehaviour:
   avatarPrefab: {fileID: 3448142631616145395, guid: 79394c4ca4eb06b47a2ef642893df631, type: 3}
   planeManager: {fileID: 207520395}
   anchorManager: {fileID: 207520396}
+  occlusionManager: {fileID: 431550397}
   faceUIManager: {fileID: 272771475}
   expressionGridLayout: {fileID: 2001791832}
   poseGridLayout: {fileID: 0}
@@ -1072,6 +1073,17 @@ MonoBehaviour:
   - {fileID: 536337981}
   - {fileID: 1143905903}
   - {fileID: 1719544978}
+  enableFollowMode: 1
+  doubleTapInterval: 0.3
+  followDistance: 1.5
+  followSmoothness: 0.15
+  enableDebugLog: 1
+  enableSwipeDistance: 1
+  enableSwipeRotation: 1
+  swipeDistanceSensitivity: 200
+  swipeRotationSensitivity: 0.3
+  minDistance: 0.5
+  maxDistance: 5
 --- !u!114 &207520398
 MonoBehaviour:
   m_ObjectHideFlags: 0

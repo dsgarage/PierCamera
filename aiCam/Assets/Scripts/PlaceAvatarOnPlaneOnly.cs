@@ -84,7 +84,12 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
     Color defaultPlaneColor = new Color(0.0f, 0.8f, 1.0f, 0.2f);  // 薄い水色（シアン）
     Color planeLockedColor = new Color(1f, 0.6f, 0.2f, 0.3f);  // 薄いオレンジ
     Color cameraLockedColor = new Color(0.6f, 0.4f, 1f, 0.3f);  // 薄い紫
-    EnvironmentDepthMode originalDepthMode = EnvironmentDepthMode.Best;
+
+    // オクルージョン制御用（ARFoundation 6.3 仕様準拠）
+    bool desiredOcclusionOn = true;  // 希望するオクルージョン状態
+    EnvironmentDepthMode envDepthModeOn = EnvironmentDepthMode.Best;  // ON時の環境深度モード
+    int occlusionWarmupFrames = 2;  // サブシステム初期化待ちフレーム数
+    Coroutine occlusionApplyCoroutine;
 
     void Awake()
     {
@@ -103,12 +108,12 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         // ARカメラ未指定なら自動取得
         if (!arCamera) arCamera = Camera.main;
 
-        // オクルージョンの初期設定を保存
+        // オクルージョンの初期設定（ARFoundation 6.3 仕様: enabled は触らず requested のみ制御）
         if (occlusionManager)
         {
-            originalDepthMode = occlusionManager.requestedEnvironmentDepthMode;
-            Debug.Log($"[PlaceAvatarOnPlaneOnly] Original occlusion depth mode: {originalDepthMode}");
-            Debug.Log($"[PlaceAvatarOnPlaneOnly] Current occlusion depth mode: {occlusionManager.currentEnvironmentDepthMode}");
+            // 起動時は一旦全て Disabled に（サブシステム起動後に OnEnable で適用）
+            SetOcclusionModesImmediate(false);
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] Occlusion manager found, initial modes set to Disabled");
             Debug.Log($"[PlaceAvatarOnPlaneOnly] Occlusion manager enabled: {occlusionManager.enabled}");
         }
         else
@@ -123,6 +128,15 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         }
 
         Debug.Log($"[PlaceAvatarOnPlaneOnly] Initialized - FollowMode: {enableFollowMode}, Distance: {followDistance}m");
+    }
+
+    void OnEnable()
+    {
+        // オクルージョン状態をサブシステム起動後に適用
+        if (occlusionManager)
+        {
+            occlusionApplyCoroutine = StartCoroutine(ApplyOcclusionWhenReady());
+        }
     }
 
     void Update()
@@ -354,6 +368,13 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         {
             planeManager.planesChanged -= OnPlanesChanged;
         }
+
+        // オクルージョン適用コルーチンを停止
+        if (occlusionApplyCoroutine != null)
+        {
+            StopCoroutine(occlusionApplyCoroutine);
+            occlusionApplyCoroutine = null;
+        }
     }
 
     void OnDestroy()
@@ -362,6 +383,20 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         if (planeManager)
         {
             planeManager.planesChanged -= OnPlanesChanged;
+        }
+    }
+
+    void OnApplicationPause(bool pauseStatus)
+    {
+        // アプリ復帰時にオクルージョン状態を再適用
+        if (!pauseStatus && occlusionManager && isActiveAndEnabled)
+        {
+            Debug.Log("[PlaceAvatarOnPlaneOnly] App resumed, reapplying occlusion state");
+            if (occlusionApplyCoroutine != null)
+            {
+                StopCoroutine(occlusionApplyCoroutine);
+            }
+            occlusionApplyCoroutine = StartCoroutine(ApplyOcclusionWhenReady());
         }
     }
 
@@ -682,23 +717,98 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
             return;
         }
 
+        // 希望状態を記録
+        desiredOcclusionOn = enabled;
+        Debug.Log($"[PlaceAvatarOnPlaneOnly] SetOcclusion({enabled}) - Desired state recorded");
+
+        // コルーチンでサブシステム起動を待って適用
+        if (occlusionApplyCoroutine != null)
+        {
+            StopCoroutine(occlusionApplyCoroutine);
+        }
+        occlusionApplyCoroutine = StartCoroutine(ApplyOcclusionWhenReady());
+    }
+
+    System.Collections.IEnumerator ApplyOcclusionWhenReady()
+    {
+        // warmupフレーム待機（サブシステム初期化待ち）
+        for (int i = 0; i < occlusionWarmupFrames; i++)
+        {
+            yield return null;
+        }
+
+        if (!occlusionManager)
+        {
+            Debug.LogWarning("[PlaceAvatarOnPlaneOnly] OcclusionManager is null after warmup");
+            yield break;
+        }
+
+        // サブシステムの起動確認
+        var subsystem = occlusionManager.subsystem;
+        if (subsystem == null || !subsystem.running)
+        {
+            Debug.LogWarning($"[PlaceAvatarOnPlaneOnly] Occlusion subsystem not running (subsystem: {subsystem != null}, running: {subsystem?.running})");
+            // サブシステムが起動していない場合でも、requested を設定（起動後に反映される）
+        }
+
+        // 希望状態を適用
+        SetOcclusionModesImmediate(desiredOcclusionOn);
+
+        // 適用確認のため2フレーム待機
+        yield return null;
+        yield return null;
+
+        // 適用確認とリトライ（1回のみ）
+        if (desiredOcclusionOn)
+        {
+            var currentMode = occlusionManager.currentEnvironmentDepthMode;
+            if (currentMode == EnvironmentDepthMode.Disabled && envDepthModeOn != EnvironmentDepthMode.Disabled)
+            {
+                Debug.Log($"[PlaceAvatarOnPlaneOnly] Occlusion not applied (current: {currentMode}), retrying once...");
+                SetOcclusionModesImmediate(true);
+
+                // 再確認
+                yield return null;
+                yield return null;
+                currentMode = occlusionManager.currentEnvironmentDepthMode;
+                Debug.Log($"[PlaceAvatarOnPlaneOnly] After retry, current mode: {currentMode}");
+            }
+            else
+            {
+                Debug.Log($"[PlaceAvatarOnPlaneOnly] Occlusion applied successfully (current: {currentMode})");
+            }
+        }
+
+        occlusionApplyCoroutine = null;
+    }
+
+    void SetOcclusionModesImmediate(bool enabled)
+    {
+        if (!occlusionManager) return;
+
         EnvironmentDepthMode previousMode = occlusionManager.requestedEnvironmentDepthMode;
 
         if (enabled)
         {
-            // オクルージョンを有効化（元の設定に戻す）
-            occlusionManager.requestedEnvironmentDepthMode = originalDepthMode;
-            Debug.Log($"[PlaceAvatarOnPlaneOnly] Occlusion enabled: {previousMode} → {originalDepthMode}");
+            // オクルージョンを有効化
+            occlusionManager.requestedEnvironmentDepthMode = envDepthModeOn;
+            occlusionManager.requestedHumanDepthMode = HumanSegmentationDepthMode.Disabled;
+            occlusionManager.requestedHumanStencilMode = HumanSegmentationStencilMode.Disabled;
+            occlusionManager.requestedOcclusionPreferenceMode = OcclusionPreferenceMode.PreferEnvironmentOcclusion;
+
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] Occlusion ON: {previousMode} → {envDepthModeOn}");
         }
         else
         {
             // オクルージョンを無効化
             occlusionManager.requestedEnvironmentDepthMode = EnvironmentDepthMode.Disabled;
-            Debug.Log($"[PlaceAvatarOnPlaneOnly] Occlusion disabled: {previousMode} → Disabled");
+            occlusionManager.requestedHumanDepthMode = HumanSegmentationDepthMode.Disabled;
+            occlusionManager.requestedHumanStencilMode = HumanSegmentationStencilMode.Disabled;
+            occlusionManager.requestedOcclusionPreferenceMode = OcclusionPreferenceMode.NoOcclusion;
+
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] Occlusion OFF: {previousMode} → Disabled");
         }
 
-        // 現在の実際の状態を確認
-        Debug.Log($"[PlaceAvatarOnPlaneOnly] Current requested mode: {occlusionManager.requestedEnvironmentDepthMode}");
-        Debug.Log($"[PlaceAvatarOnPlaneOnly] Current actual mode: {occlusionManager.currentEnvironmentDepthMode}");
+        Debug.Log($"[PlaceAvatarOnPlaneOnly] Requested: {occlusionManager.requestedEnvironmentDepthMode}, Current: {occlusionManager.currentEnvironmentDepthMode}");
     }
 }
