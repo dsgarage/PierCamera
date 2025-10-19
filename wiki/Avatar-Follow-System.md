@@ -385,6 +385,162 @@ if (IsTouchOverUI(touch)) return;
 if (EventSystem.current && EventSystem.current.IsPointerOverGameObject(touch.fingerId)) return;
 ```
 
+## 視覚フィードバック
+
+アバター追従システムは、現在のモードを視覚的に表示するため、AR平面の色とオクルージョン設定を動的に変更します。
+
+### モード別の視覚状態
+
+| モード | 平面色 | RGB値 | オクルージョン | 用途 |
+|--------|--------|-------|---------------|------|
+| **Off（固定）** | 薄い水色（シアン） | `(0.0, 0.8, 1.0, 0.2)` | **ON** | デフォルト状態 |
+| **PlaneLocked（平面追従）** | 薄いオレンジ | `(1.0, 0.6, 0.2, 0.3)` | **ON** | 平面追従中 |
+| **CameraLocked（カメラ追従）** | 薄い紫 | `(0.6, 0.4, 1.0, 0.3)` | **OFF** | カメラ固定中 |
+
+### 視覚フィードバックの実装
+
+#### 平面色の変更
+
+```csharp
+void SetPlaneColor(Color color)
+{
+    if (!planeManager) return;
+
+    // 全ての検出済み平面の色を変更
+    foreach (var plane in planeManager.trackables)
+    {
+        var meshRenderer = plane.GetComponent<MeshRenderer>();
+        if (meshRenderer)
+        {
+            // マテリアルのインスタンスを取得して色を変更
+            Material mat = meshRenderer.material;
+            if (mat)
+            {
+                mat.color = color;
+                Debug.Log($"[PlaceAvatarOnPlaneOnly] Plane {plane.trackableId} color set to: {color}");
+            }
+        }
+    }
+
+    Debug.Log($"[PlaceAvatarOnPlaneOnly] All plane colors changed to: {color}");
+}
+```
+
+**重要な実装ポイント**:
+- `meshRenderer.material` を使用することで、各平面ごとに独立したマテリアルインスタンスを作成
+- 全ての検出済み平面に対して色を適用
+- 各平面の変更を個別にログ出力
+
+#### オクルージョンの制御
+
+```csharp
+void SetOcclusion(bool enabled)
+{
+    if (!occlusionManager) return;
+
+    if (enabled)
+    {
+        // オクルージョンを有効化（元の設定に戻す）
+        occlusionManager.requestedEnvironmentDepthMode = originalDepthMode;
+        Debug.Log("[PlaceAvatarOnPlaneOnly] Occlusion enabled");
+    }
+    else
+    {
+        // オクルージョンを無効化
+        occlusionManager.requestedEnvironmentDepthMode = EnvironmentDepthMode.Disabled;
+        Debug.Log("[PlaceAvatarOnPlaneOnly] Occlusion disabled");
+    }
+}
+```
+
+**オクルージョン設定の詳細**:
+- **元の設定を保存**: `Awake()` で `originalDepthMode` に初期値を保存
+- **有効化**: 元の設定（通常は `EnvironmentDepthMode.Best`）に戻す
+- **無効化**: `EnvironmentDepthMode.Disabled` に設定
+
+### モード切替時の視覚変更
+
+```csharp
+void ToggleFollowMode()
+{
+    switch (currentFollowMode)
+    {
+        case FollowMode.Off:
+            currentFollowMode = FollowMode.PlaneLocked;
+
+            // 視覚フィードバック: 平面をオレンジに、オクルージョンON
+            SetPlaneColor(planeLockedColor);
+            SetOcclusion(true);
+            break;
+
+        case FollowMode.PlaneLocked:
+            currentFollowMode = FollowMode.CameraLocked;
+
+            // 視覚フィードバック: 平面を紫に、オクルージョンOFF
+            SetPlaneColor(cameraLockedColor);
+            SetOcclusion(false);
+            break;
+
+        case FollowMode.CameraLocked:
+            currentFollowMode = FollowMode.Off;
+
+            // 視覚フィードバック: 平面をデフォルト（水色）に、オクルージョンON
+            SetPlaneColor(defaultPlaneColor);
+            SetOcclusion(true);
+            break;
+    }
+}
+```
+
+### 視覚フィードバックの意図
+
+#### 色の選択理由
+
+- **水色（Off）**: 冷色系でニュートラル、「通常状態」を示す
+- **オレンジ（PlaneLocked）**: 暖色系で活動的、「平面に沿った移動」を示す
+- **紫（CameraLocked）**: 独特な色で特別な状態、「カメラに完全固定」を強調
+
+#### オクルージョンの使い分け
+
+- **ON（Off / PlaneLocked）**: アバターが環境に正しく配置されているように見せる
+- **OFF（CameraLocked）**: カメラ追従中は環境との距離関係が不自然になるため、オクルージョンを切って違和感を軽減
+
+### 必要な依存関係
+
+**Inspector での設定**:
+```csharp
+[Header("Managers")]
+[SerializeField] ARPlaneManager planeManager;
+[SerializeField] AROcclusionManager occlusionManager;
+```
+
+**自動検出**:
+```csharp
+void Awake()
+{
+    if (!planeManager)
+        planeManager = FindFirstObjectByType<ARPlaneManager>(FindObjectsInactive.Include);
+    if (!occlusionManager)
+        occlusionManager = FindFirstObjectByType<AROcclusionManager>(FindObjectsInactive.Include);
+
+    // オクルージョンの初期設定を保存
+    if (occlusionManager)
+    {
+        originalDepthMode = occlusionManager.requestedEnvironmentDepthMode;
+    }
+}
+```
+
+### デバッグログ
+
+視覚フィードバック関連のログ：
+
+```
+[PlaceAvatarOnPlaneOnly] Plane XXXX-YYYY color set to: RGBA(1.000, 0.600, 0.200, 0.300)
+[PlaceAvatarOnPlaneOnly] All plane colors changed to: RGBA(1.000, 0.600, 0.200, 0.300)
+[PlaceAvatarOnPlaneOnly] Occlusion enabled
+```
+
 ## Inspector 設定
 
 ### Avatar Follow (追従機能)
@@ -437,16 +593,22 @@ if (EventSystem.current && EventSystem.current.IsPointerOverGameObject(touch.fin
 ### 各モードでの操作
 
 #### Off モード
+- **平面色**: 薄い水色（シアン）
+- **オクルージョン**: ON
 - **スワイプ**: 無効
 - **ダブルタップ**: PlaneLocked へ切り替え
 - **特徴**: アバターは固定位置に留まる
 
 #### PlaneLocked モード
+- **平面色**: 薄いオレンジ
+- **オクルージョン**: ON
 - **スワイプ**: 有効（距離・回転調整可能）
 - **ダブルタップ**: CameraLocked へ切り替え
 - **特徴**: カメラの水平方向にアバターが追従、平面上を滑るように移動
 
 #### CameraLocked モード
+- **平面色**: 薄い紫
+- **オクルージョン**: OFF
 - **スワイプ**: 有効（距離・回転調整可能）
 - **ダブルタップ**: Off へ切り替え
 - **特徴**: カメラの完全な3D回転に追従、カメラの傾きにも対応
@@ -628,6 +790,53 @@ float rotationDelta = -delta.x * swipeRotationSensitivity;  // 右=-, 左=+
 swipeDistanceSensitivity = 150f;  // より敏感に
 swipeRotationSensitivity = 0.5f;  // より敏感に
 ```
+
+#### 平面の色が変わらない
+
+**原因**: ARPlaneManager または AROcclusionManager が設定されていない
+
+**確認**:
+```csharp
+Debug.Log($"PlaneManager: {planeManager != null}");
+Debug.Log($"OcclusionManager: {occlusionManager != null}");
+```
+
+**解決**:
+- Inspector で `ARPlaneManager` と `AROcclusionManager` への参照を設定
+- シーン内に AR Session Origin と AR Occlusion Manager コンポーネントが存在することを確認
+
+#### Offモードに戻っても平面が水色にならない
+
+**原因**: マテリアルインスタンスが正しく作成されていない
+
+**解決**:
+```csharp
+// SetPlaneColor() でマテリアルインスタンスを確認
+Material mat = meshRenderer.material;  // .material でインスタンス作成
+if (mat) mat.color = color;
+```
+
+**注意**: `.sharedMaterial` ではなく `.material` を使用すること
+
+#### オクルージョンが動作しない
+
+**原因**: デバイスがオクルージョンをサポートしていない
+
+**確認**:
+```csharp
+if (occlusionManager && occlusionManager.descriptor.supportsEnvironmentDepth)
+{
+    Debug.Log("Environment depth is supported");
+}
+else
+{
+    Debug.Log("Environment depth is NOT supported");
+}
+```
+
+**対応デバイス**:
+- iOS: LiDARスキャナ搭載デバイス（iPhone 12 Pro以降、iPad Pro 2020以降）
+- Android: 対応するARCore Depth APIを持つデバイス
 
 ## 技術的制約
 
