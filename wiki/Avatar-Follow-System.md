@@ -115,9 +115,11 @@ void UpdatePlaneLocked()
 **説明**: アバターはカメラとの相対位置を完全に固定し、カメラの動きに完全に追従します。
 
 **特徴**:
+- カメラの**完全な3D回転**（pitch/yaw/roll）に対応
 - カメラ相対座標系で位置を維持
 - 平面を無視してカメラに追従
 - 常にカメラの方を向く
+- ARFoundation の BackgroundRenderer と同じ挙動
 
 **実装**:
 ```csharp
@@ -126,14 +128,16 @@ void UpdateCameraLocked()
     if (!arCamera || !avatar) return;
 
     Vector3 camPos = arCamera.transform.position;
-    float camYaw = arCamera.transform.eulerAngles.y;
-    Quaternion camRot = Quaternion.Euler(0, camYaw, 0);
+    // カメラの完全な回転を使用（pitch/yaw/roll全て対応）
+    Quaternion camRot = arCamera.transform.rotation;
 
-    // カメラ相対位置を維持
-    Vector3 targetPos = camPos + (camRot * cameraLocalOffset.normalized) * followDistance;
+    // カメラ相対位置を維持（スワイプ距離調整を反映）
+    Vector3 offset = cameraLocalOffset.normalized * followDistance;
+    Vector3 targetPos = camPos + (camRot * offset);
 
-    // 滑らかに移動
-    avatar.transform.position = Vector3.Lerp(avatar.transform.position, targetPos, followSmoothness);
+    // CameraLockedモードではより強くカメラに追従
+    float cameraLockSmoothness = Mathf.Min(followSmoothness * 3f, 0.8f);
+    avatar.transform.position = Vector3.Lerp(avatar.transform.position, targetPos, cameraLockSmoothness);
 
     // カメラを向く（手動回転を考慮）
     Vector3 lookDir = camPos - avatar.transform.position;
@@ -144,11 +148,11 @@ void UpdateCameraLocked()
         if (Mathf.Abs(avatarRotationY) > 0.1f)
         {
             Quaternion manualRot = Quaternion.Euler(0, avatarRotationY, 0);
-            avatar.transform.rotation = Quaternion.Slerp(avatar.transform.rotation, baseLookRot * manualRot, followSmoothness);
+            avatar.transform.rotation = Quaternion.Slerp(avatar.transform.rotation, baseLookRot * manualRot, cameraLockSmoothness);
         }
         else
         {
-            avatar.transform.rotation = Quaternion.Slerp(avatar.transform.rotation, baseLookRot, followSmoothness);
+            avatar.transform.rotation = Quaternion.Slerp(avatar.transform.rotation, baseLookRot, cameraLockSmoothness);
         }
     }
 }
@@ -156,12 +160,17 @@ void UpdateCameraLocked()
 
 **カメラ相対オフセットの計算**:
 ```csharp
-// モード切替時にオフセットを計算
+// モード切替時にオフセットを計算（カメラの完全な回転を使用）
 Vector3 camPos = arCamera.transform.position;
 Vector3 avatarPos = avatar.transform.position;
-float camYaw = arCamera.transform.eulerAngles.y;
-Quaternion invCamRot = Quaternion.Inverse(Quaternion.Euler(0, camYaw, 0));
+Quaternion invCamRot = Quaternion.Inverse(arCamera.transform.rotation);
 cameraLocalOffset = invCamRot * (avatarPos - camPos);
+```
+
+**smoothness の調整**:
+CameraLockedモードでは、より強い追従のために `followSmoothness` を3倍に増幅（最大0.8）:
+```csharp
+float cameraLockSmoothness = Mathf.Min(followSmoothness * 3f, 0.8f);
 ```
 
 ## タッチ操作
@@ -228,15 +237,18 @@ void ToggleFollowMode()
 
 ## スワイプインタラクション
 
+スワイプインタラクションは、PlaneLocked と CameraLocked モードでのみ有効です。Off モードではスワイプは無効化されています。
+
 ### 上下スワイプ: 距離調整
 
 **操作**:
-- **上にスワイプ**: アバターが遠ざかる
-- **下にスワイプ**: アバターが近づく
+- **上にスワイプ**: アバターが**奥（遠く）**に移動
+- **下にスワイプ**: アバターが**手前（近く）**に移動
 
 **動作条件**:
 - 追従モードが Off 以外（PlaneLocked または CameraLocked）
 - 縦方向の移動量が横方向より大きい
+- `enableSwipeDistance` が true
 
 **実装**:
 ```csharp
@@ -245,8 +257,17 @@ void HandleSwipeInteraction()
     if (Input.touchCount == 0) return;
     Touch touch = Input.GetTouch(0);
 
+    // UI上のタッチは無視
+    if (IsTouchOverUI(touch)) return;
+    if (EventSystem.current && EventSystem.current.IsPointerOverGameObject(touch.fingerId)) return;
+
     switch (touch.phase)
     {
+        case TouchPhase.Began:
+            isSwipeActive = true;
+            swipeStartPosition = touch.position;
+            break;
+
         case TouchPhase.Moved:
             if (!isSwipeActive) return;
 
@@ -256,13 +277,18 @@ void HandleSwipeInteraction()
             if (enableSwipeDistance && Mathf.Abs(delta.y) > Mathf.Abs(delta.x))
             {
                 // 上にスワイプ(+Y) = 遠くに、下にスワイプ(-Y) = 近くに
-                float distanceDelta = -delta.y / swipeDistanceSensitivity;
+                float distanceDelta = delta.y / swipeDistanceSensitivity;
                 followDistance = Mathf.Clamp(followDistance + distanceDelta, minDistance, maxDistance);
 
-                Debug.Log($"[PlaceAvatarOnPlaneOnly] Swipe distance adjust: {followDistance:F2}m");
+                Debug.Log($"[PlaceAvatarOnPlaneOnly] Swipe distance adjust: {followDistance:F2}m (delta: {distanceDelta:F2}m)");
             }
 
             swipeStartPosition = touch.position;
+            break;
+
+        case TouchPhase.Ended:
+        case TouchPhase.Canceled:
+            isSwipeActive = false;
             break;
     }
 }
@@ -275,44 +301,88 @@ void HandleSwipeInteraction()
 
 **計算式**:
 ```
-新しい距離 = 現在の距離 + (-スワイプY / 感度)
+距離変化 = スワイプY / 感度
+新しい距離 = 現在の距離 + 距離変化
 最終距離 = Clamp(新しい距離, 最小値, 最大値)
 ```
+
+**例**:
+- 200ピクセル上スワイプ → +1.0m 遠くに
+- 100ピクセル下スワイプ → -0.5m 近くに
 
 ### 左右スワイプ: 回転調整
 
 **操作**:
-- **左右にスワイプ**: アバターがY軸で回転
+- **右にスワイプ**: アバターが**右回転**（時計回り）
+- **左にスワイプ**: アバターが**左回転**（反時計回り）
 
 **動作条件**:
 - 追従モードが Off 以外（PlaneLocked または CameraLocked）
 - 横方向の移動量が縦方向より大きい
+- `enableSwipeRotation` が true
 
 **実装**:
 ```csharp
 // 左右スワイプ: 回転
 else if (enableSwipeRotation && Mathf.Abs(delta.x) > Mathf.Abs(delta.y))
 {
-    float rotationDelta = delta.x * swipeRotationSensitivity;
+    float rotationDelta = -delta.x * swipeRotationSensitivity;
     avatarRotationY += rotationDelta;
 
     // -180〜180度に正規化
     while (avatarRotationY > 180f) avatarRotationY -= 360f;
     while (avatarRotationY < -180f) avatarRotationY += 360f;
 
-    Debug.Log($"[PlaceAvatarOnPlaneOnly] Swipe rotation adjust: {avatarRotationY:F1}°");
+    Debug.Log($"[PlaceAvatarOnPlaneOnly] Swipe rotation adjust: {avatarRotationY:F1}° (delta: {rotationDelta:F1}°)");
 }
 ```
 
 **パラメータ**:
 - `swipeRotationSensitivity`: 0.3°/px（Inspector で調整可能）
 
+**計算式**:
+```
+回転変化 = -スワイプX * 感度
+新しい回転 = 現在の回転 + 回転変化
+正規化回転 = 回転を-180°〜180°の範囲に正規化
+```
+
+**例**:
+- 100ピクセル右スワイプ → -30° 回転（右回り）
+- 100ピクセル左スワイプ → +30° 回転（左回り）
+
 **回転の適用**:
 ```csharp
 // カメラを向く方向を基準に手動回転を加算
 Quaternion baseLookRot = Quaternion.LookRotation(lookDir);
-Quaternion manualRot = Quaternion.Euler(0, avatarRotationY, 0);
-avatar.transform.rotation = Quaternion.Slerp(avatar.transform.rotation, baseLookRot * manualRot, followSmoothness);
+if (Mathf.Abs(avatarRotationY) > 0.1f)
+{
+    Quaternion manualRot = Quaternion.Euler(0, avatarRotationY, 0);
+    avatar.transform.rotation = Quaternion.Slerp(avatar.transform.rotation, baseLookRot * manualRot, followSmoothness);
+}
+```
+
+### スワイプの判定ロジック
+
+**方向判定**:
+```csharp
+Vector2 delta = touch.position - swipeStartPosition;
+
+if (Mathf.Abs(delta.y) > Mathf.Abs(delta.x))
+{
+    // 縦方向が強い → 距離調整
+}
+else if (Mathf.Abs(delta.x) > Mathf.Abs(delta.y))
+{
+    // 横方向が強い → 回転調整
+}
+```
+
+**UI ブロック**:
+UI要素の上でのスワイプは無視されます：
+```csharp
+if (IsTouchOverUI(touch)) return;
+if (EventSystem.current && EventSystem.current.IsPointerOverGameObject(touch.fingerId)) return;
 ```
 
 ## Inspector 設定
@@ -351,15 +421,35 @@ avatar.transform.rotation = Quaternion.Slerp(avatar.transform.rotation, baseLook
    - PlaneLocked（平面追従）モードに切り替わる
 
 3. **距離を調整**
-   - 画面を上下にスワイプして距離を変更
-   - 上スワイプで遠く、下スワイプで近く
+   - 画面を**上にスワイプ**してアバターを遠ざける
+   - 画面を**下にスワイプ**してアバターを近づける
+   - 範囲: 0.5m 〜 5.0m（Inspector で調整可能）
 
 4. **回転を調整**
-   - 画面を左右にスワイプしてアバターを回転
+   - 画面を**右にスワイプ**してアバターを右回転
+   - 画面を**左にスワイプ**してアバターを左回転
+   - 回転はカメラ向き方向を基準に適用される
 
 5. **モードを切り替え**
    - ダブルタップでモードを順次切り替え
-   - PlaneLocked → CameraLocked → Off → ...
+   - Off → PlaneLocked → CameraLocked → Off → ...
+
+### 各モードでの操作
+
+#### Off モード
+- **スワイプ**: 無効
+- **ダブルタップ**: PlaneLocked へ切り替え
+- **特徴**: アバターは固定位置に留まる
+
+#### PlaneLocked モード
+- **スワイプ**: 有効（距離・回転調整可能）
+- **ダブルタップ**: CameraLocked へ切り替え
+- **特徴**: カメラの水平方向にアバターが追従、平面上を滑るように移動
+
+#### CameraLocked モード
+- **スワイプ**: 有効（距離・回転調整可能）
+- **ダブルタップ**: Off へ切り替え
+- **特徴**: カメラの完全な3D回転に追従、カメラの傾きにも対応
 
 ### 使用例: プログラムからの制御
 
@@ -442,7 +532,7 @@ if (EventSystem.current && EventSystem.current.IsPointerOverGameObject(touch.fin
 ```
 [PlaceAvatarOnPlaneOnly] Double tap detected! Toggling follow mode...
 [PlaceAvatarOnPlaneOnly] Follow Mode: PlaneLocked (平面追従) - Current distance: 1.52m
-[PlaceAvatarOnPlaneOnly] Follow Mode: CameraLocked (カメラ追従) - Offset: (0.0, 0.0, 1.5), CamYaw: 45.0°
+[PlaceAvatarOnPlaneOnly] Follow Mode: CameraLocked (カメラ追従) - Offset: (0.0, 0.0, 1.5)
 [PlaceAvatarOnPlaneOnly] Follow Mode: Off (固定)
 ```
 
@@ -450,15 +540,23 @@ if (EventSystem.current && EventSystem.current.IsPointerOverGameObject(touch.fin
 
 ```
 [PlaceAvatarOnPlaneOnly] Swipe distance adjust: 2.15m (delta: 0.15m)
-[PlaceAvatarOnPlaneOnly] Swipe rotation adjust: 45.3° (delta: 5.2°)
+[PlaceAvatarOnPlaneOnly] Swipe rotation adjust: 45.3° (delta: -5.2°)
 ```
+
+**注意**:
+- 距離の delta が正の場合、アバターが遠ざかる
+- 回転の delta が負の場合、右回転（時計回り）
 
 ### 追従中のログ（30フレームごと）
 
 ```
 [PlaceAvatarOnPlaneOnly] PlaneLocked: Distance=1.48m (target=1.50m), Horizontal=1.50m
-[PlaceAvatarOnPlaneOnly] CameraLocked: Distance=1.52m (target=1.50m), CamYaw=90.0°
+[PlaceAvatarOnPlaneOnly] CameraLocked: Distance=1.52m (target=1.50m), CamRot=(15.0°, 90.0°, 0.0°), Smoothness=0.45
 ```
+
+**CameraLocked ログの説明**:
+- `CamRot=(pitch, yaw, roll)`: カメラの3軸回転（Euler角）
+- `Smoothness`: 実際の追従smoothness値（基本値の3倍）
 
 ## トラブルシューティング
 
@@ -503,6 +601,32 @@ Debug.Log($"IsPointerOverGameObject: {EventSystem.current.IsPointerOverGameObjec
 ```csharp
 Debug.Log($"Current mode: {currentFollowMode}");
 Debug.Log($"Swipe distance enabled: {enableSwipeDistance}");
+```
+
+**解決**:
+- Inspector で `Enable Swipe Distance` を有効化
+- PlaneLocked または CameraLocked モードに切り替え
+
+#### スワイプの方向が逆
+
+**原因**: コードの符号設定
+
+**確認**:
+```csharp
+// 正しい実装
+float distanceDelta = delta.y / swipeDistanceSensitivity;  // 上=+, 下=-
+float rotationDelta = -delta.x * swipeRotationSensitivity;  // 右=-, 左=+
+```
+
+#### スワイプの感度が合わない
+
+**原因**: デバイスや画面サイズによる感度の違い
+
+**解決**:
+```csharp
+// Inspector で調整
+swipeDistanceSensitivity = 150f;  // より敏感に
+swipeRotationSensitivity = 0.5f;  // より敏感に
 ```
 
 ## 技術的制約
