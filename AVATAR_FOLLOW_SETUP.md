@@ -55,28 +55,53 @@
 - `Plane Manager`: XR Originの `ARPlaneManager` を参照
 - `AR Camera`: MainCamera を参照
 
-### 2. アバターPrefabの設定
+### 2. アバターPrefabの設定（自動セットアップ）
 
-配置するアバターPrefabに以下を設定してください：
+配置するアバターPrefabに `AvatarAutoSetup` コンポーネントを追加するだけで、自動的にセットアップされます。
 
-1. **AvatarFollowController コンポーネントを追加**
-   - `Mode`: Off（初期値）
+1. **AvatarAutoSetup コンポーネントを追加**
+   - アバターPrefabのルートに `AvatarAutoSetup` (Assets/Scripts/AR/AvatarAutoSetup.cs) を追加
+
+2. **AvatarAutoSetup の Inspector 設定**
+
+   **Follow Settings:**
    - `Desired Distance`: 1.5（維持する距離）
    - `Pos Lerp`: 0.15（位置の補間速度）
    - `Rot Lerp`: 0.15（回転の補間速度）
-   - `Raycaster`: XR Originの `ARRaycastManager` を参照
-   - `Plane Manager`: XR Originの `ARPlaneManager` を参照
-   - `AR Camera`: MainCamera を参照
+
+   **Collider Settings:**
+   - `Auto Add Collider`: チェック（自動でColliderを追加）
+   - `Collider Size`: アバターのサイズに合わせて調整（例: 0.5, 1.8, 0.5）
+   - `Collider Center`: Colliderの中心位置（例: 0, 0.9, 0）
+
+   **Layer Settings:**
+   - `Avatar Layer Name`: レイヤー名を入力（例: "ARAvatar"）
+     - 空欄の場合はレイヤー変更なし
+     - レイヤーが存在しない場合は警告が出ます
+
+3. **自動セットアップ内容**
+
+   インスタンス化時に以下が自動実行されます：
+   - `AvatarFollowController` の追加と参照の自動設定
+   - `BoxCollider` の追加（サイズは設定値に基づく）
+   - レイヤーの設定（指定した場合）
+   - ARRaycastManager、ARPlaneManager、MainCamera の自動検索と設定
+
+4. **（オプション）ARAvatar レイヤーの作成**
+   - Project Settings > Tags and Layers で `ARAvatar` レイヤーを作成
+   - `AvatarAutoSetup` の `Avatar Layer Name` に "ARAvatar" を入力
+   - `AvatarTapHandler` の `Avatar Layer Mask` を `ARAvatar` のみに限定
+
+#### 手動セットアップ（非推奨）
+
+自動セットアップを使わない場合は、以下を手動で行う必要があります：
+
+1. **AvatarFollowController コンポーネントを追加**
+   - 全ての参照フィールドを手動で設定
 
 2. **Collider を追加**（タップ検出用）
    - `BoxCollider` または `SphereCollider` を追加
    - サイズはアバター全体をカバーする程度に設定
-   - `Is Trigger`: チェック不要
-
-3. **（オプション）Layer 設定**
-   - Project Settings > Tags and Layers で `ARAvatar` レイヤーを作成
-   - アバターPrefabのLayerを `ARAvatar` に設定
-   - `AvatarTapHandler` の `Avatar Layer Mask` を `ARAvatar` のみに限定
 
 ### 3. Input System の設定
 
@@ -134,6 +159,7 @@
 ### ログ出力
 以下のイベント時にログが出力されます：
 
+- アバター自動セットアップ: `[AvatarAutoSetup] Setting up avatar: ...`
 - アバター配置: `[PlanePlacementController] Avatar placed at ...`
 - モード切替: `[AvatarFollowController] Mode changed: ...`
 - 平面バインド: `[AvatarFollowController] Bound to plane ...`
@@ -152,9 +178,15 @@
 - タップ間隔が0.3秒以内か確認（設定変更可能）
 
 ### 追従モードが動作しない
-- `AvatarFollowController` の参照が全て設定されているか確認
-- `AR Camera` が正しく参照されているか確認
+- `AvatarAutoSetup` が正しくアタッチされているか確認
+- コンソールに `[AvatarAutoSetup] Setting up avatar` ログが出ているか確認
+- 手動セットアップの場合: `AvatarFollowController` の参照が全て設定されているか確認
 - コンソールにエラーログが出ていないか確認
+
+### 自動セットアップが失敗する
+- ARRaycastManager、ARPlaneManager、MainCamera がシーンに存在するか確認
+- コンソールに警告ログが出ていないか確認
+- 必要に応じて手動セットアップに切り替え
 
 ### 平面が消えてモードがOffになる
 - ARPlaneが統合（subsume）された場合は自動で親平面に追従します
