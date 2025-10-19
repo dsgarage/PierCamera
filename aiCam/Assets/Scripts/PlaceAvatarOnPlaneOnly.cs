@@ -107,6 +107,19 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         if (occlusionManager)
         {
             originalDepthMode = occlusionManager.requestedEnvironmentDepthMode;
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] Original occlusion depth mode: {originalDepthMode}");
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] Current occlusion depth mode: {occlusionManager.currentEnvironmentDepthMode}");
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] Occlusion manager enabled: {occlusionManager.enabled}");
+        }
+        else
+        {
+            Debug.LogWarning("[PlaceAvatarOnPlaneOnly] AROcclusionManager not found - occlusion control will not work");
+        }
+
+        // 平面の追加/更新イベントを購読
+        if (planeManager)
+        {
+            planeManager.planesChanged += OnPlanesChanged;
         }
 
         Debug.Log($"[PlaceAvatarOnPlaneOnly] Initialized - FollowMode: {enableFollowMode}, Distance: {followDistance}m");
@@ -335,6 +348,21 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         expressionGridLayout?.SetTargetController(null);
         avatarAnimator = null;
         poseGridLayout?.SetTargetAnimator(null);
+
+        // イベント購読を解除
+        if (planeManager)
+        {
+            planeManager.planesChanged -= OnPlanesChanged;
+        }
+    }
+
+    void OnDestroy()
+    {
+        // イベント購読を解除（念のため）
+        if (planeManager)
+        {
+            planeManager.planesChanged -= OnPlanesChanged;
+        }
     }
 
     // ========== 追従機能 ==========
@@ -572,6 +600,56 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
 
     // ========== 視覚フィードバック ==========
 
+    void OnPlanesChanged(ARPlanesChangedEventArgs args)
+    {
+        // 新しく追加された平面に現在のモードの色を適用
+        Color currentColor = GetCurrentModeColor();
+
+        foreach (var plane in args.added)
+        {
+            var meshRenderer = plane.GetComponent<MeshRenderer>();
+            if (meshRenderer)
+            {
+                Material mat = meshRenderer.material;
+                if (mat)
+                {
+                    mat.color = currentColor;
+                    Debug.Log($"[PlaceAvatarOnPlaneOnly] New plane {plane.trackableId} color set to: {currentColor}");
+                }
+            }
+        }
+
+        // 更新された平面にも色を再適用（念のため）
+        foreach (var plane in args.updated)
+        {
+            var meshRenderer = plane.GetComponent<MeshRenderer>();
+            if (meshRenderer)
+            {
+                Material mat = meshRenderer.material;
+                if (mat && mat.color != currentColor)
+                {
+                    mat.color = currentColor;
+                    Debug.Log($"[PlaceAvatarOnPlaneOnly] Updated plane {plane.trackableId} color set to: {currentColor}");
+                }
+            }
+        }
+    }
+
+    Color GetCurrentModeColor()
+    {
+        switch (currentFollowMode)
+        {
+            case FollowMode.Off:
+                return defaultPlaneColor;
+            case FollowMode.PlaneLocked:
+                return planeLockedColor;
+            case FollowMode.CameraLocked:
+                return cameraLockedColor;
+            default:
+                return defaultPlaneColor;
+        }
+    }
+
     void SetPlaneColor(Color color)
     {
         if (!planeManager) return;
@@ -598,19 +676,29 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
 
     void SetOcclusion(bool enabled)
     {
-        if (!occlusionManager) return;
+        if (!occlusionManager)
+        {
+            Debug.LogWarning("[PlaceAvatarOnPlaneOnly] OcclusionManager is null - cannot change occlusion");
+            return;
+        }
+
+        EnvironmentDepthMode previousMode = occlusionManager.requestedEnvironmentDepthMode;
 
         if (enabled)
         {
             // オクルージョンを有効化（元の設定に戻す）
             occlusionManager.requestedEnvironmentDepthMode = originalDepthMode;
-            Debug.Log("[PlaceAvatarOnPlaneOnly] Occlusion enabled");
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] Occlusion enabled: {previousMode} → {originalDepthMode}");
         }
         else
         {
             // オクルージョンを無効化
             occlusionManager.requestedEnvironmentDepthMode = EnvironmentDepthMode.Disabled;
-            Debug.Log("[PlaceAvatarOnPlaneOnly] Occlusion disabled");
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] Occlusion disabled: {previousMode} → Disabled");
         }
+
+        // 現在の実際の状態を確認
+        Debug.Log($"[PlaceAvatarOnPlaneOnly] Current requested mode: {occlusionManager.requestedEnvironmentDepthMode}");
+        Debug.Log($"[PlaceAvatarOnPlaneOnly] Current actual mode: {occlusionManager.currentEnvironmentDepthMode}");
     }
 }
