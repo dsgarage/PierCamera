@@ -141,7 +141,7 @@ public class ExpressionGridLayout : MonoBehaviour
             child.anchoredPosition = new Vector2(x, -y);
 
             // スロットへデータを渡す
-            var slot = child.GetComponent<PoseSlot>();
+            var slot = child.GetComponent<ExpressionSlot>();
             if (slot != null)
             {
                 var it = items[i];
