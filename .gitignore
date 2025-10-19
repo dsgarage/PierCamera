@@ -23,6 +23,9 @@ UserSettings/
 *.csproj
 
 # ========== iOS ==========
+# Ignore entire ios folder
+ios/
+
 # Xcode build artifacts
 *.xcworkspace/
 *.xcuserstate
