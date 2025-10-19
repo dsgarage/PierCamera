@@ -81,7 +81,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
     float avatarRotationY = 0f;  // アバターのY軸回転（手動調整分）
 
     // 視覚フィードバック用
-    Color defaultPlaneColor = new Color(1f, 1f, 1f, 0.1f);  // 通常の薄い白
+    Color defaultPlaneColor = new Color(0.0f, 0.8f, 1.0f, 0.2f);  // 薄い水色（シアン）
     Color planeLockedColor = new Color(1f, 0.6f, 0.2f, 0.3f);  // 薄いオレンジ
     Color cameraLockedColor = new Color(0.6f, 0.4f, 1f, 0.3f);  // 薄い紫
     EnvironmentDepthMode originalDepthMode = EnvironmentDepthMode.Best;
@@ -580,13 +580,20 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         foreach (var plane in planeManager.trackables)
         {
             var meshRenderer = plane.GetComponent<MeshRenderer>();
-            if (meshRenderer && meshRenderer.material)
+            if (meshRenderer)
             {
-                meshRenderer.material.color = color;
+                // マテリアルのインスタンスを取得して色を変更
+                // .materialを使用することで各平面ごとのマテリアルインスタンスが作成される
+                Material mat = meshRenderer.material;
+                if (mat)
+                {
+                    mat.color = color;
+                    Debug.Log($"[PlaceAvatarOnPlaneOnly] Plane {plane.trackableId} color set to: {color}");
+                }
             }
         }
 
-        Debug.Log($"[PlaceAvatarOnPlaneOnly] Plane color changed to: {color}");
+        Debug.Log($"[PlaceAvatarOnPlaneOnly] All plane colors changed to: {color}");
     }
 
     void SetOcclusion(bool enabled)
