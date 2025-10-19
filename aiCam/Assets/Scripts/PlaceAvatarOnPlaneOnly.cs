@@ -512,7 +512,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
                 if (enableSwipeDistance && Mathf.Abs(delta.y) > Mathf.Abs(delta.x))
                 {
                     // 上にスワイプ(+Y) = 遠くに、下にスワイプ(-Y) = 近くに
-                    float distanceDelta = -delta.y / swipeDistanceSensitivity;  // 符号反転
+                    float distanceDelta = delta.y / swipeDistanceSensitivity;
                     followDistance = Mathf.Clamp(followDistance + distanceDelta, minDistance, maxDistance);
 
                     Debug.Log($"[PlaceAvatarOnPlaneOnly] Swipe distance adjust: {followDistance:F2}m (delta: {distanceDelta:F2}m)");
