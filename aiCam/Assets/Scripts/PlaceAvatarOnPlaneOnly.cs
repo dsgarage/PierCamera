@@ -169,6 +169,13 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
             return; // ダブルタップ時は配置しない
         }
 
+        // PlaneLocked/CameraLockedモード中はワンタップでの配置をキャンセル
+        if (currentFollowMode != FollowMode.Off)
+        {
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] Single tap ignored - Follow mode is active ({currentFollowMode})");
+            return;
+        }
+
         Debug.Log($"[PlaceAvatarOnPlaneOnly] Single tap - checking for plane at {touch.position}");
 
 
@@ -443,39 +450,35 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         float camYaw = arCamera.transform.eulerAngles.y;
         Quaternion camRot = Quaternion.Euler(0, camYaw, 0);
 
-        // カメラ相対位置を維持
-        Vector3 targetPos = camPos + (camRot * cameraLocalOffset.normalized) * followDistance;
+        // カメラ相対位置をしっかり維持（スワイプ距離調整を反映）
+        Vector3 offset = cameraLocalOffset.normalized * followDistance;
+        Vector3 targetPos = camPos + (camRot * offset);
 
-        // 滑らかに移動
-        avatar.transform.position = Vector3.Lerp(avatar.transform.position, targetPos, followSmoothness);
+        // CameraLockedモードではより強くカメラに追従（smoothnessを高く）
+        float cameraLockSmoothness = Mathf.Min(followSmoothness * 3f, 0.8f);
+        avatar.transform.position = Vector3.Lerp(avatar.transform.position, targetPos, cameraLockSmoothness);
 
         if (enableDebugLog && Time.frameCount % 30 == 0) // 30フレームごとにログ
         {
             float currentDistance = Vector3.Distance(camPos, avatar.transform.position);
-            Debug.Log($"[PlaceAvatarOnPlaneOnly] CameraLocked: Distance={currentDistance:F2}m (target={followDistance:F2}m), CamYaw={camYaw:F1}°");
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] CameraLocked: Distance={currentDistance:F2}m (target={followDistance:F2}m), CamYaw={camYaw:F1}°, Smoothness={cameraLockSmoothness:F2}");
         }
 
-        // カメラを向く（回転調整がない場合のみ）
-        if (Mathf.Abs(avatarRotationY) < 0.1f)
+        // カメラを向く（手動回転を考慮）
+        Vector3 lookDir = camPos - avatar.transform.position;
+        lookDir.y = 0;
+        if (lookDir.sqrMagnitude > 0.01f)
         {
-            Vector3 lookDir = camPos - avatar.transform.position;
-            lookDir.y = 0;
-            if (lookDir.sqrMagnitude > 0.01f)
+            Quaternion baseLookRot = Quaternion.LookRotation(lookDir);
+            if (Mathf.Abs(avatarRotationY) > 0.1f)
             {
-                Quaternion targetRot = Quaternion.LookRotation(lookDir);
-                avatar.transform.rotation = Quaternion.Slerp(avatar.transform.rotation, targetRot, followSmoothness);
-            }
-        }
-        else
-        {
-            // 手動回転が設定されている場合はそれを適用
-            Vector3 lookDir = camPos - avatar.transform.position;
-            lookDir.y = 0;
-            if (lookDir.sqrMagnitude > 0.01f)
-            {
-                Quaternion baseLookRot = Quaternion.LookRotation(lookDir);
+                // 手動回転が設定されている場合はそれを適用
                 Quaternion manualRot = Quaternion.Euler(0, avatarRotationY, 0);
-                avatar.transform.rotation = Quaternion.Slerp(avatar.transform.rotation, baseLookRot * manualRot, followSmoothness);
+                avatar.transform.rotation = Quaternion.Slerp(avatar.transform.rotation, baseLookRot * manualRot, cameraLockSmoothness);
+            }
+            else
+            {
+                avatar.transform.rotation = Quaternion.Slerp(avatar.transform.rotation, baseLookRot, cameraLockSmoothness);
             }
         }
     }
