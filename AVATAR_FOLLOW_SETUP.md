@@ -55,73 +55,72 @@
 - `Plane Manager`: XR Originの `ARPlaneManager` を参照
 - `AR Camera`: MainCamera を参照
 
-### 2. アバターの設定（自動セットアップ）
+### 2. アバターPrefabの設定（自動セットアップ）
 
-アバターは **自動的にセットアップ** されます。Prefabでの事前設定は不要です。
+アバターPrefabに `AvatarAutoSetup` コンポーネントを追加するだけで、自動的にセットアップされます。
 
-#### 方法1: FBXから動的にロード（推奨）
+#### 標準的な使い方: Prefabにコンポーネントをアタッチ
 
-FBXからAssimpなどで動的にロードする場合：
+**手順:**
 
-```csharp
-// アバターをロード（Assimp等）
-GameObject avatar = LoadAvatarFromFBX(fbxPath);
+1. **アバターPrefabを開く**
+   - Project ウィンドウでアバターPrefabをダブルクリック
 
-// 自動セットアップは不要！
-// PlanePlacementController または PlaceAvatarOnPlaneOnly が
-// Instantiate時に自動的に AvatarAutoSetup.Setup(avatar) を呼び出します
-```
+2. **AvatarAutoSetup コンポーネントを追加**
+   - アバターPrefabのルートオブジェクトを選択
+   - Inspector > Add Component > AR > Avatar Auto Setup
 
-**内部動作:**
-- `PlanePlacementController.PlaceAvatar()` または `PlaceAvatarOnPlaneOnly` でInstantiate時
-- `AvatarAutoSetup` コンポーネントがアタッチされていない場合
-- 自動的に `AvatarAutoSetup.Setup(avatar)` が呼ばれる
-- 以下が自動実行される：
-  - `AvatarFollowController` の追加と参照の自動設定
-  - `BoxCollider` の追加（デフォルトサイズ: 0.5x1.8x0.5）
-  - ARRaycastManager、ARPlaneManager、MainCamera の自動検索と設定
-
-#### 方法2: Prefabに事前にコンポーネントをアタッチ
-
-Prefabを使う場合は、事前に `AvatarAutoSetup` をアタッチできます：
-
-1. **AvatarAutoSetup コンポーネントを追加**
-   - アバターPrefabのルートに `AvatarAutoSetup` (Assets/Scripts/AR/AvatarAutoSetup.cs) を追加
-
-2. **AvatarAutoSetup の Inspector 設定**
+3. **Inspector で設定を調整**
 
    **Follow Settings:**
-   - `Desired Distance`: 1.5（維持する距離）
-   - `Pos Lerp`: 0.15（位置の補間速度）
-   - `Rot Lerp`: 0.15（回転の補間速度）
+   - `Desired Distance`: 1.5（カメラとの維持距離）
+   - `Pos Lerp`: 0.15（位置の補間速度 0-1）
+   - `Rot Lerp`: 0.15（回転の補間速度 0-1）
 
    **Collider Settings:**
-   - `Auto Add Collider`: チェック（自動でColliderを追加）
+   - `Auto Add Collider`: ✓チェック（自動でColliderを追加）
    - `Collider Size`: アバターのサイズに合わせて調整（例: 0.5, 1.8, 0.5）
    - `Collider Center`: Colliderの中心位置（例: 0, 0.9, 0）
+   - Scene Viewで緑色のGizmosを確認しながら調整
 
    **Layer Settings:**
    - `Avatar Layer Name`: レイヤー名を入力（例: "ARAvatar"）
      - 空欄の場合はレイヤー変更なし
      - レイヤーが存在しない場合は警告が出ます
 
-3. **自動セットアップ内容**
+4. **Prefabを保存**
 
-   インスタンス化時（Awake）に以下が自動実行されます：
-   - `AvatarFollowController` の追加と参照の自動設定
-   - `BoxCollider` の追加（サイズは設定値に基づく）
-   - レイヤーの設定（指定した場合）
-   - ARRaycastManager、ARPlaneManager、MainCamera の自動検索と設定
+**自動セットアップ内容:**
 
-#### 方法3: カスタム設定で動的セットアップ
+Prefabがインスタンス化された時（Awake）に以下が自動実行されます：
+- `AvatarFollowController` の追加と参照の自動設定
+- `BoxCollider` の追加（サイズは設定値に基づく）
+- レイヤーの設定（指定した場合）
+- ARRaycastManager、ARPlaneManager、MainCamera の自動検索と設定
 
-コードから直接セットアップする場合：
+これで、`PlaceAvatarOnPlaneOnly` の `avatarPrefab` にこのPrefabを設定すれば、タップ配置時に自動的に追従機能が使えます。
 
+---
+
+#### 発展的な使い方: FBXから動的にロード（Assimp等）
+
+将来的にFBXから動的にロードする場合も対応しています：
+
+**方法1: デフォルト設定でセットアップ**
+```csharp
+// アバターをロード（Assimp等）
+GameObject avatar = LoadAvatarFromFBX(fbxPath);
+
+// デフォルト設定でセットアップ
+AR.AvatarAutoSetup.Setup(avatar);
+```
+
+**方法2: カスタム設定でセットアップ**
 ```csharp
 // アバターをロード
 GameObject avatar = LoadAvatarFromFBX(fbxPath);
 
-// カスタム設定でセットアップ
+// カスタム設定
 var config = new AR.AvatarAutoSetup.SetupConfig
 {
     desiredDistance = 2.0f,  // 2mの距離を維持
@@ -132,11 +131,21 @@ var config = new AR.AvatarAutoSetup.SetupConfig
 AR.AvatarAutoSetup.Setup(avatar, config);
 ```
 
+**自動セットアップ（将来対応）:**
+
+`PlaceAvatarOnPlaneOnly` または `PlanePlacementController` でInstantiate時、`AvatarAutoSetup` コンポーネントがアタッチされていない場合は、自動的に `AvatarAutoSetup.Setup(avatar)` が呼ばれます。
+
+---
+
 #### （オプション）ARAvatar レイヤーの作成
 
 タップ検出を最適化したい場合：
-- Project Settings > Tags and Layers で `ARAvatar` レイヤーを作成
-- `AvatarTapHandler` の `Avatar Layer Mask` を `ARAvatar` のみに限定
+
+1. **Project Settings > Tags and Layers で `ARAvatar` レイヤーを作成**
+2. **アバターPrefabの `AvatarAutoSetup` で `Avatar Layer Name` に "ARAvatar" を入力**
+3. **`AvatarTapHandler` の `Avatar Layer Mask` を `ARAvatar` のみに限定**
+
+これにより、ダブルタップ時のRaycast判定が高速化されます。
 
 ### 3. Input System の設定
 
