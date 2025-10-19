@@ -426,26 +426,44 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
             case FollowMode.Off:
                 currentFollowMode = FollowMode.PlaneLocked;
                 avatarRotationY = 0f;  // 回転リセット
-                float distance = arCamera && avatar ? Vector3.Distance(arCamera.transform.position, avatar.transform.position) : 0f;
+
+                // 現在の水平距離を保存
+                if (arCamera && avatar)
+                {
+                    Vector3 camPos = arCamera.transform.position;
+                    Vector3 avatarPos = avatar.transform.position;
+                    float horizontalDist = Vector3.Distance(
+                        new Vector3(camPos.x, 0, camPos.z),
+                        new Vector3(avatarPos.x, 0, avatarPos.z)
+                    );
+                    followDistance = Mathf.Max(minDistance, horizontalDist);
+                    Debug.Log($"[PlaceAvatarOnPlaneOnly] Follow Mode: PlaneLocked (平面追従) - Locked horizontal distance: {followDistance:F2}m");
+                }
 
                 // 視覚フィードバック: 平面をオレンジに、オクルージョンON
                 SetPlaneColor(planeLockedColor);
                 SetOcclusion(true);
 
-                Debug.Log($"[PlaceAvatarOnPlaneOnly] Follow Mode: PlaneLocked (平面追従) - Current distance: {distance:F2}m");
                 break;
             case FollowMode.PlaneLocked:
                 currentFollowMode = FollowMode.CameraLocked;
                 avatarRotationY = 0f;  // 回転リセット
-                // カメラ相対オフセットを計算（カメラの完全な回転を使用）
+
+                // カメラ相対オフセットを計算（距離と角度を保持）
                 if (arCamera && avatar)
                 {
                     Vector3 camPos = arCamera.transform.position;
                     Vector3 avatarPos = avatar.transform.position;
-                    Quaternion invCamRot = Quaternion.Inverse(arCamera.transform.rotation);
-                    cameraLocalOffset = invCamRot * (avatarPos - camPos);
+                    Vector3 offset = avatarPos - camPos;
 
-                    Debug.Log($"[PlaceAvatarOnPlaneOnly] Follow Mode: CameraLocked (カメラ追従) - Offset: {cameraLocalOffset}");
+                    // 現在の3D距離を保存
+                    followDistance = offset.magnitude;
+
+                    // カメラのローカル座標系でのオフセットを保存（正規化しない）
+                    Quaternion invCamRot = Quaternion.Inverse(arCamera.transform.rotation);
+                    cameraLocalOffset = invCamRot * offset;
+
+                    Debug.Log($"[PlaceAvatarOnPlaneOnly] Follow Mode: CameraLocked (カメラ追従) - Distance: {followDistance:F2}m, Offset: {cameraLocalOffset}");
                 }
 
                 // 視覚フィードバック: 平面を紫に、オクルージョンOFF
@@ -510,7 +528,15 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
                 new Vector3(camPos.x, 0, camPos.z),
                 new Vector3(avatar.transform.position.x, 0, avatar.transform.position.z)
             );
-            Debug.Log($"[PlaceAvatarOnPlaneOnly] PlaneLocked: Distance={currentDistance:F2}m (target={followDistance:F2}m), Horizontal={horizontalDistance:F2}m");
+
+            // オクルージョン状態も確認
+            string occlusionStatus = "N/A";
+            if (occlusionManager)
+            {
+                occlusionStatus = $"Requested={occlusionManager.requestedEnvironmentDepthMode}, Current={occlusionManager.currentEnvironmentDepthMode}";
+            }
+
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] PlaneLocked: Distance={currentDistance:F2}m (target={followDistance:F2}m), Horizontal={horizontalDistance:F2}m, Occlusion={occlusionStatus}");
         }
 
         // カメラを向く（手動回転を考慮）
@@ -541,8 +567,16 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         // カメラの完全な回転を使用（pitch/yaw/roll全て対応）
         Quaternion camRot = arCamera.transform.rotation;
 
-        // カメラ相対位置をしっかり維持（スワイプ距離調整を反映）
-        Vector3 offset = cameraLocalOffset.normalized * followDistance;
+        // カメラ相対オフセットをそのまま使用（角度を保持）
+        // スワイプで距離調整された場合は、オフセットをスケーリング
+        float currentOffsetLength = cameraLocalOffset.magnitude;
+        Vector3 offset = cameraLocalOffset;
+        if (currentOffsetLength > 0.01f && Mathf.Abs(followDistance - currentOffsetLength) > 0.01f)
+        {
+            // スワイプで距離が変更された場合は、方向を保ったままスケーリング
+            offset = cameraLocalOffset.normalized * followDistance;
+        }
+
         Vector3 targetPos = camPos + (camRot * offset);
 
         // CameraLockedモードではより強くカメラに追従（smoothnessを高く）
@@ -553,7 +587,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         {
             float currentDistance = Vector3.Distance(camPos, avatar.transform.position);
             Vector3 camEuler = arCamera.transform.eulerAngles;
-            Debug.Log($"[PlaceAvatarOnPlaneOnly] CameraLocked: Distance={currentDistance:F2}m (target={followDistance:F2}m), CamRot=({camEuler.x:F1}°, {camEuler.y:F1}°, {camEuler.z:F1}°), Smoothness={cameraLockSmoothness:F2}");
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] CameraLocked: Distance={currentDistance:F2}m (target={followDistance:F2}m), CamRot=({camEuler.x:F1}°, {camEuler.y:F1}°, {camEuler.z:F1}°), Offset={offset.magnitude:F2}m");
         }
 
         // カメラを向く（手動回転を考慮）
