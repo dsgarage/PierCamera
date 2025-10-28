@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: f2807b3de05e94e0a83ee25699b41927
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 168773
+  packageName: AR Foundation Remote
+  packageVersion: 1.4.41-release.0
+  assetPath: Assets/Plugins/ARFoundationRemoteInstaller/Scripts/AssetPostprocessor.cs
+  uploadId: 804278
