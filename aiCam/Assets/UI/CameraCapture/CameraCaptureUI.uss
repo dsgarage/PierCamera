@@ -1,0 +1,318 @@
+/* ================================
+   基本ルート設定
+================================ */
+.root {
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0);
+    justify-content: flex-end;
+    align-items: center;
+    flex-direction: column;
+    display: flex;
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding-bottom: 0;
+}
+
+/* ================================
+   撮影ボタン
+================================ */
+.capture-button {
+    width: 80px;
+    height: 80px;
+    justify-content: center;
+    align-items: center;
+    background-color: transparent;
+    border-width: 0;
+    display: flex;
+    margin-bottom: 30px;
+    margin-top: 20px;
+    cursor: link;
+}
+
+/* 内側の円（白→赤に変化） */
+.inner-circle {
+    width: 60px;
+    height: 60px;
+    border-top-left-radius: 50%;
+    border-top-right-radius: 50%;
+    border-bottom-left-radius: 50%;
+    border-bottom-right-radius: 50%;
+    background-image: resource('UI/Buttons/CaptureButtonInner');
+    -unity-background-scale-mode: scale-to-fit;
+    transition-property: background-color;
+    transition-duration: 0.3s;
+    display: flex;
+    pointer-events: none;
+}
+
+/* 録画中に赤く点灯 */
+.inner-circle.recording {
+    -unity-background-image-tint-color: rgba(255, 0, 0, 1);
+}
+
+/* 外枠リング画像 */
+.outer-ring {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    background-image: resource('UI/Buttons/CaptureButtonOuter');
+    -unity-background-scale-mode: scale-to-fit;
+    display: flex;
+    pointer-events: none;
+}
+
+/* プログレスリング（4つのセグメントを使用） */
+.progress-ring {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    opacity: 0;
+    transition-property: opacity;
+    transition-duration: 0.3s;
+    display: flex;
+    pointer-events: none;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 録画中のみ表示 */
+.progress-ring.active {
+    opacity: 1;
+}
+
+/* プログレスバーの背景リング（薄い赤） */
+.progress-ring-bg {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border-left-width: 4px;
+    border-right-width: 4px;
+    border-top-width: 4px;
+    border-bottom-width: 4px;
+    border-color: rgba(255, 0, 0, 0.2);
+    border-top-left-radius: 50%;
+    border-top-right-radius: 50%;
+    border-bottom-left-radius: 50%;
+    border-bottom-right-radius: 50%;
+    pointer-events: none;
+}
+
+/* プログレス表示用の円弧（時計回り） */
+.progress-arc {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border-left-width: 4px;
+    border-right-width: 4px;
+    border-top-width: 4px;
+    border-bottom-width: 4px;
+    border-color: rgba(0, 0, 0, 0);
+    border-top-left-radius: 50%;
+    border-top-right-radius: 50%;
+    border-bottom-left-radius: 50%;
+    border-bottom-right-radius: 50%;
+    pointer-events: none;
+    rotate: -90deg;
+}
+
+/* ================================
+   サムネイル領域
+================================ */
+.gallery-thumbnail {
+    position: absolute;
+    bottom: 35px;
+    left: 30px;
+    width: 55px;
+    height: 55px;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(34, 34, 34, 1);
+    -unity-background-scale-mode: scale-and-crop;
+    display: flex;
+    cursor: link;
+}
+
+/* ================================
+   フラッシュオーバーレイ
+================================ */
+.flash-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: white;
+    opacity: 0;
+    transition-property: opacity;
+    transition-duration: 0.3s;
+    display: flex;
+    pointer-events: none;
+}
+
+/* ================================
+   ビューア（全画面プレビュー）
+================================ */
+.viewer-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.95);
+    justify-content: center;
+    align-items: center;
+    display: none;
+    flex-direction: column;
+    cursor: link;
+}
+
+/* 画像ビューア */
+.viewer-image {
+    max-width: 90%;
+    max-height: 90%;
+    -unity-background-scale-mode: scale-to-fit;
+    display: flex;
+    pointer-events: none;
+}
+
+/* 動画ビューア */
+.viewer-video {
+    max-width: 90%;
+    max-height: 90%;
+}
+
+/* ================================
+   上部パネル
+================================ */
+.top-panel {
+    position: absolute;
+    top: 50px;
+    left: 10px;
+    right: 10px;
+    height: 60px;
+    background-color: rgba(128, 128, 128, 0.5);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-around;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+/* 上部パネルのボタン */
+.top-panel-button {
+    width: 50px;
+    height: 50px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-width: 0;
+    border-top-left-radius: 50%;
+    border-top-right-radius: 50%;
+    border-bottom-left-radius: 50%;
+    border-bottom-right-radius: 50%;
+    flex-grow: 0;
+    flex-shrink: 0;
+    cursor: link;
+    -unity-font-style: bold;
+    font-size: 20px;
+    color: rgba(60, 60, 60, 1);
+}
+
+.top-panel-button:hover {
+    background-color: rgba(255, 255, 255, 1);
+}
+
+/* ================================
+   撮影ボタン上のパネル
+================================ */
+.bottom-panel {
+    position: absolute;
+    bottom: 140px;
+    left: 10px;
+    right: 10px;
+    height: 80px;
+    background-color: rgba(128, 128, 128, 0.5);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    overflow: hidden;
+}
+
+/* 下部パネルのスクロールビュー */
+.bottom-scroll-view {
+    width: 100%;
+    height: 100%;
+}
+
+.bottom-scroll-view .unity-scroll-view__content-viewport {
+    width: 100%;
+    height: 100%;
+}
+
+.bottom-scroll-view .unity-scroll-view__content-container {
+    flex-direction: row;
+    align-items: center;
+    height: 100%;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+/* 下部パネルのボタンコンテナ */
+.bottom-button-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    height: 100%;
+    flex-shrink: 0;
+}
+
+/* 下部パネルのボタン */
+.bottom-panel-button {
+    width: 60px;
+    height: 60px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-width: 0;
+    border-top-left-radius: 50%;
+    border-top-right-radius: 50%;
+    border-bottom-left-radius: 50%;
+    border-bottom-right-radius: 50%;
+    flex-grow: 0;
+    flex-shrink: 0;
+    cursor: link;
+    -unity-font-style: bold;
+    font-size: 16px;
+    color: rgba(60, 60, 60, 1);
+    margin-left: 8px;
+    margin-right: 8px;
+}
+
+.bottom-panel-button:hover {
+    background-color: rgba(255, 255, 255, 1);
+}
+
+/* +ボタン専用スタイル */
+.bottom-panel-button-add {
+    font-size: 32px;
+    background-color: rgba(200, 200, 200, 0.8);
+}
+
+.bottom-panel-button-add:hover {
+    background-color: rgba(220, 220, 220, 1);
+}
