@@ -525,5 +525,24 @@ namespace AICam.UI
             Handheld.Vibrate();
 #endif
         }
+
+        /// <summary>
+        /// 指定されたスクリーン座標がUI Toolkit のパネル上にあるかチェック
+        /// PlaceAvatarOnPlaneOnlyから呼び出される
+        /// </summary>
+        public bool IsPointOverUIPanel(Vector2 screenPosition)
+        {
+            if (topPanel != null && topPanel.worldBound.Contains(screenPosition))
+            {
+                return true;
+            }
+
+            if (bottomPanel != null && bottomPanel.worldBound.Contains(screenPosition))
+            {
+                return true;
+            }
+
+            return false;
+        }
     }
 }

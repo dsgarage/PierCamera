@@ -17,6 +17,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
     [SerializeField] FaceUIManager faceUIManager;
     [SerializeField] ExpressionGridLayout expressionGridLayout;
     [SerializeField] PoseGridLayout poseGridLayout;
+    [SerializeField] AICam.UI.CameraCaptureController cameraCaptureController;  // UI Toolkit パネルのタッチブロック用
 
     [Header("Filters")]
     [Tooltip("水平面（床・テーブルなど）に限定")]
@@ -102,6 +103,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         if (!occlusionManager) occlusionManager = FindFirstObjectByType<AROcclusionManager>(FindObjectsInactive.Include);
         if (!faceUIManager) faceUIManager = FindFirstObjectByType<FaceUIManager>(FindObjectsInactive.Include);
         if (!poseGridLayout) poseGridLayout = FindFirstObjectByType<PoseGridLayout>(FindObjectsInactive.Include);
+        if (!cameraCaptureController) cameraCaptureController = FindFirstObjectByType<AICam.UI.CameraCaptureController>(FindObjectsInactive.Include);
         // 床寄りにしたい場合は検出を水平に絞る（※壁検出を抑制）
         if (planeManager) planeManager.requestedDetectionMode = PlaneDetectionMode.Horizontal;
 
@@ -327,7 +329,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         return Quaternion.LookRotation(toCam, up);
     }
 
-    // UIヒット判定（EventSystem + 指定Rect）
+    // UIヒット判定（EventSystem + 指定Rect + UI Toolkit）
     bool IsTouchOverUI(Touch touch)
     {
         // 1) 標準の UI ヒット（GraphicRaycaster 必須）
@@ -343,6 +345,13 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
             if (!rt) continue;
             if (RectTransformUtility.RectangleContainsScreenPoint(rt, touch.position, cam))
                 return true;
+        }
+
+        // 3) UI Toolkit のパネル判定
+        if (cameraCaptureController != null && cameraCaptureController.IsPointOverUIPanel(touch.position))
+        {
+            Debug.Log("[PlaceAvatarOnPlaneOnly] Touch ignored - over UI Toolkit panel");
+            return true;
         }
 
         return false;
