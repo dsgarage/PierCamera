@@ -21,8 +21,9 @@ public sealed class ARPhotoController : MonoBehaviour
     [Tooltip("保存時のクロップ位置を UI マスクの移動量(offsetPx)に同期させる場合に割り当て")]
     [SerializeField] private SquareCropOverlay squareOverlay;
 
-    [Header("UI Hiding (Method #2)")]
+    [Header("UI Hiding")]
     [SerializeField] private CanvasGroup[] uiToHide;
+    [SerializeField] private UnityEngine.UIElements.UIDocument[] uiDocumentsToHide;
     [SerializeField] private bool allowConcurrentCapture = false;
 
     [Header("iOS Save Mode")]
@@ -30,6 +31,9 @@ public sealed class ARPhotoController : MonoBehaviour
 
     [Header("Plane Visualization")]
     [SerializeField] private string planeVizLayerName = "ARPlaneViz";
+
+    [Header("UI Layer Exclusion")]
+    [SerializeField] private string uiLayerName = "UI";
 
     [Header("Aspect / Crop")]
     [Tooltip("true なら保存前に正方形へクロップします")]
@@ -61,6 +65,9 @@ public sealed class ARPhotoController : MonoBehaviour
     private bool _isCapturing;
     private int _savedCullingMask;
     private bool _maskPatched;
+
+    // 撮影完了時のコールバック
+    public event System.Action<Texture2D> OnPhotoCaptured;
 
     private void Awake()
     {
@@ -103,15 +110,16 @@ public sealed class ARPhotoController : MonoBehaviour
             SetUIVisible(false);
             BeginExcludePlaneLayer();
 
-            // レイアウト反映
+            // レイアウト反映（複数フレーム待機でUI Toolkitの描画を確実に反映）
+            yield return null;
             yield return null;
             yield return new WaitForEndOfFrame();
 
-            // ① 画面キャプチャ（UI/Plane除外済み）
-            var tex = ScreenCapture.CaptureScreenshotAsTexture(); // RGBA32
+            // ① カメラから直接レンダリング（UIレイヤーを除外）
+            Texture2D tex = CaptureFromCamera();
             if (!tex)
             {
-                Debug.LogError("[ARPhoto] CaptureScreenshotAsTexture returned null");
+                Debug.LogError("[ARPhoto] CaptureFromCamera returned null");
                 yield break;
             }
 
@@ -129,6 +137,10 @@ public sealed class ARPhotoController : MonoBehaviour
                 UnityEngine.Object.Destroy(tex);
                 tex = sq;
             }
+
+            // サムネイル用のコピーを作成（64x64にリサイズ）
+            Texture2D thumbnail = CreateThumbnail(tex, 64, 64);
+            OnPhotoCaptured?.Invoke(thumbnail);
 
             var png = tex.EncodeToPNG();
             UnityEngine.Object.Destroy(tex);
@@ -173,18 +185,77 @@ public sealed class ARPhotoController : MonoBehaviour
         }
     }
 
+    private Texture2D CaptureFromCamera()
+    {
+        if (!captureCamera)
+        {
+            Debug.LogError("[ARPhoto] Capture camera is null");
+            return null;
+        }
+
+        // 現在の画面解像度でRenderTextureを作成
+        int width = Screen.width;
+        int height = Screen.height;
+
+        RenderTexture rt = RenderTexture.GetTemporary(width, height, 24, RenderTextureFormat.ARGB32);
+        RenderTexture previousRT = captureCamera.targetTexture;
+        RenderTexture previousActive = RenderTexture.active;
+
+        try
+        {
+            // カメラでRenderTextureにレンダリング
+            captureCamera.targetTexture = rt;
+            captureCamera.Render();
+
+            // RenderTextureからTexture2Dに転送
+            RenderTexture.active = rt;
+            Texture2D tex = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            tex.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+            tex.Apply();
+
+            return tex;
+        }
+        finally
+        {
+            // 元の状態に戻す
+            captureCamera.targetTexture = previousRT;
+            RenderTexture.active = previousActive;
+            RenderTexture.ReleaseTemporary(rt);
+        }
+    }
+
     private void BeginExcludePlaneLayer()
     {
         if (!captureCamera) return;
-        int planeLayer = LayerMask.NameToLayer(planeVizLayerName);
-        if (planeLayer < 0)
-        {
-            Debug.LogWarning($"[ARPhoto] Layer '{planeVizLayerName}' not found. Create it and assign to Plane prefab.");
-            return;
-        }
+
         _savedCullingMask = captureCamera.cullingMask;
         _maskPatched = true;
-        captureCamera.cullingMask = _savedCullingMask & ~(1 << planeLayer);
+        int maskToExclude = 0;
+
+        // Plane Vizレイヤーを除外
+        int planeLayer = LayerMask.NameToLayer(planeVizLayerName);
+        if (planeLayer >= 0)
+        {
+            maskToExclude |= (1 << planeLayer);
+        }
+        else
+        {
+            Debug.LogWarning($"[ARPhoto] Layer '{planeVizLayerName}' not found. Create it and assign to Plane prefab.");
+        }
+
+        // UIレイヤーを除外
+        int uiLayer = LayerMask.NameToLayer(uiLayerName);
+        if (uiLayer >= 0)
+        {
+            maskToExclude |= (1 << uiLayer);
+        }
+        else
+        {
+            Debug.LogWarning($"[ARPhoto] Layer '{uiLayerName}' not found.");
+        }
+
+        captureCamera.cullingMask = _savedCullingMask & ~maskToExclude;
+        Debug.Log($"[ARPhoto] Culling mask: original={_savedCullingMask}, excluded={maskToExclude}, new={captureCamera.cullingMask}");
     }
 
     private void EndExcludePlaneLayer()
@@ -196,13 +267,28 @@ public sealed class ARPhotoController : MonoBehaviour
 
     private void SetUIVisible(bool visible)
     {
-        if (uiToHide == null) return;
-        foreach (var cg in uiToHide)
+        // CanvasGroup (uGUI用)
+        if (uiToHide != null)
         {
-            if (!cg) continue;
-            cg.alpha = visible ? 1f : 0f;
-            cg.interactable = visible;
-            cg.blocksRaycasts = visible;
+            foreach (var cg in uiToHide)
+            {
+                if (!cg) continue;
+                cg.alpha = visible ? 1f : 0f;
+                cg.interactable = visible;
+                cg.blocksRaycasts = visible;
+            }
+        }
+
+        // UIDocument (UI Toolkit用)
+        if (uiDocumentsToHide != null)
+        {
+            foreach (var doc in uiDocumentsToHide)
+            {
+                if (!doc || doc.rootVisualElement == null) continue;
+                doc.rootVisualElement.style.display = visible
+                    ? UnityEngine.UIElements.DisplayStyle.Flex
+                    : UnityEngine.UIElements.DisplayStyle.None;
+            }
         }
     }
 
@@ -351,6 +437,25 @@ public sealed class ARPhotoController : MonoBehaviour
     // 互換：オフセット無し（既存APIを残す）
     public static RectInt ComputeSquareCropRect(int width, int height, SquareAnchor anchor)
         => ComputeSquareCropRect(width, height, anchor, Vector2.zero);
+
+    // サムネイル作成用のヘルパーメソッド
+    private static Texture2D CreateThumbnail(Texture2D source, int width, int height)
+    {
+        RenderTexture rt = RenderTexture.GetTemporary(width, height);
+        rt.filterMode = FilterMode.Bilinear;
+
+        RenderTexture.active = rt;
+        Graphics.Blit(source, rt);
+
+        Texture2D thumbnail = new Texture2D(width, height, TextureFormat.RGBA32, false);
+        thumbnail.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+        thumbnail.Apply();
+
+        RenderTexture.active = null;
+        RenderTexture.ReleaseTemporary(rt);
+
+        return thumbnail;
+    }
 
     // ★ MOD: 中心ベース + Safe Area 対応で保存テクスチャ上の正方形Rectを算出
     private RectInt ComputeSquareCropOnTexture_CenterBased(

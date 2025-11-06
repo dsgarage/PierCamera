@@ -1,0 +1,47 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="CameraCaptureUI.uss"/>
+    <ui:VisualElement class="root" picking-mode="Ignore">
+
+        <!-- 📊 上部パネル -->
+        <ui:VisualElement name="topPanel" class="top-panel" picking-mode="Ignore">
+            <ui:Button name="topButton1" class="top-panel-button" picking-mode="Position"/>
+            <ui:Button name="topButton2" class="top-panel-button" picking-mode="Position"/>
+            <ui:Button name="topButton3" class="top-panel-button" picking-mode="Position"/>
+            <ui:Button name="topButton4" class="top-panel-button" picking-mode="Position"/>
+        </ui:VisualElement>
+
+        <!-- 📷 左下のサムネイル（直近の写真・動画） -->
+        <ui:VisualElement name="galleryThumbnail" class="gallery-thumbnail" picking-mode="Position"/>
+
+        <!-- 📊 撮影ボタン上のパネル -->
+        <ui:VisualElement name="bottomPanel" class="bottom-panel">
+            <ui:ScrollView name="bottomScrollView" class="bottom-scroll-view" mode="Horizontal" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden">
+                <ui:VisualElement name="bottomButtonContainer" class="bottom-button-container">
+                    <ui:Button name="bottomButton1" class="bottom-panel-button"/>
+                    <ui:Button name="bottomButton2" class="bottom-panel-button"/>
+                    <ui:Button name="bottomButton3" class="bottom-panel-button"/>
+                    <ui:Button name="bottomButtonAdd" class="bottom-panel-button bottom-panel-button-add" text="+"/>
+                </ui:VisualElement>
+            </ui:ScrollView>
+        </ui:VisualElement>
+
+        <!-- 🎯 撮影ボタン（外枠＋内側＋プログレスリング） -->
+        <ui:VisualElement name="captureButton" class="capture-button" picking-mode="Position">
+            <ui:VisualElement name="outerRing" class="outer-ring" picking-mode="Ignore"/>
+            <ui:VisualElement name="innerCircle" class="inner-circle" picking-mode="Ignore"/>
+            <ui:VisualElement name="progressRing" class="progress-ring" picking-mode="Ignore">
+                <ui:VisualElement name="progressRingBg" class="progress-ring-bg" picking-mode="Ignore"/>
+                <ui:VisualElement name="progressArc" class="progress-arc" picking-mode="Ignore"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- ⚡ 撮影時のフラッシュアニメーション -->
+        <ui:VisualElement name="flashOverlay" class="flash-overlay" picking-mode="Ignore"/>
+
+        <!-- 🖼 写真／動画の全画面ビューア -->
+        <ui:VisualElement name="viewerOverlay" class="viewer-overlay" picking-mode="Position">
+            <ui:Image name="viewerImage" class="viewer-image" picking-mode="Ignore"/>
+        </ui:VisualElement>
+
+    </ui:VisualElement>
+</ui:UXML>
