@@ -45,6 +45,12 @@ namespace AICam.UI
         {
             Debug.Log("🔧 CameraCaptureController OnEnable called");
 
+            // ARPhotoControllerのイベント登録
+            if (photoController != null)
+            {
+                photoController.OnPhotoCaptured += OnPhotoCapturedHandler;
+            }
+
             var uiDoc = GetComponent<UIDocument>();
             if (uiDoc == null)
             {
@@ -150,6 +156,27 @@ namespace AICam.UI
             }
         }
 
+        void OnDisable()
+        {
+            // ARPhotoControllerのイベント解除
+            if (photoController != null)
+            {
+                photoController.OnPhotoCaptured -= OnPhotoCapturedHandler;
+            }
+        }
+
+        void OnPhotoCapturedHandler(Texture2D thumbnail)
+        {
+            Debug.Log("📸 Photo captured, updating thumbnail");
+            lastCapturedPhoto = thumbnail;
+            lastMediaIsVideo = false;
+
+            if (galleryThumbnail != null)
+            {
+                galleryThumbnail.style.backgroundImage = new StyleBackground(thumbnail);
+            }
+        }
+
         void OnPointerDown(PointerDownEvent evt)
         {
             Debug.Log("👇 OnPointerDown triggered");
@@ -229,30 +256,14 @@ namespace AICam.UI
             Debug.Log("📸 写真撮影");
             FlashEffect();
 
-            lastMediaIsVideo = false;
-
             if (photoController != null)
             {
                 photoController.Capture();
+                // サムネイルはOnPhotoCapturedHandlerで更新される
             }
             else
             {
                 Debug.LogWarning("ARPhotoController is not assigned");
-            }
-
-            // 仮の白画像をサムネイルに設定
-            lastCapturedPhoto = new Texture2D(64, 64);
-            Color[] pixels = new Color[64 * 64];
-            for (int i = 0; i < pixels.Length; i++)
-            {
-                pixels[i] = Color.white;
-            }
-            lastCapturedPhoto.SetPixels(pixels);
-            lastCapturedPhoto.Apply();
-
-            if (galleryThumbnail != null)
-            {
-                galleryThumbnail.style.backgroundImage = new StyleBackground(lastCapturedPhoto);
             }
 
             ResetButtonState();
