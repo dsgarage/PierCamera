@@ -76,18 +76,37 @@ namespace AICam.UI
             bottomButtonContainer = root.Q<VisualElement>("bottomButtonContainer");
             bottomButtonAdd = root.Q<Button>("bottomButtonAdd");
 
-            // ScrollViewの設定
+            // ScrollViewの設定（物理スクロール対応）
             var bottomScrollView = root.Q<ScrollView>("bottomScrollView");
             if (bottomScrollView != null)
             {
                 bottomScrollView.mode = ScrollViewMode.Horizontal;
+
+                // 実機用：スクロールバー非表示、エディタ用：Auto表示
+#if UNITY_EDITOR
+                bottomScrollView.horizontalScrollerVisibility = ScrollerVisibility.Auto;
+#else
                 bottomScrollView.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
+#endif
                 bottomScrollView.verticalScrollerVisibility = ScrollerVisibility.Hidden;
+
+                // 物理スクロール設定
                 bottomScrollView.touchScrollBehavior = ScrollView.TouchScrollBehavior.Elastic;
                 bottomScrollView.elasticity = 0.1f;
                 bottomScrollView.scrollDecelerationRate = 0.135f;
 
-                // コンテンツコンテナが親より大きい場合のみスクロール可能
+                // 横スクロールのみ有効化
+                bottomScrollView.horizontalPageSize = 0;
+                bottomScrollView.verticalPageSize = 0;
+                bottomScrollView.nestedInteractionKind = ScrollView.NestedInteractionKind.Default;
+
+                // ContentContainerのflex設定を強制
+                bottomScrollView.contentContainer.style.flexDirection = FlexDirection.Row;
+                bottomScrollView.contentContainer.style.flexWrap = Wrap.NoWrap;
+
+                // マウスホイールスクロール（エディタ用）
+                bottomScrollView.mouseWheelScrollSize = 30f;
+
                 Debug.Log($"✅ ScrollView configured: mode={bottomScrollView.mode}, touchBehavior={bottomScrollView.touchScrollBehavior}");
             }
 

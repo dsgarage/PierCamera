@@ -1,0 +1,22 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement name="ControlFooter" class="footer">
+        <ui:VisualElement name="PreviewArea" class="preview-area">
+            <ui:Button name="PreviewButton" class="preview-button"/>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="ZoomSelector" class="zoom-selector">
+            <ui:Button text="0.5x" class="zoom-button"/>
+            <ui:Button text="1x" class="zoom-button selected"/>
+            <ui:Button text="2x" class="zoom-button"/>
+            <ui:Button text="5x" class="zoom-button"/>
+        </ui:VisualElement>
+
+        <ui:Button name="ShutterButton" class="shutter-button"/>
+
+        <ui:VisualElement name="AspectRatioSelector" class="aspect-selector">
+            <ui:Button text="16:9" class="aspect-button selected"/>
+            <ui:Button text="1:1" class="aspect-button"/>
+            <ui:Button text="Full" class="aspect-button"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

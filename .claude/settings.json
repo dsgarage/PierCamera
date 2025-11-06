@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "unity-mcp": {
+      "command": "node",
+      "args": [
+        "/Users/daisuketsukada/Documents/dsgarageScript/UnityMCP/mcp-bridge/index.js"
+      ],
+      "env": {
+        "UNITY_HTTP_URL": "http://localhost:5051"
+      }
+    }
+  }
+}
