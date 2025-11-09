@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: f98f149ceeb6749bc90b7c4b6b258724
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 168773
+  packageName: AR Foundation Remote
+  packageVersion: 1.4.41-release.0
+  assetPath: Assets/Plugins/ARFoundationRemoteInstaller/Examples/Assets/Images/ReferenceImageLibrary.asset
+  uploadId: 804278

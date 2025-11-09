@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 3439e7dd491e141d488ff9cc351ed279
+DefaultImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 168773
+  packageName: AR Foundation Remote
+  packageVersion: 1.4.41-release.0
+  assetPath: Assets/Plugins/ARFoundationRemoteInstaller/Resources/ARCompanion.unity
+  uploadId: 804278

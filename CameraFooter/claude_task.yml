@@ -1,0 +1,59 @@
+version: "1.0"
+
+tasks:
+  - name: "Camera Footer UI Implementation"
+    description: >
+      UnityのUI Toolkitを使用してiPhoneカメラ風のフッターUIを実装するタスク。
+      シャッターボタンの短押しで写真撮影、長押しで動画撮影を開始・終了。
+      左下のプレビューエリアには最新の撮影メディアのサムネイルを表示する。
+
+    environment:
+      language: "C#"
+      framework: "Unity"
+      unity_version: "2022.3以上推奨"
+      os: "macOS / Windows"
+
+    steps:
+      - step: "Setup project structure"
+        description: >
+          UI Toolkit用のディレクトリを作成し、CameraFooter関連ファイルを配置する。
+        run: |
+          mkdir -p Assets/UI/CameraFooter
+          cp ./CameraFooter.uxml Assets/UI/CameraFooter/
+          cp ./CameraFooter.uss Assets/UI/CameraFooter/
+          cp ./CameraFooterController.cs Assets/UI/CameraFooter/
+
+      - step: "Integrate UIDocument"
+        description: >
+          シーン上にUIDocumentを追加し、CameraFooter.uxmlを参照するように設定する。
+          GameObject名は「CameraFooterUI」とする。
+        manual: true
+
+      - step: "Attach Controller"
+        description: >
+          CameraFooterUIオブジェクトにCameraFooterController.csをアタッチ。
+          UI Toolkitの各ボタンに対してイベントが正常に機能するか確認する。
+        manual: true
+
+      - step: "Verify behavior"
+        description: >
+          シャッターボタンの短押しで「📸 写真撮影」、長押しで「🎬 録画開始→⏹ 停止」が
+          Unity Consoleに表示されることを確認する。
+          また、UpdatePreview()によってPreviewButtonの背景が更新されること。
+        verify:
+          - CameraFooter.uxml / .uss / .cs がすべてAssets/UI/CameraFooterに存在すること
+          - UIDocumentにCameraFooter.uxmlが割り当てられていること
+          - シャッターボタンイベントが呼び出されること
+          - プレビュー更新関数が実行されること
+
+      - step: "Optional Enhancement"
+        description: >
+          将来的にRecorderやVideoCapture APIと接続して、実際の録画・保存処理を追加可能。
+          また、プレビューエリアをクリックした際に撮影済みの写真・動画を再生するUIを実装できる。
+        optional: true
+
+    output:
+      - path: Assets/UI/CameraFooter/
+        type: unity-assets
+        description: >
+          CameraFooter.uxml / .uss / CameraFooterController.cs の3ファイルを含む。

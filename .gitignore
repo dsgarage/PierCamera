@@ -23,8 +23,15 @@ UserSettings/
 *.csproj
 
 # ========== iOS ==========
-# Ignore entire ios folder
-ios/
+# Ignore entire ios folder (build output)
+/ios/
+
+# Ignore iOS_Test build folder
+/iOS_Test/
+/aiCam/iOS_Test/
+
+# Allow Unity iOS plugins
+!aiCam/Assets/Plugins/IOS/
 
 # Xcode build artifacts
 *.xcworkspace/
