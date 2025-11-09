@@ -602,7 +602,7 @@ namespace AICam.UI
         }
 
         /// <summary>
-        /// 既存のアバタースロットボタンに長押しイベントを登録
+        /// 既存のアバタースロットボタンに長押しイベントとクリックイベントを登録
         /// </summary>
         void RegisterLongPressForExistingButtons()
         {
@@ -615,9 +615,19 @@ namespace AICam.UI
                 if (button == bottomButtonAdd) continue;
 
                 RegisterLongPressForButton(button);
+
+                // クリックイベントも登録（ファイルピッカー用）
+                button.RegisterCallback<ClickEvent>(evt =>
+                {
+                    Debug.Log($"🔘 Bottom button #{button.name} clicked");
+                    TapticEngine.Selection();
+
+                    // 空のスロットの場合はファイルピッカーを開く
+                    OpenFilePicker(button);
+                });
             }
 
-            Debug.Log($"✅ Long press registered for {buttons.Count - 1} buttons");
+            Debug.Log($"✅ Long press and click registered for {buttons.Count - 1} buttons");
         }
 
         /// <summary>
