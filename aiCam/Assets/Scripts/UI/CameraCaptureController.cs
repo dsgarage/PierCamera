@@ -772,7 +772,7 @@ namespace AICam.UI
         {
             Debug.Log($"📂 Opening file picker for button: {targetButton.name}");
 
-            NativeFilePicker.Permission permission = NativeFilePicker.PickFile((path) =>
+            NativeFilePicker.PickFile((path) =>
             {
                 if (path == null)
                 {
@@ -786,8 +786,6 @@ namespace AICam.UI
                 // 現在は選択されたパスをログに出力するだけ
                 TapticEngine.Impact(TapticEngine.ImpactStyle.Light);
             }, new string[] { ".vrm" });
-
-            Debug.Log($"📂 File picker permission: {permission}");
         }
     }
 }
