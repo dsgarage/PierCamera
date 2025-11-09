@@ -31,6 +31,15 @@ namespace AICam.UI
         private Button bottomButtonAdd;
         private int bottomButtonCount = 3;
 
+        // 削除ポップアップ関連
+        private VisualElement deletePopup;
+        private Button deleteButton;
+        private Button cancelButton;
+        private Button currentLongPressButton;
+        private float longPressTime = 0f;
+        private const float longPressThresholdForDelete = 0.5f;
+        private bool isLongPressing = false;
+
         private bool isPressed = false;
         private bool isRecording = false;
         private float pressTime = 0f;
@@ -154,6 +163,15 @@ namespace AICam.UI
                 bottomButtonAdd.RegisterCallback<ClickEvent>(evt => AddBottomPanelButton());
                 Debug.Log("✅ Add button events registered");
             }
+
+            // 削除ポップアップを作成（初期状態では非表示）
+            Debug.Log("🔧 Creating delete popup...");
+            CreateDeletePopup(root);
+            Debug.Log($"🔧 Delete popup created: {(deletePopup != null ? "✅" : "❌")}");
+
+            // 既存のボタンに長押しイベントを登録
+            Debug.Log("🔧 Registering long press for existing buttons...");
+            RegisterLongPressForExistingButtons();
         }
 
         void OnDisable()
@@ -183,9 +201,8 @@ namespace AICam.UI
             isPressed = true;
             pressTime = 0f;
 
-#if UNITY_ANDROID || UNITY_IOS
-            Handheld.Vibrate();
-#endif
+            // Light impact for button press
+            TapticEngine.Impact(TapticEngine.ImpactStyle.Light);
         }
 
         void OnPointerUp(PointerUpEvent evt)
@@ -235,6 +252,26 @@ namespace AICam.UI
                     }
                 }
             }
+
+            // アバタースロットボタンの長押し検出
+            if (isLongPressing && currentLongPressButton != null)
+            {
+                longPressTime += Time.deltaTime;
+
+                // デバッグログ（0.1秒ごと）
+                if (Mathf.FloorToInt(longPressTime * 10) != Mathf.FloorToInt((longPressTime - Time.deltaTime) * 10))
+                {
+                    Debug.Log($"⏱ Long press time: {longPressTime:F2}s / {longPressThresholdForDelete}s");
+                }
+
+                if (longPressTime >= longPressThresholdForDelete)
+                {
+                    Debug.Log($"✅ Long press threshold reached! Showing popup for {currentLongPressButton.name}");
+                    ShowDeletePopup(currentLongPressButton);
+                    isLongPressing = false;
+                    longPressTime = 0f;
+                }
+            }
         }
 
         void StartRecording()
@@ -246,9 +283,8 @@ namespace AICam.UI
             innerCircle?.AddToClassList("recording");
             progressRing?.AddToClassList("active");
 
-#if UNITY_ANDROID || UNITY_IOS
-            Handheld.Vibrate();
-#endif
+            // Heavy impact for recording start
+            TapticEngine.Impact(TapticEngine.ImpactStyle.Heavy);
         }
 
         void TakePhoto()
@@ -268,9 +304,8 @@ namespace AICam.UI
 
             ResetButtonState();
 
-#if UNITY_ANDROID || UNITY_IOS
-            Handheld.Vibrate();
-#endif
+            // Medium impact for photo capture
+            TapticEngine.Impact(TapticEngine.ImpactStyle.Medium);
         }
 
         void StopRecording()
@@ -515,34 +550,197 @@ namespace AICam.UI
             int addButtonIndex = bottomButtonContainer.IndexOf(bottomButtonAdd);
             bottomButtonContainer.Insert(addButtonIndex, newButton);
 
+            // 長押しイベントを登録（ClickEventより先に登録）
+            RegisterLongPressForButton(newButton);
+
             // ボタンのクリックイベントを登録
             newButton.RegisterCallback<ClickEvent>(evt =>
             {
                 Debug.Log($"🔘 Bottom button #{newButton.name} clicked");
+                TapticEngine.Selection();
             });
 
-#if UNITY_ANDROID || UNITY_IOS
-            Handheld.Vibrate();
-#endif
+            // Light impact for button addition
+            TapticEngine.Impact(TapticEngine.ImpactStyle.Light);
         }
 
         /// <summary>
-        /// 指定されたスクリーン座標がUI Toolkit のパネル上にあるかチェック
-        /// PlaceAvatarOnPlaneOnlyから呼び出される
+        /// 削除ポップアップを作成
         /// </summary>
-        public bool IsPointOverUIPanel(Vector2 screenPosition)
+        void CreateDeletePopup(VisualElement root)
         {
-            if (topPanel != null && topPanel.worldBound.Contains(screenPosition))
+            deletePopup = new VisualElement();
+            deletePopup.name = "deletePopup";
+            deletePopup.AddToClassList("delete-popup");
+
+            // 絶対配置を有効化
+            deletePopup.style.position = Position.Absolute;
+            deletePopup.pickingMode = PickingMode.Position;
+
+            // 削除ボタン
+            deleteButton = new Button();
+            deleteButton.text = "削除";
+            deleteButton.AddToClassList("delete-popup-button");
+            deleteButton.AddToClassList("delete");
+            deleteButton.RegisterCallback<ClickEvent>(evt => OnDeleteButtonClicked());
+
+            // キャンセルボタン
+            cancelButton = new Button();
+            cancelButton.text = "キャンセル";
+            cancelButton.AddToClassList("delete-popup-button");
+            cancelButton.RegisterCallback<ClickEvent>(evt => HideDeletePopup());
+
+            deletePopup.Add(deleteButton);
+            deletePopup.Add(cancelButton);
+            root.Add(deletePopup);
+
+            Debug.Log("✅ Delete popup created");
+        }
+
+        /// <summary>
+        /// 既存のアバタースロットボタンに長押しイベントを登録
+        /// </summary>
+        void RegisterLongPressForExistingButtons()
+        {
+            if (bottomButtonContainer == null) return;
+
+            var buttons = bottomButtonContainer.Query<Button>().ToList();
+            foreach (var button in buttons)
             {
-                return true;
+                // +ボタンは除外
+                if (button == bottomButtonAdd) continue;
+
+                RegisterLongPressForButton(button);
             }
 
-            if (bottomPanel != null && bottomPanel.worldBound.Contains(screenPosition))
+            Debug.Log($"✅ Long press registered for {buttons.Count - 1} buttons");
+        }
+
+        /// <summary>
+        /// ボタンに長押しイベントを登録
+        /// </summary>
+        void RegisterLongPressForButton(Button button)
+        {
+            // PointerDownEventで長押し開始を検出（TrickleDownフェーズで優先キャプチャ）
+            button.RegisterCallback<PointerDownEvent>(evt =>
             {
-                return true;
+                isLongPressing = true;
+                currentLongPressButton = button;
+                longPressTime = 0f;
+                Debug.Log($"👇 Long press started on {button.name}");
+            }, TrickleDown.TrickleDown);
+
+            // PointerUpEventで長押しをキャンセル
+            button.RegisterCallback<PointerUpEvent>(evt =>
+            {
+                Debug.Log($"👆 Long press released on {button.name} (time: {longPressTime:F2}s, isLongPressing: {isLongPressing})");
+
+                // 短押しの場合はClickEventに任せる
+                if (longPressTime < longPressThresholdForDelete)
+                {
+                    Debug.Log($"📌 Short press detected, allowing click event");
+                }
+                else
+                {
+                    Debug.Log($"⏱ Long press detected, suppressing click event");
+                    evt.StopPropagation();
+                }
+
+                isLongPressing = false;
+                longPressTime = 0f;
+            }, TrickleDown.TrickleDown);
+
+            // PointerLeaveEventで長押しをキャンセル（ボタンから離れた場合）
+            button.RegisterCallback<PointerLeaveEvent>(evt =>
+            {
+                if (isLongPressing)
+                {
+                    Debug.Log($"↖️ Pointer left {button.name}, cancelling long press");
+                    isLongPressing = false;
+                    longPressTime = 0f;
+                }
+            });
+        }
+
+        /// <summary>
+        /// 削除ポップアップを表示
+        /// </summary>
+        void ShowDeletePopup(Button targetButton)
+        {
+            if (deletePopup == null)
+            {
+                Debug.LogError("❌ deletePopup is null!");
+                return;
             }
 
-            return false;
+            if (targetButton == null)
+            {
+                Debug.LogError("❌ targetButton is null!");
+                return;
+            }
+
+            // ポップアップをボタンの上部に配置
+            var buttonBounds = targetButton.worldBound;
+            Debug.Log($"📍 Button bounds: x={buttonBounds.x}, y={buttonBounds.y}, width={buttonBounds.width}, height={buttonBounds.height}");
+
+            // ポップアップサイズ: 120px x 80px (USSで定義)
+            float popupWidth = 120f;
+            float popupHeight = 90f; // 少し余裕を持たせる
+
+            // ボタンの中央にポップアップを配置（水平方向）
+            float popupLeft = buttonBounds.x + (buttonBounds.width / 2) - (popupWidth / 2);
+
+            // ボタンの上に配置（垂直方向） - 10pxの余白
+            float popupTop = buttonBounds.y - popupHeight - 10;
+
+            Debug.Log($"📍 Popup position: left={popupLeft}, top={popupTop}");
+
+            deletePopup.style.left = popupLeft;
+            deletePopup.style.top = popupTop;
+            deletePopup.style.display = DisplayStyle.Flex;
+
+            Debug.Log($"📋 Delete popup shown for {targetButton.name}");
+            Debug.Log($"📋 Popup display style: {deletePopup.style.display}");
+            Debug.Log($"📋 Popup position type: {deletePopup.style.position}");
+
+            // Heavy impact for popup appearance
+            TapticEngine.Impact(TapticEngine.ImpactStyle.Heavy);
+        }
+
+        /// <summary>
+        /// 削除ポップアップを非表示
+        /// </summary>
+        void HideDeletePopup()
+        {
+            if (deletePopup == null) return;
+
+            deletePopup.style.display = DisplayStyle.None;
+            currentLongPressButton = null;
+            Debug.Log("❌ Delete popup hidden");
+
+            // Light impact for cancel
+            TapticEngine.Impact(TapticEngine.ImpactStyle.Light);
+        }
+
+        /// <summary>
+        /// 削除ボタンがクリックされた時の処理
+        /// </summary>
+        void OnDeleteButtonClicked()
+        {
+            if (currentLongPressButton == null || bottomButtonContainer == null)
+            {
+                HideDeletePopup();
+                return;
+            }
+
+            Debug.Log($"🗑 Deleting button: {currentLongPressButton.name}");
+
+            // ボタンを削除
+            bottomButtonContainer.Remove(currentLongPressButton);
+            HideDeletePopup();
+
+            // Medium impact for deletion
+            TapticEngine.Impact(TapticEngine.ImpactStyle.Medium);
         }
     }
 }
