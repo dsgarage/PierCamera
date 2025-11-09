@@ -742,5 +742,23 @@ namespace AICam.UI
             // Medium impact for deletion
             TapticEngine.Impact(TapticEngine.ImpactStyle.Medium);
         }
+
+        /// <summary>
+        /// Check if screen position is over UI Toolkit panel (top or bottom)
+        /// </summary>
+        public bool IsPointOverUIPanel(Vector2 screenPosition)
+        {
+            if (topPanel != null && topPanel.worldBound.Contains(screenPosition))
+            {
+                return true;
+            }
+
+            if (bottomPanel != null && bottomPanel.worldBound.Contains(screenPosition))
+            {
+                return true;
+            }
+
+            return false;
+        }
     }
 }
