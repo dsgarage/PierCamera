@@ -250,6 +250,60 @@
 }
 
 /* ================================
+   サイドバーパネル（左側中央）
+================================ */
+.side-panel {
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    translate: 0 -50%;
+    width: 60px;
+    background-color: rgba(128, 128, 128, 0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+/* サイドバーのボタン */
+.side-panel-button {
+    width: 50px;
+    height: 50px;
+    background-color: transparent;
+    border-width: 0;
+    flex-grow: 0;
+    flex-shrink: 0;
+    cursor: link;
+    -unity-background-scale-mode: scale-to-fit;
+    padding: 0;
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+.side-panel-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* サイドバーボタンのアイコン設定 */
+#sideButton1 {
+    background-image: resource('Sprite/PictIcon/SideBear/01_Prefarence');
+}
+
+#sideButton2 {
+    background-image: resource('Sprite/PictIcon/SideBear/02_01_Full');
+}
+
+#sideButton3 {
+    background-image: resource('Sprite/PictIcon/SideBear/03_Flash');
+}
+
+/* ================================
    撮影ボタン上のパネル
 ================================ */
 .bottom-panel {

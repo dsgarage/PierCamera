@@ -10,6 +10,13 @@
             <ui:Button name="topButton4" class="top-panel-button" picking-mode="Position"/>
         </ui:VisualElement>
 
+        <!-- 📍 サイドバーパネル（右側） -->
+        <ui:VisualElement name="sidePanel" class="side-panel" picking-mode="Ignore">
+            <ui:Button name="sideButton1" class="side-panel-button" picking-mode="Position"/>
+            <ui:Button name="sideButton2" class="side-panel-button" picking-mode="Position"/>
+            <ui:Button name="sideButton3" class="side-panel-button" picking-mode="Position"/>
+        </ui:VisualElement>
+
         <!-- 📷 左下のサムネイル（直近の写真・動画） -->
         <ui:VisualElement name="galleryThumbnail" class="gallery-thumbnail" picking-mode="Position"/>
 

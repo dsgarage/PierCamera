@@ -32,6 +32,21 @@ namespace AICam.UI
         private Button bottomButtonAdd;
         private int bottomButtonCount = 3;
 
+        // サイドパネル要素
+        private VisualElement sidePanel;
+        private Button sideButton1;
+        private Button sideButton2;
+        private Button sideButton3;
+
+        // アスペクト比トグル用のステート（02_01 → 02_02 → 02_03 → 02_01）
+        private int aspectRatioState = 0;
+        private readonly string[] aspectRatioIcons = new string[]
+        {
+            "Sprite/PictIcon/SideBear/02_01_Full",
+            "Sprite/PictIcon/SideBear/02_02_169",
+            "Sprite/PictIcon/SideBear/02_03_32"
+        };
+
         // 削除ポップアップ関連
         private VisualElement deletePopup;
         private Button deleteButton;
@@ -91,6 +106,12 @@ namespace AICam.UI
             bottomPanel = root.Q<VisualElement>("bottomPanel");
             bottomButtonContainer = root.Q<VisualElement>("bottomButtonContainer");
             bottomButtonAdd = root.Q<Button>("bottomButtonAdd");
+
+            // サイドパネル要素の取得
+            sidePanel = root.Q<VisualElement>("sidePanel");
+            sideButton1 = root.Q<Button>("sideButton1");
+            sideButton2 = root.Q<Button>("sideButton2");
+            sideButton3 = root.Q<Button>("sideButton3");
 
             // ScrollViewの設定（物理スクロール対応）
             var bottomScrollView = root.Q<ScrollView>("bottomScrollView");
@@ -163,6 +184,25 @@ namespace AICam.UI
             {
                 bottomButtonAdd.RegisterCallback<ClickEvent>(evt => AddBottomPanelButton());
                 Debug.Log("✅ Add button events registered");
+            }
+
+            // サイドパネルボタンのイベント登録
+            if (sideButton1 != null)
+            {
+                sideButton1.RegisterCallback<ClickEvent>(evt => OnSideButton1Clicked());
+                Debug.Log("✅ Side button 1 events registered");
+            }
+
+            if (sideButton2 != null)
+            {
+                sideButton2.RegisterCallback<ClickEvent>(evt => OnSideButton2Clicked());
+                Debug.Log("✅ Side button 2 events registered");
+            }
+
+            if (sideButton3 != null)
+            {
+                sideButton3.RegisterCallback<ClickEvent>(evt => OnSideButton3Clicked());
+                Debug.Log("✅ Side button 3 events registered");
             }
 
             // 削除ポップアップを作成（初期状態では非表示）
@@ -758,11 +798,16 @@ namespace AICam.UI
         }
 
         /// <summary>
-        /// Check if screen position is over UI Toolkit panel (top or bottom)
+        /// Check if screen position is over UI Toolkit panel (top, side, or bottom)
         /// </summary>
         public bool IsPointOverUIPanel(Vector2 screenPosition)
         {
             if (topPanel != null && topPanel.worldBound.Contains(screenPosition))
+            {
+                return true;
+            }
+
+            if (sidePanel != null && sidePanel.worldBound.Contains(screenPosition))
             {
                 return true;
             }
@@ -796,6 +841,60 @@ namespace AICam.UI
                 // 現在は選択されたパスをログに出力するだけ
                 TapticEngine.Impact(TapticEngine.ImpactStyle.Light);
             }, new string[] { ".vrm" });
+        }
+
+        /// <summary>
+        /// サイドバーボタン1（Preference）クリック時の処理
+        /// </summary>
+        void OnSideButton1Clicked()
+        {
+            Debug.Log("⚙️ Side button 1 (Preference) clicked");
+            TapticEngine.Selection();
+
+            // ここに設定画面を開く処理を追加
+        }
+
+        /// <summary>
+        /// サイドバーボタン2（アスペクト比）クリック時の処理
+        /// Full → 16:9 → 3:2 → Full のようにトグル
+        /// </summary>
+        void OnSideButton2Clicked()
+        {
+            Debug.Log("📐 Side button 2 (Aspect Ratio) clicked");
+            TapticEngine.Selection();
+
+            // アスペクト比ステートをトグル
+            aspectRatioState = (aspectRatioState + 1) % aspectRatioIcons.Length;
+
+            // アイコンを更新
+            if (sideButton2 != null)
+            {
+                var iconPath = aspectRatioIcons[aspectRatioState];
+                var icon = Resources.Load<Texture2D>(iconPath);
+
+                if (icon != null)
+                {
+                    sideButton2.style.backgroundImage = new StyleBackground(icon);
+                    Debug.Log($"✅ Aspect ratio changed to: {iconPath}");
+                }
+                else
+                {
+                    Debug.LogWarning($"⚠️ Icon not found: {iconPath}");
+                }
+            }
+
+            // ここにアスペクト比変更処理を追加
+        }
+
+        /// <summary>
+        /// サイドバーボタン3（Flash）クリック時の処理
+        /// </summary>
+        void OnSideButton3Clicked()
+        {
+            Debug.Log("⚡ Side button 3 (Flash) clicked");
+            TapticEngine.Selection();
+
+            // ここにフラッシュ切り替え処理を追加
         }
     }
 }
