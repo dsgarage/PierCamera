@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UIElements;
+using NativeFilePickerNamespace;
 
 namespace AICam.UI
 {
@@ -558,6 +559,9 @@ namespace AICam.UI
             {
                 Debug.Log($"🔘 Bottom button #{newButton.name} clicked");
                 TapticEngine.Selection();
+
+                // 空のスロットの場合はファイルピッカーを開く
+                OpenFilePicker(newButton);
             });
 
             // Light impact for button addition
@@ -759,6 +763,31 @@ namespace AICam.UI
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// ファイルピッカーを開く（VRMファイル選択用）
+        /// </summary>
+        void OpenFilePicker(Button targetButton)
+        {
+            Debug.Log($"📂 Opening file picker for button: {targetButton.name}");
+
+            NativeFilePicker.Permission permission = NativeFilePicker.PickFile((path) =>
+            {
+                if (path == null)
+                {
+                    Debug.Log("❌ File picker cancelled");
+                    return;
+                }
+
+                Debug.Log($"✅ File selected: {path}");
+
+                // ここにVRMファイル読み込み処理を追加
+                // 現在は選択されたパスをログに出力するだけ
+                TapticEngine.Impact(TapticEngine.ImpactStyle.Light);
+            }, new string[] { ".vrm" });
+
+            Debug.Log($"📂 File picker permission: {permission}");
         }
     }
 }
