@@ -1,6 +1,9 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 using NativeFilePickerNamespace;
+using Cysharp.Threading.Tasks;
+using System.IO;
+using System;
 
 namespace AICam.UI
 {
@@ -13,6 +16,9 @@ namespace AICam.UI
     {
         [Header("Capture Settings")]
         [SerializeField] private ARPhotoController photoController;
+
+        [Header("VRM Avatar")]
+        [SerializeField] private AICam.VRM.VRMAvatarManager vrmAvatarManager;
 
         private VisualElement root;
         private VisualElement captureButton;
@@ -896,11 +902,22 @@ namespace AICam.UI
         }
 
         /// <summary>
-        /// ファイルピッカーを開く（VRMファイル選択用）
+        /// ファイルピッカーを開く（複数形式対応）
         /// </summary>
         void OpenFilePicker(Button targetButton)
         {
             Debug.Log($"📂 Opening file picker for button: {targetButton.name}");
+
+            // サポートするファイル形式
+            string[] allowedExtensions = new string[]
+            {
+                ".vrm",     // VRM avatar
+                ".fbx",     // FBX model (future support)
+                ".jpg",     // Image
+                ".jpeg",    // Image
+                ".png",     // Image
+                ".gif"      // Image (future support)
+            };
 
             NativeFilePicker.PickFile((path) =>
             {
@@ -911,11 +928,133 @@ namespace AICam.UI
                 }
 
                 Debug.Log($"✅ File selected: {path}");
-
-                // ここにVRMファイル読み込み処理を追加
-                // 現在は選択されたパスをログに出力するだけ
                 TapticEngine.Impact(TapticEngine.ImpactStyle.Light);
-            }, new string[] { ".vrm" });
+
+                // ファイルを非同期でロード
+                LoadFileAsync(path, targetButton).Forget();
+            }, allowedExtensions);
+        }
+
+        /// <summary>
+        /// 拡張子に基づいてファイルをロード
+        /// </summary>
+        async UniTaskVoid LoadFileAsync(string filePath, Button targetButton)
+        {
+            if (string.IsNullOrEmpty(filePath))
+            {
+                Debug.LogError("❌ File path is null or empty");
+                return;
+            }
+
+            // ファイルの存在確認
+            if (!File.Exists(filePath))
+            {
+                Debug.LogError($"❌ File not found: {filePath}");
+                return;
+            }
+
+            // 拡張子を取得して小文字に変換
+            string extension = Path.GetExtension(filePath).ToLower();
+            Debug.Log($"📄 File extension: {extension}");
+
+            try
+            {
+                switch (extension)
+                {
+                    case ".vrm":
+                        await LoadVRMFileAsync(filePath, targetButton);
+                        break;
+
+                    case ".fbx":
+                        Debug.LogWarning("⚠️ FBX format is not yet supported");
+                        // TODO: 将来的に実装
+                        // await LoadFBXFileAsync(filePath, targetButton);
+                        break;
+
+                    case ".jpg":
+                    case ".jpeg":
+                    case ".png":
+                    case ".gif":
+                        Debug.LogWarning("⚠️ Image format is not yet supported");
+                        // TODO: 将来的に実装
+                        // await LoadImageFileAsync(filePath, targetButton);
+                        break;
+
+                    default:
+                        Debug.LogError($"❌ Unsupported file format: {extension}");
+                        break;
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"❌ Failed to load file: {e.Message}");
+                Debug.LogException(e);
+            }
+        }
+
+        /// <summary>
+        /// VRMファイルをロード
+        /// </summary>
+        async UniTask LoadVRMFileAsync(string filePath, Button targetButton)
+        {
+            if (vrmAvatarManager == null)
+            {
+                Debug.LogError("❌ VRMAvatarManager is not assigned!");
+                return;
+            }
+
+            Debug.Log($"🎭 Loading VRM file: {filePath}");
+
+            try
+            {
+                // VRMをロード
+                var avatar = await vrmAvatarManager.LoadVRMFromPathAsync(filePath);
+
+                if (avatar == null)
+                {
+                    Debug.LogError("❌ Failed to load VRM avatar");
+                    return;
+                }
+
+                Debug.Log($"✅ VRM avatar loaded successfully: {avatar.name}");
+
+                // サムネイルを生成
+                var thumbnail = await vrmAvatarManager.GenerateThumbnailAsync(avatar);
+
+                if (thumbnail != null)
+                {
+                    // ボタンアイコンを更新
+                    UpdateButtonIcon(targetButton, thumbnail);
+                    Debug.Log($"🖼 Thumbnail generated and applied to button: {targetButton.name}");
+                }
+
+                // Heavy impact for successful load
+                TapticEngine.Impact(TapticEngine.ImpactStyle.Heavy);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"❌ Error loading VRM: {e.Message}");
+                Debug.LogException(e);
+            }
+        }
+
+        /// <summary>
+        /// ボタンのアイコンを更新
+        /// </summary>
+        void UpdateButtonIcon(Button button, Texture2D texture)
+        {
+            if (button == null || texture == null) return;
+
+            var iconImage = button.Q<VisualElement>("Icon");
+            if (iconImage != null)
+            {
+                iconImage.style.backgroundImage = new StyleBackground(texture);
+                Debug.Log($"✅ Button icon updated for {button.name}");
+            }
+            else
+            {
+                Debug.LogWarning($"⚠️ Icon element not found in button {button.name}");
+            }
         }
 
         /// <summary>
