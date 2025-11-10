@@ -10,6 +10,9 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
     [Header("Prefab")]
     [SerializeField] GameObject avatarPrefab;
 
+    [Header("Runtime Avatar Loader")]
+    [SerializeField] AICam.VRM.RuntimeAvatarLoader avatarLoader;
+
     [Header("Managers")]
     [SerializeField] ARPlaneManager planeManager;
     [SerializeField] ARAnchorManager anchorManager;   // 任意（安定化用）
@@ -273,20 +276,46 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
 
         if (!avatar)
         {
-            avatar = Instantiate(avatarPrefab, pose.position, rot, parent);
-            avatarPlane = plane; // 配置した平面を記憶
-            currentFollowMode = FollowMode.Off; // 初期はOff
+            // RuntimeAvatarLoaderにロード済みアバターがあればそれを使用、なければPrefabを使用
+            GameObject avatarToPlace = GetAvatarToPlace();
 
-            BindAvatarFaceController();
+            if (avatarToPlace != null)
+            {
+                // VRMアバターの場合は既に存在するGameObjectを配置
+                if (avatarLoader != null && avatarLoader.CurrentAvatar == avatarToPlace)
+                {
+                    avatar = avatarToPlace;
+                    avatar.SetActive(true); // VRMを表示
+                    avatar.transform.SetParent(parent);
+                    avatar.transform.SetPositionAndRotation(pose.position, rot);
+                    Debug.Log($"[PlaceAvatarOnPlaneOnly] VRM Avatar placed at {pose.position}");
+                }
+                else
+                {
+                    // Prefabの場合はインスタンス化
+                    avatar = Instantiate(avatarToPlace, pose.position, rot, parent);
+                    Debug.Log($"[PlaceAvatarOnPlaneOnly] Prefab Avatar placed at {pose.position}");
+                }
 
-            // HUDを起動
-            faceUIManager?.InitializeWithAvatar(avatar);
+                avatarPlane = plane; // 配置した平面を記憶
+                currentFollowMode = FollowMode.Off; // 初期はOff
 
-            Debug.Log($"[PlaceAvatarOnPlaneOnly] Avatar placed at {pose.position}. Tap twice to toggle follow mode.");
+                BindAvatarFaceController();
+
+                // HUDを起動
+                faceUIManager?.InitializeWithAvatar(avatar);
+
+                Debug.Log($"[PlaceAvatarOnPlaneOnly] Avatar placed. Tap twice to toggle follow mode.");
+            }
+            else
+            {
+                Debug.LogWarning("[PlaceAvatarOnPlaneOnly] No avatar to place (avatarPrefab and VRM avatar are both null)");
+            }
         }
         else
         {
             avatar.transform.SetPositionAndRotation(pose.position, rot);
+            avatar.transform.SetParent(parent);
             avatarPlane = plane; // 再配置時も平面を更新
             currentFollowMode = FollowMode.Off; // 再配置時はOff
             if (!avatarFaceController || !avatarAnimator)
@@ -294,6 +323,24 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
 
             Debug.Log($"[PlaceAvatarOnPlaneOnly] Avatar repositioned to {pose.position}. Follow mode reset to Off.");
         }
+    }
+
+    // RuntimeAvatarLoaderにロード済みアバターがあればそれを返し、なければPrefabを返す
+    GameObject GetAvatarToPlace()
+    {
+        // Priority 1: RuntimeAvatarLoader has loaded avatar
+        if (avatarLoader != null && avatarLoader.CurrentAvatar != null)
+        {
+            Debug.Log("[PlaceAvatarOnPlaneOnly] Using avatar from RuntimeAvatarLoader");
+            return avatarLoader.CurrentAvatar;
+        }
+
+        // Priority 2: Fallback to prefab
+        if (avatarPrefab != null)
+        {
+            Debug.Log("[PlaceAvatarOnPlaneOnly] Using avatarPrefab");
+        }
+        return avatarPrefab;
     }
 
     // アバターを「カメラの方向」に向ける回転を作る

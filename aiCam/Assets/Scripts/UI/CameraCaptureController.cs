@@ -17,8 +17,8 @@ namespace AICam.UI
         [Header("Capture Settings")]
         [SerializeField] private ARPhotoController photoController;
 
-        [Header("VRM Avatar")]
-        [SerializeField] private AICam.VRM.VRMAvatarManager vrmAvatarManager;
+        [Header("Avatar Loader")]
+        [SerializeField] private AICam.VRM.RuntimeAvatarLoader avatarLoader;
 
         private VisualElement root;
         private VisualElement captureButton;
@@ -903,25 +903,22 @@ namespace AICam.UI
 
         /// <summary>
         /// ファイルピッカーを開く（複数形式対応）
+        /// VRMFilePickerLoader.csのパターンに従った実装
         /// </summary>
-        void OpenFilePicker(Button targetButton)
+        async void OpenFilePicker(Button targetButton)
         {
             Debug.Log($"📂 Opening file picker for button: {targetButton.name}");
 
-            // サポートするファイル形式
-            string[] allowedExtensions = new string[]
+            try
             {
-                ".vrm",     // VRM avatar
-                ".fbx",     // FBX model (future support)
-                ".jpg",     // Image
-                ".jpeg",    // Image
-                ".png",     // Image
-                ".gif"      // Image (future support)
-            };
+#if UNITY_EDITOR
+                // Unity Editor: VRMFilePickerLoader.csと同じパターンを使用
+                Debug.Log($"💻 Opening Unity Editor file panel for VRM");
 
-            NativeFilePicker.PickFile((path) =>
-            {
-                if (path == null)
+                // VRMファイルのみを選択（VRMFilePickerLoader.csと同じ実装）
+                string path = UnityEditor.EditorUtility.OpenFilePanel("Select VRM File", "", "vrm");
+
+                if (string.IsNullOrEmpty(path))
                 {
                     Debug.Log("❌ File picker cancelled");
                     return;
@@ -931,14 +928,68 @@ namespace AICam.UI
                 TapticEngine.Impact(TapticEngine.ImpactStyle.Light);
 
                 // ファイルを非同期でロード
-                LoadFileAsync(path, targetButton).Forget();
-            }, allowedExtensions);
+                await LoadFileAsync(path, targetButton);
+#elif UNITY_IOS || UNITY_ANDROID
+                // モバイル: VRMFilePickerLoader.csと同じパターンを使用
+                Debug.Log($"📱 Opening NativeFilePicker...");
+
+                var tcs = new System.Threading.Tasks.TaskCompletionSource<string>();
+
+                string[] allowedFileTypes;
+
+#if UNITY_IOS
+                // iOS: UTI形式（VRMFilePickerLoader.csと同じ）
+                allowedFileTypes = new string[] { "public.data", "public.content", "public.item" };
+                Debug.Log("[FilePicker] iOS: Using UTI types for file picker");
+#elif UNITY_ANDROID
+                // Android: MIMEタイプ形式（VRMFilePickerLoader.csと同じ）
+                allowedFileTypes = new string[] { "*/*" };
+                Debug.Log("[FilePicker] Android: Using MIME type for file picker");
+#endif
+
+                Debug.Log($"🔍 Calling NativeFilePicker.PickFile...");
+
+                NativeFilePicker.PickFile((path) =>
+                {
+                    Debug.Log($"[FilePicker] File picker callback: {path}");
+                    tcs.SetResult(path);
+                }, allowedFileTypes);
+
+                Debug.Log("[FilePicker] Waiting for file selection...");
+                string selectedPath = await tcs.Task;
+
+                if (string.IsNullOrEmpty(selectedPath))
+                {
+                    Debug.Log("❌ File selection cancelled");
+                    return;
+                }
+
+                Debug.Log($"✅ File selected: {selectedPath}");
+
+                // VRMファイルかどうかを確認
+                if (!selectedPath.ToLower().EndsWith(".vrm"))
+                {
+                    Debug.LogWarning($"⚠️ Selected file may not be a VRM file: {selectedPath}");
+                    Debug.LogWarning("[FilePicker] Attempting to load anyway...");
+                }
+
+                TapticEngine.Impact(TapticEngine.ImpactStyle.Light);
+
+                // ファイルを非同期でロード
+                await LoadFileAsync(selectedPath, targetButton);
+#endif
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"❌ Error opening file picker: {e.Message}");
+                Debug.LogException(e);
+            }
         }
 
         /// <summary>
         /// 拡張子に基づいてファイルをロード
         /// </summary>
-        async UniTaskVoid LoadFileAsync(string filePath, Button targetButton)
+        async UniTask LoadFileAsync(string filePath, Button targetButton)
         {
             if (string.IsNullOrEmpty(filePath))
             {
@@ -962,6 +1013,8 @@ namespace AICam.UI
                 switch (extension)
                 {
                     case ".vrm":
+                    case ".glb":
+                        // VRMとGLBは同じローダーで処理（VRMはGLBの拡張）
                         await LoadVRMFileAsync(filePath, targetButton);
                         break;
 
@@ -997,9 +1050,9 @@ namespace AICam.UI
         /// </summary>
         async UniTask LoadVRMFileAsync(string filePath, Button targetButton)
         {
-            if (vrmAvatarManager == null)
+            if (avatarLoader == null)
             {
-                Debug.LogError("❌ VRMAvatarManager is not assigned!");
+                Debug.LogError("❌ RuntimeAvatarLoader is not assigned!");
                 return;
             }
 
@@ -1007,8 +1060,32 @@ namespace AICam.UI
 
             try
             {
+                // 既存のアバターをクリアしてから新しいVRMをロード
+                Debug.Log("🗑️ Clearing existing avatar before loading new VRM...");
+                avatarLoader.ClearCurrentAvatar();
+
+                // PlaceAvatarOnPlaneOnlyのavatarもクリア
+                var placer = FindFirstObjectByType<PlaceAvatarOnPlaneOnly>();
+                if (placer != null)
+                {
+                    // Reflectionを使ってprivateフィールドにアクセス
+                    var avatarField = typeof(PlaceAvatarOnPlaneOnly).GetField("avatar",
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+                    if (avatarField != null)
+                    {
+                        var existingAvatar = avatarField.GetValue(placer) as GameObject;
+                        if (existingAvatar != null)
+                        {
+                            Debug.Log($"🗑️ Destroying existing avatar in PlaceAvatarOnPlaneOnly: {existingAvatar.name}");
+                            Destroy(existingAvatar);
+                            avatarField.SetValue(placer, null);
+                        }
+                    }
+                }
+
                 // VRMをロード
-                var avatar = await vrmAvatarManager.LoadVRMFromPathAsync(filePath);
+                var avatar = await avatarLoader.LoadVRMFromPathAsync(filePath);
 
                 if (avatar == null)
                 {
@@ -1019,7 +1096,7 @@ namespace AICam.UI
                 Debug.Log($"✅ VRM avatar loaded successfully: {avatar.name}");
 
                 // サムネイルを生成
-                var thumbnail = await vrmAvatarManager.GenerateThumbnailAsync(avatar);
+                var thumbnail = await avatarLoader.GenerateThumbnailAsync(avatar);
 
                 if (thumbnail != null)
                 {
