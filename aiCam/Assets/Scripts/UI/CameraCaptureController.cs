@@ -14,6 +14,7 @@ namespace AICam.UI
         [Header("Capture Settings")]
         [SerializeField] private ARPhotoController photoController;
 
+        private VisualElement root;
         private VisualElement captureButton;
         private VisualElement innerCircle;
         private VisualElement progressRing;
@@ -44,8 +45,24 @@ namespace AICam.UI
         {
             "Sprite/PictIcon/SideBear/02_01_Full",
             "Sprite/PictIcon/SideBear/02_02_169",
-            "Sprite/PictIcon/SideBear/02_03_32"
+            "Sprite/PictIcon/SideBear/02_03_32",
+            "Sprite/PictIcon/SideBear/02_04_11"  // 1:1 (正方形)
         };
+
+        // アスペクト比の定義（幅/高さ）
+        private readonly float[] aspectRatios = new float[]
+        {
+            0f,      // Full (0 = カメラの最大画角)
+            16f/9f,  // 16:9
+            3f/2f,   // 3:2
+            1f       // 1:1 (正方形)
+        };
+
+        // アスペクト比マスク要素
+        private VisualElement topMask;
+        private VisualElement bottomMask;
+        private VisualElement leftMask;
+        private VisualElement rightMask;
 
         // 削除ポップアップ関連
         private VisualElement deletePopup;
@@ -55,6 +72,7 @@ namespace AICam.UI
         private float longPressTime = 0f;
         private const float longPressThresholdForDelete = 0.5f;
         private bool isLongPressing = false;
+        private bool suppressNextClick = false; // 長押し後のクリックを抑制するフラグ
 
         private bool isPressed = false;
         private bool isRecording = false;
@@ -83,7 +101,7 @@ namespace AICam.UI
                 return;
             }
 
-            var root = uiDoc.rootVisualElement;
+            root = uiDoc.rootVisualElement;
             if (root == null)
             {
                 Debug.LogError("❌ Root VisualElement is null!");
@@ -112,6 +130,12 @@ namespace AICam.UI
             sideButton1 = root.Q<Button>("sideButton1");
             sideButton2 = root.Q<Button>("sideButton2");
             sideButton3 = root.Q<Button>("sideButton3");
+
+            // アスペクト比マスク要素の取得
+            topMask = root.Q<VisualElement>("topMask");
+            bottomMask = root.Q<VisualElement>("bottomMask");
+            leftMask = root.Q<VisualElement>("leftMask");
+            rightMask = root.Q<VisualElement>("rightMask");
 
             // ScrollViewの設定（物理スクロール対応）
             var bottomScrollView = root.Q<ScrollView>("bottomScrollView");
@@ -213,6 +237,18 @@ namespace AICam.UI
             // 既存のボタンに長押しイベントを登録
             Debug.Log("🔧 Registering long press for existing buttons...");
             RegisterLongPressForExistingButtons();
+
+            // GeometryChangedEventでアスペクト比マスクを更新（レイアウト確定後）
+            Debug.Log("🔧 Registering GeometryChangedEvent for aspect mask...");
+            root.RegisterCallback<GeometryChangedEvent>(OnGeometryChanged);
+
+            // ARPhotoControllerに初期アスペクト比を設定
+            if (photoController != null)
+            {
+                float targetAspect = aspectRatios[aspectRatioState];
+                photoController.SetAspectRatio(targetAspect);
+                Debug.Log($"✅ Initial aspect ratio set to: {targetAspect:F3}");
+            }
         }
 
         void OnDisable()
@@ -221,6 +257,12 @@ namespace AICam.UI
             if (photoController != null)
             {
                 photoController.OnPhotoCaptured -= OnPhotoCapturedHandler;
+            }
+
+            // GeometryChangedEventの解除
+            if (root != null)
+            {
+                root.UnregisterCallback<GeometryChangedEvent>(OnGeometryChanged);
             }
         }
 
@@ -597,6 +639,14 @@ namespace AICam.UI
             // ボタンのクリックイベントを登録
             newButton.RegisterCallback<ClickEvent>(evt =>
             {
+                // 長押し後のクリックは抑制
+                if (suppressNextClick)
+                {
+                    Debug.Log($"🚫 Click suppressed after long press on {newButton.name}");
+                    suppressNextClick = false;
+                    return;
+                }
+
                 Debug.Log($"🔘 Bottom button #{newButton.name} clicked");
                 TapticEngine.Selection();
 
@@ -659,6 +709,14 @@ namespace AICam.UI
                 // クリックイベントも登録（ファイルピッカー用）
                 button.RegisterCallback<ClickEvent>(evt =>
                 {
+                    // 長押し後のクリックは抑制
+                    if (suppressNextClick)
+                    {
+                        Debug.Log($"🚫 Click suppressed after long press on {button.name}");
+                        suppressNextClick = false;
+                        return;
+                    }
+
                     Debug.Log($"🔘 Bottom button #{button.name} clicked");
                     TapticEngine.Selection();
 
@@ -698,6 +756,7 @@ namespace AICam.UI
                 {
                     Debug.Log($"⏱ Long press detected, suppressing click event");
                     evt.StopPropagation();
+                    suppressNextClick = true; // 次のクリックイベントを抑制
                 }
 
                 isLongPressing = false;
@@ -804,19 +863,35 @@ namespace AICam.UI
         {
             if (topPanel != null && topPanel.worldBound.Contains(screenPosition))
             {
+                Debug.Log($"🎯 Touch over topPanel at {screenPosition}");
                 return true;
             }
 
             if (sidePanel != null && sidePanel.worldBound.Contains(screenPosition))
             {
+                Debug.Log($"🎯 Touch over sidePanel at {screenPosition}");
                 return true;
             }
 
             if (bottomPanel != null && bottomPanel.worldBound.Contains(screenPosition))
             {
+                Debug.Log($"🎯 Touch over bottomPanel at {screenPosition}");
                 return true;
             }
 
+            if (captureButton != null && captureButton.worldBound.Contains(screenPosition))
+            {
+                Debug.Log($"🎯 Touch over captureButton at {screenPosition}");
+                return true;
+            }
+
+            if (galleryThumbnail != null && galleryThumbnail.worldBound.Contains(screenPosition))
+            {
+                Debug.Log($"🎯 Touch over galleryThumbnail at {screenPosition}");
+                return true;
+            }
+
+            Debug.Log($"🎯 Touch NOT over UI panel at {screenPosition}");
             return false;
         }
 
@@ -883,7 +958,15 @@ namespace AICam.UI
                 }
             }
 
-            // ここにアスペクト比変更処理を追加
+            // アスペクト比マスクを更新
+            UpdateAspectMask();
+
+            // ARPhotoControllerにアスペクト比を設定
+            if (photoController != null)
+            {
+                float targetAspect = aspectRatios[aspectRatioState];
+                photoController.SetAspectRatio(targetAspect);
+            }
         }
 
         /// <summary>
@@ -895,6 +978,149 @@ namespace AICam.UI
             TapticEngine.Selection();
 
             // ここにフラッシュ切り替え処理を追加
+        }
+
+        /// <summary>
+        /// UI要素のジオメトリ変更時のコールバック
+        /// レイアウト確定後にアスペクト比マスクを更新
+        /// </summary>
+        void OnGeometryChanged(GeometryChangedEvent evt)
+        {
+            Debug.Log($"📐 GeometryChangedEvent: {root.resolvedStyle.width}x{root.resolvedStyle.height}");
+            UpdateAspectMask();
+        }
+
+        /// <summary>
+        /// アスペクト比マスクを更新
+        /// </summary>
+        void UpdateAspectMask()
+        {
+            if (topMask == null || bottomMask == null)
+            {
+                Debug.LogWarning("⚠️ topMask or bottomMask is null");
+                return;
+            }
+
+            Debug.Log($"📐 UpdateAspectMask called: state={aspectRatioState}");
+
+            float targetAspect = aspectRatios[aspectRatioState];
+
+            // Full (0) の場合はマスクを非表示
+            if (targetAspect == 0f)
+            {
+                topMask.style.display = DisplayStyle.None;
+                bottomMask.style.display = DisplayStyle.None;
+                if (leftMask != null) leftMask.style.display = DisplayStyle.None;
+                if (rightMask != null) rightMask.style.display = DisplayStyle.None;
+                Debug.Log("📐 Aspect masks hidden (Full mode)");
+                return;
+            }
+
+            // UI要素の実際のレンダリングサイズを取得
+            float screenWidth = root.resolvedStyle.width;
+            float screenHeight = root.resolvedStyle.height;
+
+            // resolvedStyleが未確定の場合は処理をスキップ
+            if (float.IsNaN(screenWidth) || float.IsNaN(screenHeight) || screenWidth <= 0 || screenHeight <= 0)
+            {
+                Debug.LogWarning($"⚠️ resolvedStyle not ready: {screenWidth}x{screenHeight}");
+                return;
+            }
+
+            // モバイルは縦長画面なので、targetAspectを「高さ/幅」として扱う
+            float targetHeightWidthRatio = targetAspect;  // 高さ/幅
+            float screenHeightWidthRatio = screenHeight / screenWidth;
+
+            Debug.Log($"📐 UI Size (resolvedStyle): {screenWidth}x{screenHeight}, screen H/W ratio: {screenHeightWidthRatio:F3}, target H/W ratio: {targetHeightWidthRatio:F3}");
+
+            // カメラの最大画角の中心から指定アスペクト比でクロップ
+            float maskWidth = 0f;
+            float maskHeight = 0f;
+            bool isVerticalCrop = screenHeightWidthRatio > targetHeightWidthRatio;
+
+            if (screenHeightWidthRatio > targetHeightWidthRatio)
+            {
+                // 画面が目標より縦長 → 上下にマスク
+                float targetHeight = screenWidth * targetHeightWidthRatio;
+                maskHeight = (screenHeight - targetHeight) / 2f;
+                Debug.Log($"📐 Vertical crop: target height={targetHeight}px, mask height={maskHeight}px");
+            }
+            else
+            {
+                // 画面が目標より横長 → 左右にマスク
+                float targetWidth = screenHeight / targetHeightWidthRatio;
+                maskWidth = (screenWidth - targetWidth) / 2f;
+                Debug.Log($"📐 Horizontal crop: target width={targetWidth}px, mask width={maskWidth}px");
+            }
+
+            if (isVerticalCrop)
+            {
+                // 上下にマスク
+                if (leftMask != null) leftMask.style.display = DisplayStyle.None;
+                if (rightMask != null) rightMask.style.display = DisplayStyle.None;
+
+                // 上マスク（画面上端から配置）
+                topMask.style.display = DisplayStyle.Flex;
+                topMask.style.position = Position.Absolute;
+                topMask.style.left = 0;
+                topMask.style.right = 0;
+                topMask.style.top = 0;
+                topMask.style.width = screenWidth;
+                topMask.style.height = maskHeight;
+                topMask.style.backgroundColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+                topMask.style.opacity = 1f;
+                topMask.pickingMode = PickingMode.Ignore;
+                Debug.Log($"📐 Top mask SET: {screenWidth}x{maskHeight}px");
+
+                // 下マスク（画面下端から配置）
+                bottomMask.style.display = DisplayStyle.Flex;
+                bottomMask.style.position = Position.Absolute;
+                bottomMask.style.left = 0;
+                bottomMask.style.right = 0;
+                bottomMask.style.bottom = 0;
+                bottomMask.style.width = screenWidth;
+                bottomMask.style.height = maskHeight;
+                bottomMask.style.backgroundColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+                bottomMask.style.opacity = 1f;
+                bottomMask.pickingMode = PickingMode.Ignore;
+                Debug.Log($"📐 Bottom mask SET: {screenWidth}x{maskHeight}px");
+            }
+            else
+            {
+                // 左右にマスク
+                topMask.style.display = DisplayStyle.None;
+                bottomMask.style.display = DisplayStyle.None;
+
+                if (leftMask != null)
+                {
+                    leftMask.style.display = DisplayStyle.Flex;
+                    leftMask.style.position = Position.Absolute;
+                    leftMask.style.left = 0;
+                    leftMask.style.top = 0;
+                    leftMask.style.bottom = 0;
+                    leftMask.style.width = maskWidth;
+                    leftMask.style.height = screenHeight;
+                    leftMask.style.backgroundColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+                    leftMask.style.opacity = 1f;
+                    leftMask.pickingMode = PickingMode.Ignore;
+                    Debug.Log($"📐 Left mask SET: {maskWidth}x{screenHeight}px");
+                }
+
+                if (rightMask != null)
+                {
+                    rightMask.style.display = DisplayStyle.Flex;
+                    rightMask.style.position = Position.Absolute;
+                    rightMask.style.right = 0;
+                    rightMask.style.top = 0;
+                    rightMask.style.bottom = 0;
+                    rightMask.style.width = maskWidth;
+                    rightMask.style.height = screenHeight;
+                    rightMask.style.backgroundColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+                    rightMask.style.opacity = 1f;
+                    rightMask.pickingMode = PickingMode.Ignore;
+                    Debug.Log($"📐 Right mask SET: {maskWidth}x{screenHeight}px");
+                }
+            }
         }
     }
 }

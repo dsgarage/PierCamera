@@ -16,11 +16,6 @@ public sealed class ARPhotoController : MonoBehaviour
     [SerializeField] private OcclusionToggle occlusionToggle;
     [SerializeField] private Camera captureCamera;
 
-    // ▼ 追加：マスクのピクセル移動量を参照するため
-    [Header("Square Overlay Binding (optional)")]
-    [Tooltip("保存時のクロップ位置を UI マスクの移動量(offsetPx)に同期させる場合に割り当て")]
-    [SerializeField] private SquareCropOverlay squareOverlay;
-
     [Header("UI Hiding")]
     [SerializeField] private CanvasGroup[] uiToHide;
     [SerializeField] private UnityEngine.UIElements.UIDocument[] uiDocumentsToHide;
@@ -35,20 +30,23 @@ public sealed class ARPhotoController : MonoBehaviour
     [Header("UI Layer Exclusion")]
     [SerializeField] private string uiLayerName = "UI";
 
-    [Header("Aspect / Crop")]
-    [Tooltip("true なら保存前に正方形へクロップします")]
-    [SerializeField] private bool saveAsSquare = false;
+    [Header("Editor Debug")]
+    [Tooltip("Editorモードで Full 撮影時に強制的に縦長アスペクト比(9:19.5)を適用")]
+    [SerializeField] private bool editorFullUseDeviceAspect = true;
 
-    [Tooltip("正方形クロップの基準位置（既定: 中央）")]
-    [SerializeField] private SquareAnchor squareAnchor = SquareAnchor.Center;
+    [Tooltip("Editorモードでデバッグ用にUI込みのスクリーンショットも保存")]
+    [SerializeField] private bool editorSaveWithUI = true;
 
-    public bool SaveAsSquare => saveAsSquare;
-    public SquareAnchor CurrentSquareAnchor => squareAnchor;
+    // アスペクト比設定（0 = Full、それ以外は幅/高さの比率）
+    private float targetAspectRatio = 0f;
 
-    public enum SquareAnchor
+    /// <summary>
+    /// 撮影時のアスペクト比を設定（0 = Full、16/9 = 16:9、3/2 = 3:2 など）
+    /// </summary>
+    public void SetAspectRatio(float aspectRatio)
     {
-        Center, Top, Bottom, Left, Right,
-        TopLeft, TopRight, BottomLeft, BottomRight
+        targetAspectRatio = aspectRatio;
+        Debug.Log($"📐 ARPhotoController: Aspect ratio set to {aspectRatio:F3}");
     }
 
     public enum SaveModeIOS
@@ -93,7 +91,7 @@ public sealed class ARPhotoController : MonoBehaviour
         if (!allowConcurrentCapture && _isCapturing) return;
 
 #if UNITY_IOS && !UNITY_EDITOR
-        if (iosSaveMode == SaveModeIOS.NativeCamera && !saveAsSquare)
+        if (iosSaveMode == SaveModeIOS.NativeCamera)
         {
             StartCoroutine(CaptureIOS_Native());
             return;
@@ -107,6 +105,28 @@ public sealed class ARPhotoController : MonoBehaviour
         _isCapturing = true;
         try
         {
+#if UNITY_EDITOR
+            // Editorモード：デバッグ用にUI込みスクリーンショットを先に保存
+            if (editorSaveWithUI)
+            {
+                // UI状態を強制的に可視化
+                SetUIVisible(true);
+
+                // UI Toolkitの描画を確実に反映させるため複数フレーム待機
+                yield return null;
+                yield return null;
+                yield return null;
+                yield return new WaitForEndOfFrame();
+
+                Texture2D uiScreenshot = CaptureScreenWithUI();
+                if (uiScreenshot != null)
+                {
+                    SaveScreenshotWithUI(uiScreenshot);
+                    UnityEngine.Object.Destroy(uiScreenshot);
+                }
+            }
+#endif
+
             SetUIVisible(false);
             BeginExcludePlaneLayer();
 
@@ -123,58 +143,61 @@ public sealed class ARPhotoController : MonoBehaviour
                 yield break;
             }
 
-            // ② 正方形クロップ（オフセット追従を反映）
-            if (saveAsSquare)
-            {
-                // ★ MOD: 「中心ベース + SafeArea対応」の写像で保存テクスチャ上のRectを決定
-                var cropRect = ComputeSquareCropOnTexture_CenterBased(
-                    tex.width, tex.height,
-                    squareAnchor,
-                    (squareOverlay != null) ? squareOverlay.offsetPx : Vector2.zero
-                );
-
-                var sq = CropToRect(tex, cropRect);
-                UnityEngine.Object.Destroy(tex);
-                tex = sq;
-            }
-
             // サムネイル用のコピーを作成（64x64にリサイズ）
             Texture2D thumbnail = CreateThumbnail(tex, 64, 64);
             OnPhotoCaptured?.Invoke(thumbnail);
 
-            var png = tex.EncodeToPNG();
+            // JPEGでエンコード（品質90）
+            byte[] imageBytes = tex.EncodeToJPG(90);
             UnityEngine.Object.Destroy(tex);
 
-            string fileName = $"aiCam_{DateTime.Now:yyyyMMdd_HHmmss}.png";
+            // ファイル名: YYYYMMDDhhmmss_AspectRatio.jpg
+            string aspectRatioName = GetAspectRatioName(targetAspectRatio);
+            string fileName = $"{DateTime.Now:yyyyMMddHHmmss}_{aspectRatioName}.jpg";
 
-#if UNITY_ANDROID
+#if UNITY_EDITOR
+            // Editorモード: プロジェクト直下のjpgフォルダに保存
+            string projectRoot = Path.GetDirectoryName(Application.dataPath);
+            string jpgFolder = Path.Combine(projectRoot, "jpg");
+
+            // jpgフォルダが存在しない場合は作成
+            if (!Directory.Exists(jpgFolder))
+            {
+                Directory.CreateDirectory(jpgFolder);
+                Debug.Log($"📁 Created jpg folder: {jpgFolder}");
+            }
+
+            string path = Path.Combine(jpgFolder, fileName);
+            File.WriteAllBytes(path, imageBytes);
+            Debug.Log($"📸 [ARPhoto] Saved to jpg folder: {path}");
+#elif UNITY_ANDROID
             try
             {
-                SavePngToAndroidGallery(png, fileName);
+                SavePngToAndroidGallery(imageBytes, fileName);
                 Debug.Log("[ARPhoto] Saved to Android Photos.");
             }
             catch (Exception e)
             {
                 var fallback = Path.Combine(Application.persistentDataPath, fileName);
-                File.WriteAllBytes(fallback, png);
+                File.WriteAllBytes(fallback, imageBytes);
                 Debug.LogWarning("[ARPhoto] MediaStore failed. Saved to: " + fallback + "\n" + e);
             }
-#elif UNITY_IOS && !UNITY_EDITOR
+#elif UNITY_IOS
             try
             {
-                ARNative_SavePNGToPhotos(png, png.Length);
+                ARNative_SavePNGToPhotos(imageBytes, imageBytes.Length);
                 Debug.Log("[ARPhoto] Saved to iOS Photos.");
             }
             catch (Exception e)
             {
                 var fallback = Path.Combine(Application.persistentDataPath, fileName);
-                File.WriteAllBytes(fallback, png);
+                File.WriteAllBytes(fallback, imageBytes);
                 Debug.LogWarning("[ARPhoto] iOS native save failed. Saved to: " + fallback + "\n" + e);
             }
 #else
             var path = Path.Combine(Application.persistentDataPath, fileName);
-            File.WriteAllBytes(path, png);
-            Debug.Log("[ARPhoto] Saved (editor/other): " + path);
+            File.WriteAllBytes(path, imageBytes);
+            Debug.Log("[ARPhoto] Saved (other platform): " + path);
 #endif
         }
         finally
@@ -194,10 +217,12 @@ public sealed class ARPhotoController : MonoBehaviour
         }
 
         // 現在の画面解像度でRenderTextureを作成
-        int width = Screen.width;
-        int height = Screen.height;
+        int screenWidth = Screen.width;
+        int screenHeight = Screen.height;
 
-        RenderTexture rt = RenderTexture.GetTemporary(width, height, 24, RenderTextureFormat.ARGB32);
+        Debug.Log($"📱 [ARPhoto] Screen resolution: {screenWidth}x{screenHeight} (aspect: {(float)screenHeight / screenWidth:F3})");
+
+        RenderTexture rt = RenderTexture.GetTemporary(screenWidth, screenHeight, 24, RenderTextureFormat.ARGB32);
         RenderTexture previousRT = captureCamera.targetTexture;
         RenderTexture previousActive = RenderTexture.active;
 
@@ -209,8 +234,61 @@ public sealed class ARPhotoController : MonoBehaviour
 
             // RenderTextureからTexture2Dに転送
             RenderTexture.active = rt;
-            Texture2D tex = new Texture2D(width, height, TextureFormat.RGBA32, false);
-            tex.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+
+            // アスペクト比に応じてクロップ領域を計算（カメラの最大画角の中心からクロップ）
+            int finalWidth = screenWidth;
+            int finalHeight = screenHeight;
+            int cropX = 0;
+            int cropY = 0;
+
+            // エディタモードでのFullモード時、実機相当のアスペクト比を適用
+            float effectiveAspectRatio = targetAspectRatio;
+#if UNITY_EDITOR
+            Debug.Log($"🔍 [ARPhoto] targetAspectRatio={targetAspectRatio:F3}, editorFullUseDeviceAspect={editorFullUseDeviceAspect}");
+            if (targetAspectRatio == 0f && editorFullUseDeviceAspect)
+            {
+                // iPhone 17 Pro Max 相当の縦長アスペクト比 (9:19.5)
+                effectiveAspectRatio = 19.5f / 9f; // ≈ 2.167
+                Debug.Log($"📱 [ARPhoto] Editor Full mode: Using device aspect ratio {effectiveAspectRatio:F3} (9:19.5)");
+            }
+#endif
+
+            if (effectiveAspectRatio > 0f)
+            {
+                // アスペクト比が設定されている場合（Full以外、またはEditor Fullで実機相当）
+                // カメラの最大画角（screenWidth x screenHeight）の中心から指定アスペクト比でクロップ
+
+                // モバイルは縦長画面なので、effectiveAspectRatioを「高さ/幅」として扱う
+                // 16:9 → 縦長で撮ると 9:16（高さ/幅 = 16/9 = 1.778）
+                float targetHeightWidthRatio = effectiveAspectRatio;  // 高さ/幅
+                float screenHeightWidthRatio = (float)screenHeight / screenWidth;
+
+                if (screenHeightWidthRatio > targetHeightWidthRatio)
+                {
+                    // 画面が目標より縦長 → 上下をクロップ
+                    finalWidth = screenWidth;
+                    finalHeight = Mathf.RoundToInt(screenWidth * targetHeightWidthRatio);
+                    cropX = 0;
+                    cropY = (screenHeight - finalHeight) / 2;
+                }
+                else
+                {
+                    // 画面が目標より横長 → 左右をクロップ
+                    finalHeight = screenHeight;
+                    finalWidth = Mathf.RoundToInt(screenHeight / targetHeightWidthRatio);
+                    cropX = (screenWidth - finalWidth) / 2;
+                    cropY = 0;
+                }
+
+                Debug.Log($"📐 Cropping from center: target H/W ratio={targetHeightWidthRatio:F3}, screen={screenWidth}x{screenHeight} (H/W={screenHeightWidthRatio:F3}), crop={finalWidth}x{finalHeight}, offset=({cropX},{cropY})");
+            }
+            else
+            {
+                Debug.Log($"📐 No crop: Full mode (aspect=0) - using full camera view");
+            }
+
+            Texture2D tex = new Texture2D(finalWidth, finalHeight, TextureFormat.RGBA32, false);
+            tex.ReadPixels(new Rect(cropX, cropY, finalWidth, finalHeight), 0, 0);
             tex.Apply();
 
             return tex;
@@ -317,7 +395,7 @@ public sealed class ARPhotoController : MonoBehaviour
 #endif
 
 #if UNITY_ANDROID
-    private static void SavePngToAndroidGallery(byte[] pngBytes, string fileName)
+    private static void SavePngToAndroidGallery(byte[] imageBytes, string fileName)
     {
         using (var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
         using (var activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity"))
@@ -338,8 +416,14 @@ public sealed class ARPhotoController : MonoBehaviour
 
                     using (var values = new AndroidJavaObject("android.content.ContentValues"))
                     {
+                        // MIME typeをファイル拡張子から判定
+                        string mimeType = fileName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                                         fileName.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)
+                            ? "image/jpeg"
+                            : "image/png";
+
                         values.Call<AndroidJavaObject>("put", DISPLAY_NAME, fileName);
-                        values.Call<AndroidJavaObject>("put", MIME_TYPE, "image/png");
+                        values.Call<AndroidJavaObject>("put", MIME_TYPE, mimeType);
                         values.Call<AndroidJavaObject>("put", RELATIVE_PATH, "Pictures/aiCam");
 
                         var uri = resolver.Call<AndroidJavaObject>("insert",
@@ -349,7 +433,7 @@ public sealed class ARPhotoController : MonoBehaviour
 
                         using (var os = resolver.Call<AndroidJavaObject>("openOutputStream", uri))
                         {
-                            os.Call("write", new object[] { pngBytes });
+                            os.Call("write", new object[] { imageBytes });
                             os.Call("flush");
                             os.Call("close");
                         }
@@ -367,7 +451,7 @@ public sealed class ARPhotoController : MonoBehaviour
                 if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
 
                 var absPath = Path.Combine(folder, fileName);
-                File.WriteAllBytes(absPath, pngBytes);
+                File.WriteAllBytes(absPath, imageBytes);
 
                 using (var ms = new AndroidJavaClass("android.media.MediaScannerConnection"))
                     ms.CallStatic("scanFile", activity, new string[] { absPath }, null, null);
@@ -375,68 +459,6 @@ public sealed class ARPhotoController : MonoBehaviour
         }
     }
 #endif
-
-    // -------------------- ここからクロップ系（オフセット対応） --------------------
-
-    // 任意の矩形で安全に切り出す（テクスチャ座標系）
-    private static Texture2D CropToRect(Texture2D src, RectInt r)
-    {
-        // 範囲保護
-        int x = Mathf.Clamp(r.x, 0, Mathf.Max(0, src.width  - 1));
-        int y = Mathf.Clamp(r.y, 0, Mathf.Max(0, src.height - 1));
-        int w = Mathf.Clamp(r.width,  1, src.width  - x);
-        int h = Mathf.Clamp(r.height, 1, src.height - y);
-
-        Color[] pixels = src.GetPixels(x, y, w, h);
-        var dst = new Texture2D(w, h, TextureFormat.RGBA32, false);
-        dst.SetPixels(pixels);
-        dst.Apply();
-        return dst;
-    }
-
-    // 現在の画面サイズ基準の正方形トリミング矩形（UIオフセットも反映）
-    public RectInt GetCurrentSquareCropRectPixels()
-    {
-        Vector2 uiOffsetPx = (squareOverlay != null) ? squareOverlay.offsetPx : Vector2.zero;
-        return ComputeSquareCropRect(Screen.width, Screen.height, squareAnchor, uiOffsetPx);
-    }
-
-    // 幅・高さとアンカー＋ピクセルオフセットから正方形の切り出し矩形を計算（左下原点, ピクセル）
-    public static RectInt ComputeSquareCropRect(int width, int height, SquareAnchor anchor, Vector2 extraOffsetPx)
-    {
-        int s = Mathf.Min(width, height);
-        int x = (width  - s) / 2;
-        int y = (height - s) / 2;
-
-        switch (anchor)
-        {
-            case SquareAnchor.Top:         y = height - s; break;
-            case SquareAnchor.Bottom:      y = 0; break;
-            case SquareAnchor.Left:        x = 0; break;
-            case SquareAnchor.Right:       x = width - s; break;
-            case SquareAnchor.TopLeft:     x = 0; y = height - s; break;
-            case SquareAnchor.TopRight:    x = width - s; y = height - s; break;
-            case SquareAnchor.BottomLeft:  x = 0; y = 0; break;
-            case SquareAnchor.BottomRight: x = width - s; y = 0; break;
-            // Center は既定値
-        }
-
-        // UIで動かした分（右+/上+）を加算
-        if (extraOffsetPx.sqrMagnitude > 0f)
-        {
-            x += Mathf.RoundToInt(extraOffsetPx.x);
-            y += Mathf.RoundToInt(extraOffsetPx.y);
-        }
-
-        // 画面内に収まるようクランプ
-        x = Mathf.Clamp(x, 0, width  - s);
-        y = Mathf.Clamp(y, 0, height - s);
-        return new RectInt(x, y, s, s);
-    }
-
-    // 互換：オフセット無し（既存APIを残す）
-    public static RectInt ComputeSquareCropRect(int width, int height, SquareAnchor anchor)
-        => ComputeSquareCropRect(width, height, anchor, Vector2.zero);
 
     // サムネイル作成用のヘルパーメソッド
     private static Texture2D CreateThumbnail(Texture2D source, int width, int height)
@@ -457,41 +479,93 @@ public sealed class ARPhotoController : MonoBehaviour
         return thumbnail;
     }
 
-    // ★ MOD: 中心ベース + Safe Area 対応で保存テクスチャ上の正方形Rectを算出
-    private RectInt ComputeSquareCropOnTexture_CenterBased(
-        int texW, int texH, SquareAnchor anchor, Vector2 uiOffsetPx)
+    /// <summary>
+    /// アスペクト比から表示名を取得
+    /// </summary>
+    private string GetAspectRatioName(float aspectRatio)
     {
-        // 1) SafeArea内で最終スクエアを計算（SquareCropOverlayと整合）
-        Rect sa = Screen.safeArea;
-        int saW = Mathf.RoundToInt(sa.width);
-        int saH = Mathf.RoundToInt(sa.height);
-        RectInt sqInSafe = ComputeSquareCropRect(saW, saH, anchor, uiOffsetPx);
+        // 許容誤差を考慮して判定
+        const float epsilon = 0.01f;
 
-        // 2) 画面（SafeArea原点込み）の中心（左下原点）
-        float scrCX = (sa.x / 2) + (sqInSafe.x + sqInSafe.width  * 0.5f);
-        float scrCY = (sa.y / 2) + (sqInSafe.y + sqInSafe.height * 0.5f);
+        if (aspectRatio == 0f)
+        {
+            return "Full";
+        }
+        else if (Mathf.Abs(aspectRatio - 16f / 9f) < epsilon)
+        {
+            return "16x9";
+        }
+        else if (Mathf.Abs(aspectRatio - 3f / 2f) < epsilon)
+        {
+            return "3x2";
+        }
+        else if (Mathf.Abs(aspectRatio - 1f) < epsilon)
+        {
+            return "1x1";
+        }
+        else
+        {
+            // カスタムアスペクト比の場合は比率を文字列化
+            return $"{aspectRatio:F2}".Replace(".", "_");
+        }
+    }
 
-        // 3) Screen→tex の線形写像
-        float sx = texW / Mathf.Max(1f, (float)Screen.width);
-        float sy = texH / Mathf.Max(1f, (float)Screen.height);
+    /// <summary>
+    /// UI込みでスクリーン全体をキャプチャ（Editor専用）
+    /// </summary>
+    private Texture2D CaptureScreenWithUI()
+    {
+        int width = Screen.width;
+        int height = Screen.height;
 
-        int texCX = Mathf.RoundToInt(scrCX * sx);
-        int texCY = Mathf.RoundToInt(scrCY * sy);
+        Texture2D screenshot = new Texture2D(width, height, TextureFormat.RGB24, false);
+        screenshot.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+        screenshot.Apply();
 
-        // 4) サイズは“実際のUI枠幅”を等方スケール（見た目そのまま）
-        int sideOnTex = Mathf.Max(1, Mathf.RoundToInt(sqInSafe.width * Mathf.Min(sx, sy)));
+        Debug.Log($"📸 [ARPhoto] Captured screen with UI: {width}x{height}");
+        return screenshot;
+    }
 
-        // 5) 左下原点は Floor で上方向の+1pxブレを抑制 → クランプ
-        int tx = Mathf.FloorToInt(texCX - sideOnTex / 2f);
-        int ty = Mathf.FloorToInt(texCY - sideOnTex / 2f);
+    /// <summary>
+    /// UI込みスクリーンショットを保存（Editor専用）
+    /// 常にフルスクリーンで保存（アスペクト比クロップなし）
+    /// </summary>
+    private void SaveScreenshotWithUI(Texture2D screenshot)
+    {
+        // JPEGエンコード（フルスクリーンのまま保存）
+        byte[] imageBytes = screenshot.EncodeToJPG(90);
 
-        tx = Mathf.Clamp(tx, 0, texW - sideOnTex);
-        ty = Mathf.Clamp(ty, 0, texH - sideOnTex);
+        // ファイル名: YYYYMMDDhhmmss_AspectRatio_withUI.jpg
+        string aspectRatioName = GetAspectRatioName(targetAspectRatio);
+        string fileName = $"{DateTime.Now:yyyyMMddHHmmss}_{aspectRatioName}_withUI.jpg";
 
-        Debug.Log($"[ARPhoto] Screen {Screen.width}x{Screen.height}  tex {texW}x{texH}");
-        Debug.Log($"[ARPhoto] sqInSafe={sqInSafe}  sx={sx:F3} sy={sy:F3}  sideOnTex={sideOnTex}");
-        Debug.Log($"[ARPhoto] tx,ty={tx},{ty}  texCX,texCY={texCX},{texCY}");
+        // jpgフォルダに保存
+        string projectRoot = Path.GetDirectoryName(Application.dataPath);
+        string jpgFolder = Path.Combine(projectRoot, "jpg");
 
-        return new RectInt(tx, ty, sideOnTex, sideOnTex);
+        if (!Directory.Exists(jpgFolder))
+        {
+            Directory.CreateDirectory(jpgFolder);
+        }
+
+        string path = Path.Combine(jpgFolder, fileName);
+        File.WriteAllBytes(path, imageBytes);
+        Debug.Log($"📸 [ARPhoto] Saved screenshot with UI: {path}");
+    }
+
+    /// <summary>
+    /// ダウンロードフォルダのパスを取得（macOS/Windows対応）
+    /// </summary>
+    private string GetDownloadsPath()
+    {
+#if UNITY_EDITOR_OSX || UNITY_STANDALONE_OSX
+        string home = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+        return Path.Combine(home, "Downloads");
+#elif UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
+        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+#else
+        // その他のプラットフォームではApplication.persistentDataPathを使用
+        return Application.persistentDataPath;
+#endif
     }
 }

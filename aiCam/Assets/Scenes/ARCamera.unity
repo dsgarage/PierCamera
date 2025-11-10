@@ -2295,8 +2295,8 @@ MonoBehaviour:
   allowConcurrentCapture: 0
   iosSaveMode: 0
   planeVizLayerName: ARPlaneViz
-  saveAsSquare: 1
-  squareAnchor: 0
+  editorFullUseDeviceAspect: 1
+  editorSaveWithUI: 1
 --- !u!114 &431550396
 MonoBehaviour:
   m_ObjectHideFlags: 0

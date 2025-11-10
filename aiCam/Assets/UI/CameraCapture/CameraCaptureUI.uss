@@ -16,6 +16,24 @@
 }
 
 /* ================================
+   アスペクト比マスクオーバーレイ
+================================ */
+.aspect-mask-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* display設定はC#側で制御 */
+    pointer-events: none;
+}
+
+.aspect-mask {
+    /* 全てC#側で制御するため、USSでは最低限のみ設定 */
+    pointer-events: none;
+}
+
+/* ================================
    撮影ボタン
 ================================ */
 .capture-button {
