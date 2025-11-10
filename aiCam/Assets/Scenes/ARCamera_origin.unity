@@ -1056,12 +1056,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   avatarPrefab: {fileID: 3448142631616145395, guid: 79394c4ca4eb06b47a2ef642893df631, type: 3}
+  avatarLoader: {fileID: 236828916}
   planeManager: {fileID: 207520395}
   anchorManager: {fileID: 207520396}
   occlusionManager: {fileID: 431550397}
   faceUIManager: {fileID: 272771475}
   expressionGridLayout: {fileID: 2001791832}
   poseGridLayout: {fileID: 0}
+  cameraCaptureController: {fileID: 0}
   onlyHorizontal: 1
   onlyFloorIfAvailable: 0
   arCamera: {fileID: 431550394}
@@ -1235,6 +1237,7 @@ GameObject:
   m_Component:
   - component: {fileID: 236828914}
   - component: {fileID: 236828915}
+  - component: {fileID: 236828916}
   m_Layer: 0
   m_Name: AppMgr
   m_TagString: Untagged
@@ -1270,6 +1273,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   appState: 0
+--- !u!114 &236828916
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 236828913}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b3b6ed26ba0b04e129229abbd063e932, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AICam.VRM.RuntimeAvatarLoader
+  arPlacementTarget: {fileID: 207520392}
+  defaultScale: {x: 1, y: 1, z: 1}
+  faceAnimatorController: {fileID: 0}
+  bodyAnimatorController: {fileID: 9100000, guid: 8d5a0e0d58f4e4176a844a1a03976c19, type: 2}
+  initialStateName: Idle
 --- !u!1001 &241748527
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2288,15 +2308,16 @@ MonoBehaviour:
   arSession: {fileID: 948591574}
   occlusionToggle: {fileID: 431550396}
   captureCamera: {fileID: 0}
-  squareOverlay: {fileID: 1442196503}
   uiToHide:
   - {fileID: 152108868}
   - {fileID: 1861929204}
+  uiDocumentsToHide: []
   allowConcurrentCapture: 0
   iosSaveMode: 0
   planeVizLayerName: ARPlaneViz
-  saveAsSquare: 1
-  squareAnchor: 0
+  uiLayerName: UI
+  editorFullUseDeviceAspect: 1
+  editorSaveWithUI: 1
 --- !u!114 &431550396
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2384,8 +2405,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6c2cf04899c24ca5a5c600d8719a4c8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  squareOverlay: {fileID: 1442196503}
-  shaderName: Hidden/URP/ARBackgroundOffset
 --- !u!1 &478162759
 GameObject:
   m_ObjectHideFlags: 0
@@ -8808,17 +8827,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 133a30cca33f04f74b1a33469976ee78, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  photo: {fileID: 431550395}
-  topMask: {fileID: 1471496541}
-  bottomMask: {fileID: 536337981}
-  leftMask: {fileID: 1143905903}
-  rightMask: {fileID: 1719544978}
-  frame: {fileID: 0}
-  hideWhenNotSquare: 0
-  previewSquareOn: 1
-  previewAnchor: 0
-  outerBleedPx: 3
-  offsetPx: {x: 0, y: 650}
 --- !u!1 &1471496540
 GameObject:
   m_ObjectHideFlags: 0
@@ -9182,6 +9190,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AICam.UI.CameraCaptureController
   photoController: {fileID: 431550395}
+  avatarLoader: {fileID: 236828916}
 --- !u!4 &1479651380
 Transform:
   m_ObjectHideFlags: 0
