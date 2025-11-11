@@ -44,6 +44,18 @@
     padding: 0;
 }
 
+.log-scroll > .unity-scroll-view__content-viewport {
+    background-color: rgba(0, 0, 0, 0);
+}
+
+.log-scroll > .unity-scroll-view__content-viewport > .unity-scroll-view__content-container {
+    background-color: rgba(0, 0, 0, 0);
+}
+
+.log-scroll .unity-scroller {
+    background-color: rgba(0, 0, 0, 0);
+}
+
 .log-field {
     background-color: rgba(0, 0, 0, 0);
     border-width: 0;
@@ -55,6 +67,17 @@
 }
 
 .log-field:focus {
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+}
+
+.log-field > .unity-text-field__input {
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    padding: 0;
+}
+
+.log-field > .unity-text-field__input:focus {
     background-color: rgba(0, 0, 0, 0);
     border-width: 0;
 }
