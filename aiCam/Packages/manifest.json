@@ -1,6 +1,9 @@
 {
   "dependencies": {
     "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
+    "com.frozenstorminteractive.assimp": "4.1.0",
+    "com.frozenstorminteractive.assimp.ios": "4.1.0",
+    "com.frozenstorminteractive.assimp.macos": "4.1.0",
     "com.kyrylokuzyk.arfoundationremote": "file:../Assets/Plugins/ARFoundationRemoteInstaller/com.kyrylokuzyk.arfoundationremote.tgz",
     "com.local.mcp.unityserver": "git@github.com:dsgarage/CC2UniMCP.git",
     "com.vrmc.gltf": "https://github.com/vrm-c/UniVRM.git?path=/Assets/UniGLTF#v0.130.1",
@@ -55,5 +58,14 @@
     "com.unity.modules.vr": "1.0.0",
     "com.unity.modules.wind": "1.0.0",
     "com.unity.modules.xr": "1.0.0"
-  }
+  },
+  "scopedRegistries": [
+    {
+      "name": "Frozen Storm Interactive",
+      "url": "https://upm.frozenstorminteractive.com",
+      "scopes": [
+        "com.frozenstorminteractive"
+      ]
+    }
+  ]
 }
