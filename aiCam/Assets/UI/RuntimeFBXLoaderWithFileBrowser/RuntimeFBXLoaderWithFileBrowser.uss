@@ -44,11 +44,16 @@
 }
 
 .log-field {
-    background-color: transparent;
+    background-color: rgba(0, 0, 0, 0);
     border-width: 0;
     color: rgb(204, 204, 204);
     font-size: 13px;
     min-height: 180px;
+}
+
+.log-field:focus {
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
 }
 
 /* 進行パネル */
