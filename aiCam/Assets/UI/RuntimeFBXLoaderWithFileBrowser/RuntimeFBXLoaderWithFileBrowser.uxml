@@ -17,8 +17,9 @@
 
         <!-- 下：操作パネル -->
         <ui:VisualElement name="ControlPanel" class="control-panel" style="position: absolute; bottom: 0; left: 0; right: 0; flex-direction: row; background-color: rgb(41, 43, 48); padding: 14px 12px; margin: 0 12px 12px 12px; border-radius: 12px;">
-            <ui:Button name="BtnOpen" text="ファイルを選択" class="btn primary" style="flex-grow: 1; height: 44px; background-color: rgb(42, 130, 218); color: white; border-radius: 8px; margin: 0 6px; border-width: 0;"/>
-            <ui:Button name="BtnLoad" text="ロード開始" class="btn success" style="flex-grow: 1; height: 44px; background-color: rgb(58, 165, 93); color: white; border-radius: 8px; margin: 0 6px; border-width: 0;"/>
+            <ui:Button name="BtnLoad" text="ロード開始" class="btn success" style="flex-grow: 2; height: 44px; background-color: rgb(58, 165, 93); color: white; border-radius: 8px; margin: 0 6px 0 0; border-width: 0;"/>
+            <ui:Button name="BtnOpen" text="選択" class="btn primary" style="flex-grow: 1; height: 44px; background-color: rgb(42, 130, 218); color: white; border-radius: 8px; margin: 0 3px; border-width: 0; font-size: 13px;"/>
+            <ui:Button name="BtnExtract" text="解凍" class="btn secondary" style="flex-grow: 1; height: 44px; background-color: rgb(108, 117, 125); color: white; border-radius: 8px; margin: 0 0 0 3px; border-width: 0; font-size: 13px;"/>
         </ui:VisualElement>
 
     </ui:VisualElement>

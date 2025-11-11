@@ -167,3 +167,17 @@
     background-color: rgb(68, 68, 68);
     color: rgb(102, 102, 102);
 }
+
+.btn.secondary {
+    background-color: rgb(108, 117, 125);
+}
+.btn.secondary:hover {
+    background-color: rgb(130, 138, 145);
+}
+.btn.secondary:active {
+    background-color: rgb(90, 98, 104);
+}
+.btn.secondary:disabled {
+    background-color: rgb(68, 68, 68);
+    color: rgb(102, 102, 102);
+}

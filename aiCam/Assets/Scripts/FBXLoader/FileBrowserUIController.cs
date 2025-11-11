@@ -10,7 +10,7 @@ namespace AICam.FBXLoader
     {
         [SerializeField] private UIDocument uiDocument;
 
-        private Button btnOpen, btnLoad;
+        private Button btnOpen, btnLoad, btnExtract;
         private VisualElement progressPanel;
         private TextField logField;
         private ProgressBar progressBar;
@@ -47,6 +47,7 @@ namespace AICam.FBXLoader
             // UI要素を取得
             btnOpen = root.Q<Button>("BtnOpen");
             btnLoad = root.Q<Button>("BtnLoad");
+            btnExtract = root.Q<Button>("BtnExtract");
             progressPanel = root.Q<VisualElement>("ProgressPanel");
             loadingLabel = root.Q<Label>("LoadingLabel");
             progressBar = root.Q<ProgressBar>("ProgressBar");
@@ -59,11 +60,13 @@ namespace AICam.FBXLoader
             // ボタンイベント登録
             btnOpen.clicked += OnOpenClicked;
             btnLoad.clicked += OnLoadClicked;
+            btnExtract.clicked += OnExtractClicked;
 
             // 初期状態
             progressPanel.style.display = DisplayStyle.None;
             UpdateStatus("待機中...");
             btnLoad.SetEnabled(false);
+            btnExtract.SetEnabled(false);
 
             AppendLog("システム初期化完了");
         }
@@ -89,7 +92,7 @@ namespace AICam.FBXLoader
             {
                 AppendLog($"選択: {System.IO.Path.GetFileName(path)}");
 
-                // ZIPファイルの場合は自動的に解凍
+                // ZIPファイルの場合は解凍ボタンを有効化
                 bool isZip = path.ToLower().EndsWith(".zip");
 
                 // VRM/FBXファイルの場合はロードボタンを有効化
@@ -97,14 +100,16 @@ namespace AICam.FBXLoader
 
                 if (isZip)
                 {
-                    UpdateStatus("ZIPファイル検出 - 自動解凍中...");
-                    AppendLog("ZIPファイルを検出。自動的に解凍します");
-                    AutoExtract();
+                    UpdateStatus("ZIPファイル選択済み - 解凍してください");
+                    AppendLog("ZIPファイルを検出。解凍ボタンを押してください");
+                    btnExtract.SetEnabled(true);
+                    btnLoad.SetEnabled(false);
                 }
                 else if (isModelFile)
                 {
                     UpdateStatus("ファイル選択済み");
                     btnLoad.SetEnabled(true);
+                    btnExtract.SetEnabled(false);
                 }
             }
             else
@@ -112,13 +117,17 @@ namespace AICam.FBXLoader
                 AppendLog("選択をキャンセル");
                 UpdateStatus("待機中...");
                 btnLoad.SetEnabled(false);
+                btnExtract.SetEnabled(false);
             }
         }
 
-        void AutoExtract()
+        void OnExtractClicked()
         {
+            AppendLog("ZIPパッケージを解凍中...");
+            UpdateStatus("解凍中...");
             btnOpen.SetEnabled(false);
             btnLoad.SetEnabled(false);
+            btnExtract.SetEnabled(false);
 
             if (fileBrowser != null)
             {
@@ -139,11 +148,13 @@ namespace AICam.FBXLoader
             {
                 AppendLog($"解凍完了: {System.IO.Path.GetFileName(extractedFilePath)}");
                 btnLoad.SetEnabled(true);
+                btnExtract.SetEnabled(false);
                 UpdateStatus("解凍完了 - ロード可能");
             }
             else
             {
                 AppendLog("解凍失敗");
+                btnExtract.SetEnabled(true);
                 UpdateStatus("解凍失敗");
             }
         }
@@ -154,6 +165,7 @@ namespace AICam.FBXLoader
             UpdateStatus("ロード中...", showProgress: true);
             btnOpen.SetEnabled(false);
             btnLoad.SetEnabled(false);
+            btnExtract.SetEnabled(false);
 
             if (loaderBridge != null)
             {
@@ -177,6 +189,7 @@ namespace AICam.FBXLoader
             UpdateStatus("待機中...", showProgress: false);
             btnOpen.SetEnabled(true);
             btnLoad.SetEnabled(false);
+            btnExtract.SetEnabled(false);
 
             if (success)
             {
