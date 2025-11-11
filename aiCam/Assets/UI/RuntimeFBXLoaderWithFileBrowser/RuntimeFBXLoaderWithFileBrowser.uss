@@ -2,7 +2,7 @@
 .app-root {
     position: relative;
     flex-direction: column;
-    background-color: rgb(30, 31, 34);
+    background-color: rgba(0, 0, 0, 0);
     color: rgb(229, 229, 229);
     height: 100%;
     width: 100%;

@@ -1,6 +1,6 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
     <Style src="RuntimeFBXLoaderWithFileBrowser.uss" />
-    <ui:VisualElement name="AppRoot" class="app-root" style="background-color: rgb(30, 31, 34); height: 100%; position: relative;">
+    <ui:VisualElement name="AppRoot" class="app-root" style="background-color: rgba(0, 0, 0, 0); height: 100%; position: relative;">
     
         <!-- 上：ログパネル -->
         <ui:VisualElement name="LogPanel" class="log-panel">
