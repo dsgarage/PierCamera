@@ -111,8 +111,9 @@ namespace AICam.FBXLoader
             // デバッグ用: Armature/直下子の Euler BEFORE
             if (DebugLogEnabled) SnapshotArmatureEulerBefore();
 
-            // 骨＋PCA で Z+前 / Y+上 に自動整列（必要であればログを付与）
-            AutoOrientRootSmart();
+            // 骨＋PCA で Z+前 / Y+上 に自動整列（一時的に無効化）
+            // AutoOrientRootSmart();
+            Debug.Log("[FBXLoader] AutoOrientRootSmart() is disabled for debugging");
 
             // デバッグ用: Armature/直下子の Euler AFTER
             if (DebugLogEnabled) LogArmatureEulerDiff();
@@ -728,49 +729,45 @@ namespace AICam.FBXLoader
         // =====================================================================================
         private UnityMaterial CreateMaterialWithTexture(AssimpMaterial aMat, string fbxPath, int index)
         {
-            Shader std = Shader.Find("Standard");
-            if (!std)
-            {
-                Debug.LogWarning("[FBXLoader] Standard shader not found");
-                std = Shader.Find("Diffuse");
-            }
-            if (!std) return null;
+            string shaderName = "Standard";
+            Color? baseColor = null;
+            string texturePath = null;
 
-            UnityMaterial mat = new UnityMaterial(std);
-            mat.name = aMat.Name ?? $"Material_{index}";
-
-            // ベースカラーを設定
+            // ベースカラーを取得
             if (aMat.HasColorDiffuse)
             {
                 var color = aMat.ColorDiffuse;
-                mat.color = new Color(color.R, color.G, color.B, color.A);
+                baseColor = new Color(color.R, color.G, color.B, color.A);
             }
 
-            // Diffuseテクスチャを設定
+            // Diffuseテクスチャパスを取得
             if (aMat.GetMaterialTexture(TextureType.Diffuse, 0, out var texSlot))
             {
                 string baseDir = Path.GetDirectoryName(fbxPath) ?? "";
-                string texPath = Path.Combine(baseDir, texSlot.FilePath);
-                Texture2D tex  = LoadTexture(texPath);
-                if (tex)
+                texturePath = Path.Combine(baseDir, texSlot.FilePath);
+            }
+
+            // RuntimeMaterialManagerを使用してマテリアルを取得/作成（キャッシュ対応）
+            UnityMaterial mat = RuntimeMaterialManager.Instance.GetOrCreateMaterial(
+                shaderName,
+                texturePath,
+                baseColor
+            );
+
+            if (mat != null)
+            {
+                mat.name = aMat.Name ?? $"Material_{index}";
+                if (!string.IsNullOrEmpty(texturePath) && mat.mainTexture != null)
                 {
-                    mat.mainTexture = tex;
-                    Debug.Log($"[FBXLoader] Loaded texture: {texSlot.FilePath}");
+                    Debug.Log($"[FBXLoader] Material created with texture: {texSlot.FilePath}");
                 }
-                else
-                {
-                    Debug.LogWarning($"[FBXLoader] Failed to load texture: {texPath}");
-                }
+            }
+            else
+            {
+                Debug.LogWarning($"[FBXLoader] Failed to create material for {aMat.Name ?? $"Material_{index}"}");
             }
 
             return mat;
-        }
-
-        private static Texture2D LoadTexture(string path)
-        {
-            if (!File.Exists(path)) return null;
-            Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
-            return tex.LoadImage(File.ReadAllBytes(path)) ? tex : null;
         }
 
         // =====================================================================================
@@ -928,16 +925,28 @@ namespace AICam.FBXLoader
         private static bool TryGetMetaIntObject(object mdObj, string key, out int value)
         {
             value = 0;
-            if (mdObj == null) return false;
+            if (mdObj == null)
+            {
+                Debug.Log($"[FBXLoader] TryGetMetaIntObject: mdObj is null for key '{key}'");
+                return false;
+            }
 
             var mdType = mdObj.GetType();
 
             var contains = mdType.GetMethod("ContainsKey", new[] { typeof(string) });
-            if (contains == null) return false;
+            if (contains == null)
+            {
+                Debug.LogWarning($"[FBXLoader] TryGetMetaIntObject: ContainsKey method not found for key '{key}'");
+                return false;
+            }
             bool has = false;
             try { has = (bool)contains.Invoke(mdObj, new object[] { key }); }
-            catch { has = false; }
-            if (!has) return false;
+            catch (Exception e) { Debug.LogWarning($"[FBXLoader] TryGetMetaIntObject: ContainsKey exception for key '{key}': {e.Message}"); has = false; }
+            if (!has)
+            {
+                Debug.Log($"[FBXLoader] TryGetMetaIntObject: Key '{key}' not found in metadata");
+                return false;
+            }
 
             var indexer = mdType.GetProperty("Item");
             if (indexer == null) return false;
