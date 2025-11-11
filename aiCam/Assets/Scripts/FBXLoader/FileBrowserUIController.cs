@@ -21,13 +21,12 @@ namespace AICam.FBXLoader
         private FileBrowserController fileBrowser;
         private RuntimeFBXLoaderBridge loaderBridge;
 
+        // アバターのロード状態
+        private bool isAvatarLoaded = false;
+
         // 長押し検出用（選択ボタン）
         private float openPointerDownTime;
         private bool isOpenPointerDown;
-
-        // 長押し検出用（ロードボタン）
-        private float loadPointerDownTime;
-        private bool isLoadPointerDown;
 
         private const float LONG_PRESS_DURATION = 0.8f;
 
@@ -74,7 +73,7 @@ namespace AICam.FBXLoader
 
             // ボタンイベント登録
             btnOpen.clicked += OnOpenClicked;
-            btnLoad.clicked += OnLoadClicked;
+            btnLoad.clicked += OnLoadOrDeleteClicked;
             btnExtract.clicked += OnExtractClicked;
             btnDeleteAvatar.clicked += OnDeleteAvatarClicked;
             btnCancelPopup.clicked += OnCancelPopupClicked;
@@ -82,10 +81,6 @@ namespace AICam.FBXLoader
             // 長押しイベント登録（選択ボタン）
             btnOpen.RegisterCallback<PointerDownEvent>(OnOpenPointerDown);
             btnOpen.RegisterCallback<PointerUpEvent>(OnOpenPointerUp);
-
-            // 長押しイベント登録（ロードボタン）
-            btnLoad.RegisterCallback<PointerDownEvent>(OnLoadPointerDown);
-            btnLoad.RegisterCallback<PointerUpEvent>(OnLoadPointerUp);
 
             // 初期状態
             progressPanel.style.display = DisplayStyle.None;
@@ -104,13 +99,6 @@ namespace AICam.FBXLoader
                 isOpenPointerDown = false;
                 OnOpenLongPress();
             }
-
-            // 長押し検出（ロードボタン）
-            if (isLoadPointerDown && Time.time - loadPointerDownTime >= LONG_PRESS_DURATION)
-            {
-                isLoadPointerDown = false;
-                OnLoadLongPress();
-            }
         }
 
         void OnOpenPointerDown(PointerDownEvent evt)
@@ -124,27 +112,44 @@ namespace AICam.FBXLoader
             isOpenPointerDown = false;
         }
 
-        void OnLoadPointerDown(PointerDownEvent evt)
-        {
-            loadPointerDownTime = Time.time;
-            isLoadPointerDown = true;
-        }
-
-        void OnLoadPointerUp(PointerUpEvent evt)
-        {
-            isLoadPointerDown = false;
-        }
-
         void OnOpenLongPress()
         {
             AppendLog("長押し検出 - 解凍済みフォルダから選択");
             OpenExtractedFolder();
         }
 
-        void OnLoadLongPress()
+        void UpdateLoadButtonState()
         {
-            AppendLog("長押し検出 - アバター削除メニューを表示");
-            ShowDeletePopup();
+            if (isAvatarLoaded)
+            {
+                // アバターがロード済み → 削除ボタンに変更
+                btnLoad.text = "削除";
+                btnLoad.style.backgroundColor = new StyleColor(new Color(220f/255f, 53f/255f, 69f/255f)); // 赤色
+                btnLoad.SetEnabled(true);
+            }
+            else
+            {
+                // アバター未ロード → ロードボタン
+                btnLoad.text = "ロード";
+                btnLoad.style.backgroundColor = new StyleColor(new Color(58f/255f, 165f/255f, 93f/255f)); // 緑色
+                // ファイルが選択されている場合のみ有効化
+                // この処理はOnFileSelectedで行う
+            }
+        }
+
+        void OnLoadOrDeleteClicked()
+        {
+            if (isAvatarLoaded)
+            {
+                // アバターがロード済み → 削除ポップアップを表示
+                AppendLog("アバター削除メニューを表示");
+                ShowDeletePopup();
+            }
+            else
+            {
+                // アバター未ロード → ロード処理
+                OnLoadClicked();
+            }
         }
 
         void ShowDeletePopup()
@@ -173,6 +178,10 @@ namespace AICam.FBXLoader
                 loaderBridge.ClearCurrentModel();
                 AppendLog("アバターを削除しました");
                 UpdateStatus("待機中...");
+
+                // 状態を更新
+                isAvatarLoaded = false;
+                UpdateLoadButtonState();
             }
             else
             {
@@ -379,18 +388,26 @@ namespace AICam.FBXLoader
         {
             UpdateStatus("待機中...", showProgress: false);
             btnOpen.SetEnabled(true);
-            btnLoad.SetEnabled(false);
             btnExtract.SetEnabled(false);
 
             if (success)
             {
                 AppendLog("モデルのロードに成功");
                 UpdateStatus("ロード完了");
+
+                // 状態を更新
+                isAvatarLoaded = true;
+                UpdateLoadButtonState();
             }
             else
             {
                 AppendLog("ロード失敗");
                 UpdateStatus("ロード失敗");
+
+                // ロード失敗時は元の状態に戻す
+                btnLoad.SetEnabled(false);
+                isAvatarLoaded = false;
+                UpdateLoadButtonState();
             }
         }
 
