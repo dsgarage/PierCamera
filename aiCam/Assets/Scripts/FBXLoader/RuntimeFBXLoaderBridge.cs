@@ -160,9 +160,9 @@ namespace AICam.FBXLoader
 
             onProgress?.Invoke(10f);
 
-            // SimpleFBXLoaderを使用してFBXをロード
-            SimpleFBXLoader fbxLoader = new SimpleFBXLoader();
-            currentModel = await fbxLoader.LoadFBXAsync(browser.SelectedPath, onProgress);
+            // RuntimeFBXLoader3を使用してFBXをロード
+            RuntimeFBXLoader3 fbxLoader = new RuntimeFBXLoader3();
+            currentModel = await fbxLoader.LoadFBX(browser.SelectedPath);
 
             if (currentModel == null)
             {
@@ -172,6 +172,30 @@ namespace AICam.FBXLoader
             }
 
             Debug.Log($"[RuntimeFBXLoaderBridge] FBX loaded successfully: {currentModel.name}");
+            onProgress?.Invoke(60f);
+
+            // Humanoid Avatar を生成
+            RuntimeHumanoidAvatarBuilder avatarBuilder = new RuntimeHumanoidAvatarBuilder();
+            Avatar avatar = avatarBuilder.CreateHumanoidAvatarFromFBX(currentModel.name, currentModel);
+
+            if (avatar != null && avatar.isValid && avatar.isHuman)
+            {
+                Debug.Log("[RuntimeFBXLoaderBridge] Humanoid Avatar created successfully");
+
+                // Animatorを設定
+                var animator = currentModel.GetComponent<Animator>();
+                if (animator == null)
+                {
+                    animator = currentModel.AddComponent<Animator>();
+                }
+                animator.avatar = avatar;
+            }
+            else
+            {
+                Debug.LogWarning("[RuntimeFBXLoaderBridge] Failed to create Humanoid Avatar, using generic setup");
+            }
+
+            onProgress?.Invoke(70f);
 
             // モデルを配置
             PlaceModel(currentModel);
