@@ -11,7 +11,9 @@ namespace AICam.FBXLoader
         [SerializeField] private UIDocument uiDocument;
 
         private Button btnOpen, btnLoad, btnExtract;
+        private Button btnDeleteAvatar, btnCancelPopup;
         private VisualElement progressPanel;
+        private VisualElement popupOverlay;
         private TextField logField;
         private ProgressBar progressBar;
         private Label loadingLabel;
@@ -19,9 +21,14 @@ namespace AICam.FBXLoader
         private FileBrowserController fileBrowser;
         private RuntimeFBXLoaderBridge loaderBridge;
 
-        // 長押し検出用
-        private float pointerDownTime;
-        private bool isPointerDown;
+        // 長押し検出用（選択ボタン）
+        private float openPointerDownTime;
+        private bool isOpenPointerDown;
+
+        // 長押し検出用（ロードボタン）
+        private float loadPointerDownTime;
+        private bool isLoadPointerDown;
+
         private const float LONG_PRESS_DURATION = 0.8f;
 
         // FileBrowserUIController.cs（末尾の方に追記）
@@ -53,7 +60,10 @@ namespace AICam.FBXLoader
             btnOpen = root.Q<Button>("BtnOpen");
             btnLoad = root.Q<Button>("BtnLoad");
             btnExtract = root.Q<Button>("BtnExtract");
+            btnDeleteAvatar = root.Q<Button>("BtnDeleteAvatar");
+            btnCancelPopup = root.Q<Button>("BtnCancelPopup");
             progressPanel = root.Q<VisualElement>("ProgressPanel");
+            popupOverlay = root.Q<VisualElement>("PopupOverlay");
             loadingLabel = root.Q<Label>("LoadingLabel");
             progressBar = root.Q<ProgressBar>("ProgressBar");
             logField = root.Q<TextField>("LogField");
@@ -66,10 +76,16 @@ namespace AICam.FBXLoader
             btnOpen.clicked += OnOpenClicked;
             btnLoad.clicked += OnLoadClicked;
             btnExtract.clicked += OnExtractClicked;
+            btnDeleteAvatar.clicked += OnDeleteAvatarClicked;
+            btnCancelPopup.clicked += OnCancelPopupClicked;
 
-            // 長押しイベント登録
-            btnOpen.RegisterCallback<PointerDownEvent>(OnPointerDown);
-            btnOpen.RegisterCallback<PointerUpEvent>(OnPointerUp);
+            // 長押しイベント登録（選択ボタン）
+            btnOpen.RegisterCallback<PointerDownEvent>(OnOpenPointerDown);
+            btnOpen.RegisterCallback<PointerUpEvent>(OnOpenPointerUp);
+
+            // 長押しイベント登録（ロードボタン）
+            btnLoad.RegisterCallback<PointerDownEvent>(OnLoadPointerDown);
+            btnLoad.RegisterCallback<PointerUpEvent>(OnLoadPointerUp);
 
             // 初期状態
             progressPanel.style.display = DisplayStyle.None;
@@ -82,29 +98,92 @@ namespace AICam.FBXLoader
 
         void Update()
         {
-            // 長押し検出
-            if (isPointerDown && Time.time - pointerDownTime >= LONG_PRESS_DURATION)
+            // 長押し検出（選択ボタン）
+            if (isOpenPointerDown && Time.time - openPointerDownTime >= LONG_PRESS_DURATION)
             {
-                isPointerDown = false;
-                OnLongPress();
+                isOpenPointerDown = false;
+                OnOpenLongPress();
+            }
+
+            // 長押し検出（ロードボタン）
+            if (isLoadPointerDown && Time.time - loadPointerDownTime >= LONG_PRESS_DURATION)
+            {
+                isLoadPointerDown = false;
+                OnLoadLongPress();
             }
         }
 
-        void OnPointerDown(PointerDownEvent evt)
+        void OnOpenPointerDown(PointerDownEvent evt)
         {
-            pointerDownTime = Time.time;
-            isPointerDown = true;
+            openPointerDownTime = Time.time;
+            isOpenPointerDown = true;
         }
 
-        void OnPointerUp(PointerUpEvent evt)
+        void OnOpenPointerUp(PointerUpEvent evt)
         {
-            isPointerDown = false;
+            isOpenPointerDown = false;
         }
 
-        void OnLongPress()
+        void OnLoadPointerDown(PointerDownEvent evt)
+        {
+            loadPointerDownTime = Time.time;
+            isLoadPointerDown = true;
+        }
+
+        void OnLoadPointerUp(PointerUpEvent evt)
+        {
+            isLoadPointerDown = false;
+        }
+
+        void OnOpenLongPress()
         {
             AppendLog("長押し検出 - 解凍済みフォルダから選択");
             OpenExtractedFolder();
+        }
+
+        void OnLoadLongPress()
+        {
+            AppendLog("長押し検出 - アバター削除メニューを表示");
+            ShowDeletePopup();
+        }
+
+        void ShowDeletePopup()
+        {
+            if (popupOverlay != null)
+            {
+                popupOverlay.style.display = DisplayStyle.Flex;
+            }
+        }
+
+        void HideDeletePopup()
+        {
+            if (popupOverlay != null)
+            {
+                popupOverlay.style.display = DisplayStyle.None;
+            }
+        }
+
+        void OnDeleteAvatarClicked()
+        {
+            AppendLog("アバターを削除中...");
+            HideDeletePopup();
+
+            if (loaderBridge != null)
+            {
+                loaderBridge.ClearCurrentModel();
+                AppendLog("アバターを削除しました");
+                UpdateStatus("待機中...");
+            }
+            else
+            {
+                AppendLog("エラー: RuntimeFBXLoaderBridgeが見つかりません");
+            }
+        }
+
+        void OnCancelPopupClicked()
+        {
+            AppendLog("削除をキャンセルしました");
+            HideDeletePopup();
         }
 
         void OpenExtractedFolder()
