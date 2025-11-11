@@ -19,7 +19,7 @@ namespace AICam.FBXLoader
         [Header("Settings")]
         [SerializeField] private Transform modelParent;
         [SerializeField] private Vector3 modelPosition = Vector3.zero;
-        [SerializeField] private Vector3 modelRotation = new Vector3(0, 180, 0);
+        [SerializeField] private Vector3 modelRotation = Vector3.zero; // 変更: デフォルトの向き
         [SerializeField] private Vector3 modelScale = Vector3.one;
 
         [Header("Animation")]
@@ -149,7 +149,18 @@ namespace AICam.FBXLoader
             model.transform.localRotation = Quaternion.Euler(modelRotation);
             model.transform.localScale = modelScale;
 
-            Debug.Log($"[RuntimeFBXLoaderBridge] Model placed at: {model.transform.position}");
+            Debug.Log($"[RuntimeFBXLoaderBridge] Model placed at World Position: {model.transform.position}");
+            Debug.Log($"[RuntimeFBXLoaderBridge] Model Rotation: {model.transform.rotation.eulerAngles}");
+            Debug.Log($"[RuntimeFBXLoaderBridge] Model Scale: {model.transform.lossyScale}");
+            Debug.Log($"[RuntimeFBXLoaderBridge] Parent: {(parent != null ? parent.name : "null")}");
+
+            // レンダラーの確認
+            var renderers = model.GetComponentsInChildren<Renderer>();
+            Debug.Log($"[RuntimeFBXLoaderBridge] Found {renderers.Length} renderers");
+            foreach (var renderer in renderers)
+            {
+                Debug.Log($"[RuntimeFBXLoaderBridge] Renderer: {renderer.name}, Enabled: {renderer.enabled}, Layer: {renderer.gameObject.layer}");
+            }
         }
 
         /// <summary>
