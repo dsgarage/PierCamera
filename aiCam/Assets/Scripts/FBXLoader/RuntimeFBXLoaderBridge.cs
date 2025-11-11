@@ -164,8 +164,8 @@ namespace AICam.FBXLoader
 
             onProgress?.Invoke(10f);
 
-            // RuntimeFBXLoader3を使用してFBXをロード
-            RuntimeFBXLoader3 fbxLoader = new RuntimeFBXLoader3();
+            // RuntimeFBXModelBuilderを使用してFBXをロード
+            RuntimeFBXModelBuilder fbxLoader = new RuntimeFBXModelBuilder();
             currentModel = await fbxLoader.LoadFBX(browser.SelectedPath);
 
             if (currentModel == null)
