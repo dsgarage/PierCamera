@@ -28,6 +28,7 @@ namespace AICam.FBXLoader
 
         private RuntimeGltfInstance currentInstance;
         private GameObject currentModel;
+        private RuntimeMaterialManager materialManager;
 
         void Awake()
         {
@@ -40,6 +41,9 @@ namespace AICam.FBXLoader
             {
                 browser = FindFirstObjectByType<FileBrowserController>();
             }
+
+            // RuntimeMaterialManagerを初期化
+            materialManager = new RuntimeMaterialManager();
         }
 
         /// <summary>
@@ -172,6 +176,13 @@ namespace AICam.FBXLoader
             }
 
             Debug.Log($"[RuntimeFBXLoaderBridge] FBX loaded successfully: {currentModel.name}");
+            onProgress?.Invoke(40f);
+
+            // マテリアルを適用
+            var meshNodeToMaterialNames = fbxLoader.GetMeshNodeToMaterialNames();
+            string extractedPath = browser.SelectedPath;
+            await materialManager.AssignMaterials(currentModel, extractedPath, meshNodeToMaterialNames);
+            Debug.Log("[RuntimeFBXLoaderBridge] Materials assigned");
             onProgress?.Invoke(60f);
 
             // Humanoid Avatar を生成

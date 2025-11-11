@@ -1,6 +1,6 @@
 // csharp
 /*******************************************************************************************
- *  RuntimeFBXLoader3.cs ― FBX → GameObject（SkinnedMeshRenderer）変換 + デバッグログ
+ *  RuntimeFBXLoader2.cs ― FBX → GameObject（SkinnedMeshRenderer）変換 + デバッグログ
  *  - Armature/直下子の localRotation(Euler) の Before/After を出力
  *  - 基底行列 basisB の列ベクトル（ex,ey,ez）と det(B) を出力
  *  - 指定ノード（既定: "Hips"）の mFbxLocal / mUnityLocal（行列とTRS）を出力
@@ -18,7 +18,6 @@ using UnityEditor;
 using UnityEditorInternal;
 #endif
 using Assimp;
-using Cysharp.Threading.Tasks;
 
 // ───────── エイリアス ─────────
 using AssimpMaterial   = Assimp.Material;
@@ -26,6 +25,7 @@ using UnityMaterial    = UnityEngine.Material;
 using AssimpMesh       = Assimp.Mesh;
 using UnityMesh        = UnityEngine.Mesh;
 using AssimpNode       = Assimp.Node;
+using UnityNode        = UnityEngine.GameObject;
 using AssimpScene      = Assimp.Scene;
 using AssimpMatrix4x4  = Assimp.Matrix4x4;
 using UnityMatrix4x4   = UnityEngine.Matrix4x4;
@@ -34,6 +34,8 @@ using AssimpBone       = Assimp.Bone;
 
 namespace AICam.FBXLoader
 {
+    using Cysharp.Threading.Tasks;
+
     public class RuntimeFBXLoader3 : IRuntimeFBXLoader
     {
         private const string MeshNodeTag = "MeshNode";
@@ -68,7 +70,7 @@ namespace AICam.FBXLoader
         // =====================================================================================
         // 公開 API（例）: ロードして GameObject を返す
         // =====================================================================================
-        public async UniTask<GameObject> LoadFBX(string fbxPath)
+        public async UniTask<UnityNode> LoadFBX(string fbxPath)
         {
             EnsureTagExists(MeshNodeTag);
 
@@ -104,16 +106,15 @@ namespace AICam.FBXLoader
             builtRootTransform = null;
 
             // ---------- Unity Object 化 ----------
-            GameObject root = ProcessNode(scene.RootNode, null, scene, fbxPath);
+            UnityNode root = ProcessNode(scene.RootNode, null, scene, fbxPath);
             builtRootTransform = root.transform;
             root.name = Path.GetFileNameWithoutExtension(fbxPath);
 
             // デバッグ用: Armature/直下子の Euler BEFORE
             if (DebugLogEnabled) SnapshotArmatureEulerBefore();
 
-            // 骨＋PCA で Z+前 / Y+上 に自動整列（一時的に無効化）
-            // AutoOrientRootSmart();
-            Debug.Log("[FBXLoader] AutoOrientRootSmart() is disabled for debugging");
+            // 骨＋PCA で Z+前 / Y+上 に自動整列（必要であればログを付与）
+            AutoOrientRootSmart();
 
             // デバッグ用: Armature/直下子の Euler AFTER
             if (DebugLogEnabled) LogArmatureEulerDiff();
@@ -127,9 +128,9 @@ namespace AICam.FBXLoader
         // =====================================================================================
         // ノード → GameObject（再帰）
         // =====================================================================================
-        private GameObject ProcessNode(AssimpNode node, Transform parent, AssimpScene scene, string fbxPath)
+        private UnityNode ProcessNode(AssimpNode node, Transform parent, AssimpScene scene, string fbxPath)
         {
-            var go = new GameObject(node.Name);
+            var go = new UnityNode(node.Name);
             var tr = go.transform;
 
             if (parent) tr.SetParent(parent, false);
@@ -138,7 +139,6 @@ namespace AICam.FBXLoader
             var mFbxLocal   = ConvertAssimpMatrix(node.Transform);
             var mUnityLocal = basisB * mFbxLocal * basisBinv;
             DecomposeTRS_NoReflection(mUnityLocal, out var t, out var q, out var s);
-
             tr.localPosition = t;
             tr.localRotation = q;
             tr.localScale    = s;
@@ -159,52 +159,18 @@ namespace AICam.FBXLoader
                     node.MeshIndices,
                     scene,
                     out var bones,
-                    out var boneWeights,
-                    out var materialIndices,
-                    fbxPath
+                    out var boneWeights
                 );
 
                 smr.sharedMesh   = mesh;
                 mesh.boneWeights = boneWeights;
                 smr.bones        = bones.ToArray();
 
-                // メッシュに使用されているマテリアルを設定
-                if (materialIndices.Count > 0)
-                {
-                    var materials = new List<UnityMaterial>();
-                    foreach (int matIdx in materialIndices)
-                    {
-                        if (matIdx >= 0 && matIdx < scene.Materials.Count)
-                        {
-                            materials.Add(CreateMaterialWithTexture(scene.Materials[matIdx], fbxPath, matIdx));
-                        }
-                        else
-                        {
-                            materials.Add(new UnityMaterial(Shader.Find("Standard")));
-                        }
-                    }
-                    smr.materials = materials.ToArray();
-                }
+                // 先頭マテリアルのみ設定（必要なら拡張）
+                if (scene.Materials?.Count > 0)
+                    ApplyMaterialWithTexture(scene.Materials[0], smr, fbxPath);
 
                 go.tag = MeshNodeTag;
-
-                // MeshNode名とMaterial名のマッピングを記録
-                var materialNames = new List<string>();
-                foreach (int meshIdx in node.MeshIndices)
-                {
-                    if (meshIdx >= 0 && meshIdx < scene.Meshes.Count)
-                    {
-                        var assimpMesh = scene.Meshes[meshIdx];
-                        if (assimpMesh.MaterialIndex >= 0 && assimpMesh.MaterialIndex < scene.Materials.Count)
-                        {
-                            string matName = scene.Materials[assimpMesh.MaterialIndex].Name ?? $"Material_{assimpMesh.MaterialIndex}";
-                            if (!materialNames.Contains(matName))
-                                materialNames.Add(matName);
-                        }
-                    }
-                }
-                if (materialNames.Count > 0)
-                    meshNodeToMaterialNames[node.Name] = materialNames;
 
                 // 収集
                 createdSmrs.Add(smr);
@@ -524,20 +490,15 @@ namespace AICam.FBXLoader
             IList<int> meshIdx,
             AssimpScene scene,
             out List<Transform> boneTrs,
-            out BoneWeight[] bwArr,
-            out List<int> materialIndices,
-            string fbxPath)
+            out BoneWeight[] bwArr)
         {
             boneTrs = new List<Transform>();
-            materialIndices = new List<int>();
 
             var verts = new List<Vector3>();
             var norms = new List<Vector3>();
             var tans  = new List<Vector4>();
             var uvs   = new List<Vector2>();
-
-            // サブメッシュごとの三角形リスト
-            var subMeshTriangles = new Dictionary<int, List<int>>();
+            var tris  = new List<int>();
 
             var boneNameToIndex = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             var vtxInfluences   = new List<List<(int idx, float w)>>();
@@ -580,30 +541,22 @@ namespace AICam.FBXLoader
                         uvs.Add(new Vector2(uv.X, uv.Y));
                 }
 
-                // 三角形（マテリアルインデックスごとにサブメッシュに分ける）
-                int matIdx = am.MaterialIndex;
-                if (!subMeshTriangles.ContainsKey(matIdx))
-                {
-                    subMeshTriangles[matIdx] = new List<int>();
-                    materialIndices.Add(matIdx);
-                }
-
-                var triList = subMeshTriangles[matIdx];
+                // 三角形（det(B)<0 のときだけ反転）
                 foreach (var f in am.Faces)
                 {
                     if (f.IndexCount == 3)
                     {
                         if (basisDet < 0f)
                         {
-                            triList.Add(f.Indices[0] + vOffset);
-                            triList.Add(f.Indices[2] + vOffset);
-                            triList.Add(f.Indices[1] + vOffset);
+                            tris.Add(f.Indices[0] + vOffset);
+                            tris.Add(f.Indices[2] + vOffset);
+                            tris.Add(f.Indices[1] + vOffset);
                         }
                         else
                         {
-                            triList.Add(f.Indices[0] + vOffset);
-                            triList.Add(f.Indices[1] + vOffset);
-                            triList.Add(f.Indices[2] + vOffset);
+                            tris.Add(f.Indices[0] + vOffset);
+                            tris.Add(f.Indices[1] + vOffset);
+                            tris.Add(f.Indices[2] + vOffset);
                         }
                     }
                 }
@@ -676,19 +629,7 @@ namespace AICam.FBXLoader
             if (norms.Count == verts.Count) uMesh.SetNormals(norms); else uMesh.RecalculateNormals();
             if (tans.Count  == verts.Count) uMesh.SetTangents(tans);
             if (uvs.Count   == verts.Count) uMesh.SetUVs(0, uvs);
-
-            // サブメッシュを設定
-            uMesh.subMeshCount = subMeshTriangles.Count;
-            int subMeshIndex = 0;
-            foreach (var matIdx in materialIndices)
-            {
-                if (subMeshTriangles.TryGetValue(matIdx, out var triList))
-                {
-                    uMesh.SetTriangles(triList, subMeshIndex, false);
-                    subMeshIndex++;
-                }
-            }
-
+            uMesh.SetTriangles(tris, 0, true);
             uMesh.RecalculateBounds();
 
             return uMesh;
@@ -728,72 +669,28 @@ namespace AICam.FBXLoader
         // =====================================================================================
         // Material / Texture
         // =====================================================================================
-        private UnityMaterial CreateMaterialWithTexture(AssimpMaterial aMat, string fbxPath, int index)
+        private void ApplyMaterialWithTexture(AssimpMaterial aMat, SkinnedMeshRenderer rdr, string fbxPath)
         {
-            try
+            Shader std = Shader.Find("Standard");
+            if (!std) return;
+
+            UnityMaterial mat = new UnityMaterial(std);
+
+            if (aMat.GetMaterialTexture(TextureType.Diffuse, 0, out var texSlot))
             {
-                string shaderName = "Standard";
-                Color? baseColor = null;
-                string texturePath = null;
-                string matName = aMat.Name ?? $"Material_{index}";
-
-                Debug.Log($"[FBXLoader] Creating material: {matName}");
-
-                // ベースカラーを取得
-                if (aMat.HasColorDiffuse)
-                {
-                    var color = aMat.ColorDiffuse;
-                    baseColor = new Color(color.R, color.G, color.B, color.A);
-                    Debug.Log($"[FBXLoader] Material base color: {baseColor}");
-                }
-
-                // Diffuseテクスチャパスを取得
-                if (aMat.GetMaterialTexture(TextureType.Diffuse, 0, out var texSlot))
-                {
-                    string baseDir = Path.GetDirectoryName(fbxPath) ?? "";
-                    texturePath = Path.Combine(baseDir, texSlot.FilePath);
-                    Debug.Log($"[FBXLoader] Material texture path: {texturePath}");
-                }
-
-                // RuntimeMaterialManagerを使用してマテリアルを取得/作成（キャッシュ対応）
-                UnityMaterial mat = RuntimeMaterialManager.Instance.GetOrCreateMaterial(
-                    shaderName,
-                    texturePath,
-                    baseColor
-                );
-
-                if (mat != null)
-                {
-                    mat.name = matName;
-                    Debug.Log($"[FBXLoader] Material created successfully: {mat.name}");
-                }
-                else
-                {
-                    Debug.LogError($"[FBXLoader] Failed to create material: {matName}");
-                    // フォールバック：基本的なマテリアルを作成
-                    Shader fallbackShader = Shader.Find("Standard");
-                    if (fallbackShader != null)
-                    {
-                        mat = new UnityMaterial(fallbackShader) { name = matName };
-                        Debug.LogWarning($"[FBXLoader] Created fallback material: {matName}");
-                    }
-                }
-
-                return mat;
+                string baseDir = Path.GetDirectoryName(fbxPath) ?? "";
+                string texPath = Path.Combine(baseDir, texSlot.FilePath);
+                Texture2D tex  = LoadTexture(texPath);
+                if (tex) mat.mainTexture = tex;
             }
-            catch (System.Exception e)
-            {
-                Debug.LogError($"[FBXLoader] Exception in CreateMaterialWithTexture: {e.Message}");
-                Debug.LogException(e);
+            rdr.material = mat;
+        }
 
-                // 最終フォールバック
-                Shader fallbackShader = Shader.Find("Standard");
-                if (fallbackShader != null)
-                {
-                    return new UnityMaterial(fallbackShader) { name = $"Fallback_Material_{index}" };
-                }
-                return null;
-            }
+        private static Texture2D LoadTexture(string path)
+        {
+            if (!File.Exists(path)) return null;
+            Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            return tex.LoadImage(File.ReadAllBytes(path)) ? tex : null;
         }
 
         // =====================================================================================
@@ -853,59 +750,36 @@ namespace AICam.FBXLoader
         // =====================================================================================
         private void BuildBasisFromFbxMetadata(AssimpScene scene)
         {
-            // デフォルト：Z軸反転 + X軸周り+90度回転（FBXの-90度X軸回転を相殺）
-            // Rx(90°) * Scale(1, 1, -1) の結果
-            basisB = new UnityMatrix4x4();
-            basisB.SetColumn(0, new Vector4(1, 0, 0, 0));   // X軸: そのまま
-            basisB.SetColumn(1, new Vector4(0, 0, 1, 0));   // Y軸: 元のZ軸
-            basisB.SetColumn(2, new Vector4(0, -1, 0, 0));  // Z軸: 元のY軸を反転
-            basisB.SetColumn(3, new Vector4(0, 0, 0, 1));
-            basisBinv = basisB.transpose;  // 直交行列なので転置が逆行列
-            basisDet  = -1f;               // det = -1
-
-            Debug.Log("[FBXLoader] Building basis from FBX metadata...");
+            // デフォルト：Front=-Z, Up=+Y（多くのFBXに一致）
+            basisB    = UnityMatrix4x4.Scale(new Vector3(1, 1, -1));
+            basisBinv = basisB;
+            basisDet  = -1f;
 
             try
             {
-                if (scene == null || scene.RootNode == null)
-                {
-                    Debug.LogWarning("[FBXLoader] Scene or RootNode is null, using default basis");
-                    return;
-                }
-
-                // FBXヘッダをダンプ
-                DumpFBXMetadata(scene.RootNode);
+                if (scene == null || scene.RootNode == null) return;
 
                 bool found = TryBuildBasisFromNodeMetadata(scene.RootNode, out var B, out var det);
                 if (!found)
                 {
-                    Debug.Log("[FBXLoader] Metadata not found in RootNode, scanning all nodes...");
                     // 全ノード走査
                     var q = new Queue<AssimpNode>();
                     q.Enqueue(scene.RootNode);
-                    int nodesChecked = 0;
                     while (q.Count > 0 && !found)
                     {
                         var n = q.Dequeue();
-                        nodesChecked++;
                         if (n != scene.RootNode && TryBuildBasisFromNodeMetadata(n, out B, out det))
                         {
                             found = true;
                             basisB = B; basisBinv = B.transpose; basisDet = det;
-                            Debug.Log($"[FBXLoader] Metadata found in node: {n.Name} (after checking {nodesChecked} nodes)");
                             break;
                         }
                         foreach (var c in n.Children) q.Enqueue(c);
-                    }
-                    if (!found)
-                    {
-                        Debug.LogWarning($"[FBXLoader] No metadata found in {nodesChecked} nodes, using default basis (Front=-Z, Up=+Y)");
                     }
                 }
                 else
                 {
                     basisB = B; basisBinv = B.transpose; basisDet = det;
-                    Debug.Log("[FBXLoader] Metadata found in RootNode");
                 }
             }
             catch (Exception e)
@@ -924,8 +798,6 @@ namespace AICam.FBXLoader
                                                   out int frontAxis, out int frontSign,
                                                   out int rightAxis, out int rightSign))
             {
-                Debug.Log($"[FBXLoader] Axis metadata found - UpAxis:{upAxis}({upSign}), FrontAxis:{frontAxis}({frontSign}), RightAxis:{rightAxis}({rightSign})");
-
                 Vector3 AxisOf(int idx)
                 {
                     switch (idx)
@@ -949,147 +821,25 @@ namespace AICam.FBXLoader
                 B.SetColumn(3, new Vector4(0, 0, 0, 1));
 
                 det = Vector3.Dot(Vector3.Cross(ex, ey), ez);
-                Debug.Log($"[FBXLoader] Built basis matrix - ex:{ex}, ey:{ey}, ez:{ez}, det:{det:F3}");
                 return true;
             }
             return false;
-        }
-
-        // =====================================================================================
-        // FBXメタデータダンプ機能
-        // =====================================================================================
-        private static void DumpFBXMetadata(AssimpNode node)
-        {
-            if (node == null || node.Metadata == null)
-            {
-                Debug.Log("[FBXLoader] No metadata found in node");
-                return;
-            }
-
-            try
-            {
-                var sb = new StringBuilder();
-                sb.AppendLine("=== FBX Metadata Dump ===");
-                sb.AppendLine($"Node: {node.Name}");
-                sb.AppendLine($"Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-                sb.AppendLine();
-
-                var mdObj = node.Metadata;
-                var mdType = mdObj.GetType();
-
-                // Count プロパティを取得
-                var countProp = mdType.GetProperty("Count");
-                int count = 0;
-                if (countProp != null)
-                {
-                    try { count = (int)countProp.GetValue(mdObj); }
-                    catch { count = 0; }
-                }
-
-                sb.AppendLine($"Metadata entries: {count}");
-                sb.AppendLine();
-
-                // Keys プロパティを取得
-                var keysProp = mdType.GetProperty("Keys");
-                if (keysProp != null)
-                {
-                    try
-                    {
-                        var keys = keysProp.GetValue(mdObj) as System.Collections.IEnumerable;
-                        if (keys != null)
-                        {
-                            foreach (var key in keys)
-                            {
-                                string keyStr = key.ToString();
-
-                                // 値を取得
-                                var indexer = mdType.GetProperty("Item");
-                                if (indexer != null)
-                                {
-                                    try
-                                    {
-                                        object entry = indexer.GetValue(mdObj, new object[] { keyStr });
-                                        if (entry != null)
-                                        {
-                                            var entryType = entry.GetType();
-                                            var dataProp = entryType.GetProperty("Data");
-                                            object data = null;
-
-                                            if (dataProp != null)
-                                            {
-                                                try { data = dataProp.GetValue(entry); }
-                                                catch { data = null; }
-                                            }
-
-                                            if (data == null) data = entry;
-
-                                            string dataType = data.GetType().Name;
-                                            string dataValue = data.ToString();
-
-                                            sb.AppendLine($"{keyStr,-30} = {dataValue,-20} ({dataType})");
-                                        }
-                                    }
-                                    catch (Exception e)
-                                    {
-                                        sb.AppendLine($"{keyStr,-30} = [Error: {e.Message}]");
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        sb.AppendLine($"Error enumerating keys: {e.Message}");
-                    }
-                }
-
-                sb.AppendLine();
-                sb.AppendLine("=========================");
-
-                // ファイルに保存
-                string logDir = RuntimeHumanoidAvatarBuilderDebugHelper.LogDirPath;
-                string timestamp = DateTime.Now.ToString("yyMMdd_HHmmss");
-                string filePath = Path.Combine(logDir, $"{timestamp}_FBX_Metadata.txt");
-
-                File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
-                Debug.Log($"[FBXLoader] FBX metadata dumped to: {filePath}");
-
-                // コンソールにも出力
-                Debug.Log(sb.ToString());
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"[FBXLoader] Failed to dump FBX metadata: {e.Message}");
-                Debug.LogException(e);
-            }
         }
 
         // Metadata から int を取得（Assimpバージョン差吸収のためリフレクションで読む）
         private static bool TryGetMetaIntObject(object mdObj, string key, out int value)
         {
             value = 0;
-            if (mdObj == null)
-            {
-                Debug.Log($"[FBXLoader] TryGetMetaIntObject: mdObj is null for key '{key}'");
-                return false;
-            }
+            if (mdObj == null) return false;
 
             var mdType = mdObj.GetType();
 
             var contains = mdType.GetMethod("ContainsKey", new[] { typeof(string) });
-            if (contains == null)
-            {
-                Debug.LogWarning($"[FBXLoader] TryGetMetaIntObject: ContainsKey method not found for key '{key}'");
-                return false;
-            }
+            if (contains == null) return false;
             bool has = false;
             try { has = (bool)contains.Invoke(mdObj, new object[] { key }); }
-            catch (Exception e) { Debug.LogWarning($"[FBXLoader] TryGetMetaIntObject: ContainsKey exception for key '{key}': {e.Message}"); has = false; }
-            if (!has)
-            {
-                Debug.Log($"[FBXLoader] TryGetMetaIntObject: Key '{key}' not found in metadata");
-                return false;
-            }
+            catch { has = false; }
+            if (!has) return false;
 
             var indexer = mdType.GetProperty("Item");
             if (indexer == null) return false;
