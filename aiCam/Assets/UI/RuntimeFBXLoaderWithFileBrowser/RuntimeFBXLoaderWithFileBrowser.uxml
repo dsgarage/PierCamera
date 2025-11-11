@@ -6,7 +6,7 @@
         <ui:VisualElement name="LogPanel" class="log-panel">
             <ui:Label text="ロードログ" class="log-title"/>
             <ui:ScrollView name="LogScroll" class="log-scroll">
-                <ui:TextField name="LogField" multiline="true" readonly="true" class="log-field"/>
+                <ui:TextField name="LogField" multiline="true" readonly="true" class="log-field" style="background-color: rgba(0, 0, 0, 0); border-width: 0; color: rgb(204, 204, 204);"/>
             </ui:ScrollView>
         </ui:VisualElement>
 
