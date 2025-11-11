@@ -23,24 +23,43 @@ namespace AICam.FBXLoader
         /// </summary>
         public Material GetOrCreateMaterial(string shaderName, string texturePath = null, Color? baseColor = null)
         {
-            // キャッシュキー生成
-            string cacheKey = GenerateCacheKey(shaderName, texturePath, baseColor);
-
-            if (materialCache.TryGetValue(cacheKey, out Material cachedMat))
+            try
             {
-                if (cachedMat != null) return cachedMat;
-                // nullになっている場合はキャッシュから削除
-                materialCache.Remove(cacheKey);
-            }
+                // キャッシュキー生成
+                string cacheKey = GenerateCacheKey(shaderName, texturePath, baseColor);
+                Debug.Log($"[RuntimeMaterialManager] GetOrCreateMaterial - shader: {shaderName}, texture: {texturePath ?? "none"}, cacheKey: {cacheKey}");
 
-            // 新しいマテリアルを作成
-            Material mat = CreateMaterial(shaderName, texturePath, baseColor);
-            if (mat != null)
+                if (materialCache.TryGetValue(cacheKey, out Material cachedMat))
+                {
+                    if (cachedMat != null)
+                    {
+                        Debug.Log($"[RuntimeMaterialManager] Using cached material: {cachedMat.name}");
+                        return cachedMat;
+                    }
+                    // nullになっている場合はキャッシュから削除
+                    materialCache.Remove(cacheKey);
+                }
+
+                // 新しいマテリアルを作成
+                Material mat = CreateMaterial(shaderName, texturePath, baseColor);
+                if (mat != null)
+                {
+                    materialCache[cacheKey] = mat;
+                    Debug.Log($"[RuntimeMaterialManager] Created new material: {mat.name}");
+                }
+                else
+                {
+                    Debug.LogError($"[RuntimeMaterialManager] Failed to create material for shader: {shaderName}");
+                }
+
+                return mat;
+            }
+            catch (System.Exception e)
             {
-                materialCache[cacheKey] = mat;
+                Debug.LogError($"[RuntimeMaterialManager] Exception in GetOrCreateMaterial: {e.Message}");
+                Debug.LogException(e);
+                return null;
             }
-
-            return mat;
         }
 
         /// <summary>
@@ -74,29 +93,55 @@ namespace AICam.FBXLoader
         /// </summary>
         private Material CreateMaterial(string shaderName, string texturePath, Color? baseColor)
         {
-            Material template = GetOrCreateShaderTemplate(shaderName);
-            if (template == null) return null;
-
-            // テンプレートからインスタンス化
-            Material mat = new Material(template);
-
-            // ベースカラー設定
-            if (baseColor.HasValue && mat.HasProperty("_Color"))
+            try
             {
-                mat.color = baseColor.Value;
-            }
-
-            // テクスチャ設定
-            if (!string.IsNullOrEmpty(texturePath))
-            {
-                Texture2D tex = LoadTexture(texturePath);
-                if (tex != null && mat.HasProperty("_MainTex"))
+                Material template = GetOrCreateShaderTemplate(shaderName);
+                if (template == null)
                 {
-                    mat.mainTexture = tex;
+                    Debug.LogError($"[RuntimeMaterialManager] Failed to get shader template for: {shaderName}");
+                    return null;
                 }
-            }
 
-            return mat;
+                // テンプレートからインスタンス化
+                Material mat = new Material(template);
+
+                // ベースカラー設定
+                if (baseColor.HasValue && mat.HasProperty("_Color"))
+                {
+                    mat.color = baseColor.Value;
+                    Debug.Log($"[RuntimeMaterialManager] Set base color: {baseColor.Value}");
+                }
+
+                // テクスチャ設定
+                if (!string.IsNullOrEmpty(texturePath))
+                {
+                    Texture2D tex = LoadTexture(texturePath);
+                    if (tex != null)
+                    {
+                        if (mat.HasProperty("_MainTex"))
+                        {
+                            mat.mainTexture = tex;
+                            Debug.Log($"[RuntimeMaterialManager] Applied texture: {texturePath}");
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"[RuntimeMaterialManager] Material does not have _MainTex property");
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[RuntimeMaterialManager] Failed to load texture: {texturePath}");
+                    }
+                }
+
+                return mat;
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[RuntimeMaterialManager] Exception in CreateMaterial: {e.Message}");
+                Debug.LogException(e);
+                return null;
+            }
         }
 
         /// <summary>

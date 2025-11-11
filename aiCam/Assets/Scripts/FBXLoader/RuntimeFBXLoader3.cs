@@ -730,45 +730,70 @@ namespace AICam.FBXLoader
         // =====================================================================================
         private UnityMaterial CreateMaterialWithTexture(AssimpMaterial aMat, string fbxPath, int index)
         {
-            string shaderName = "Standard";
-            Color? baseColor = null;
-            string texturePath = null;
-
-            // ベースカラーを取得
-            if (aMat.HasColorDiffuse)
+            try
             {
-                var color = aMat.ColorDiffuse;
-                baseColor = new Color(color.R, color.G, color.B, color.A);
-            }
+                string shaderName = "Standard";
+                Color? baseColor = null;
+                string texturePath = null;
+                string matName = aMat.Name ?? $"Material_{index}";
 
-            // Diffuseテクスチャパスを取得
-            if (aMat.GetMaterialTexture(TextureType.Diffuse, 0, out var texSlot))
-            {
-                string baseDir = Path.GetDirectoryName(fbxPath) ?? "";
-                texturePath = Path.Combine(baseDir, texSlot.FilePath);
-            }
+                Debug.Log($"[FBXLoader] Creating material: {matName}");
 
-            // RuntimeMaterialManagerを使用してマテリアルを取得/作成（キャッシュ対応）
-            UnityMaterial mat = RuntimeMaterialManager.Instance.GetOrCreateMaterial(
-                shaderName,
-                texturePath,
-                baseColor
-            );
-
-            if (mat != null)
-            {
-                mat.name = aMat.Name ?? $"Material_{index}";
-                if (!string.IsNullOrEmpty(texturePath) && mat.mainTexture != null)
+                // ベースカラーを取得
+                if (aMat.HasColorDiffuse)
                 {
-                    Debug.Log($"[FBXLoader] Material created with texture: {texSlot.FilePath}");
+                    var color = aMat.ColorDiffuse;
+                    baseColor = new Color(color.R, color.G, color.B, color.A);
+                    Debug.Log($"[FBXLoader] Material base color: {baseColor}");
                 }
-            }
-            else
-            {
-                Debug.LogWarning($"[FBXLoader] Failed to create material for {aMat.Name ?? $"Material_{index}"}");
-            }
 
-            return mat;
+                // Diffuseテクスチャパスを取得
+                if (aMat.GetMaterialTexture(TextureType.Diffuse, 0, out var texSlot))
+                {
+                    string baseDir = Path.GetDirectoryName(fbxPath) ?? "";
+                    texturePath = Path.Combine(baseDir, texSlot.FilePath);
+                    Debug.Log($"[FBXLoader] Material texture path: {texturePath}");
+                }
+
+                // RuntimeMaterialManagerを使用してマテリアルを取得/作成（キャッシュ対応）
+                UnityMaterial mat = RuntimeMaterialManager.Instance.GetOrCreateMaterial(
+                    shaderName,
+                    texturePath,
+                    baseColor
+                );
+
+                if (mat != null)
+                {
+                    mat.name = matName;
+                    Debug.Log($"[FBXLoader] Material created successfully: {mat.name}");
+                }
+                else
+                {
+                    Debug.LogError($"[FBXLoader] Failed to create material: {matName}");
+                    // フォールバック：基本的なマテリアルを作成
+                    Shader fallbackShader = Shader.Find("Standard");
+                    if (fallbackShader != null)
+                    {
+                        mat = new UnityMaterial(fallbackShader) { name = matName };
+                        Debug.LogWarning($"[FBXLoader] Created fallback material: {matName}");
+                    }
+                }
+
+                return mat;
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[FBXLoader] Exception in CreateMaterialWithTexture: {e.Message}");
+                Debug.LogException(e);
+
+                // 最終フォールバック
+                Shader fallbackShader = Shader.Find("Standard");
+                if (fallbackShader != null)
+                {
+                    return new UnityMaterial(fallbackShader) { name = $"Fallback_Material_{index}" };
+                }
+                return null;
+            }
         }
 
         // =====================================================================================
