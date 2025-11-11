@@ -7,12 +7,28 @@ namespace AICam.FBXLoader
     /// <summary>
     /// NativeFilePickerを使用したファイル選択とZIP/UnityPackage展開を管理
     /// 対応形式: VRM, FBX, ZIP, UnityPackage
-    /// iOS: Application.persistentDataPathに展開（iCloudではなくアプリ内ディレクトリ）
+    /// macOS/Windows: ~/Downloads/に展開
+    /// iOS: Application.persistentDataPathに展開（書き込み制限のため）
     /// </summary>
     public class FileBrowserController : MonoBehaviour
     {
         public string SelectedPath { get; private set; }
         public string ExtractedFolderPath { get; private set; }
+
+        /// <summary>
+        /// プラットフォーム別の解凍先ベースパスを取得
+        /// </summary>
+        private string GetExtractBasePath()
+        {
+#if UNITY_IOS && !UNITY_EDITOR
+            // iOS: 書き込み制限があるためpersistentDataPathを使用
+            return Application.persistentDataPath;
+#else
+            // macOS/Windows/Editor: ダウンロードフォルダを使用
+            string userProfile = System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile);
+            return Path.Combine(userProfile, "Downloads");
+#endif
+        }
 
         private Action<bool, string> onFileSelectedCallback;
         private Action<bool, string> onExtractCompleteCallback;
@@ -161,8 +177,9 @@ namespace AICam.FBXLoader
                 string fileType = isZip ? "ZIP" : "UnityPackage";
                 Debug.Log($"[FileBrowserController] Extracting {fileType} package...");
 
-                // iOS対応: Application.persistentDataPathを使用（iCloudではなくアプリ内）
-                string extractFolder = Path.Combine(Application.persistentDataPath, isUnityPackage ? "ExtractedUnityPackage" : "ExtractedFBX");
+                // プラットフォーム別の解凍先パスを取得
+                string basePath = GetExtractBasePath();
+                string extractFolder = Path.Combine(basePath, isUnityPackage ? "ExtractedUnityPackage" : "ExtractedFBX");
 
                 // 既存のフォルダがあれば削除
                 if (Directory.Exists(extractFolder))

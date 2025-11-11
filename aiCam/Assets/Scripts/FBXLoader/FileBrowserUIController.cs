@@ -19,6 +19,11 @@ namespace AICam.FBXLoader
         private FileBrowserController fileBrowser;
         private RuntimeFBXLoaderBridge loaderBridge;
 
+        // 長押し検出用
+        private float pointerDownTime;
+        private bool isPointerDown;
+        private const float LONG_PRESS_DURATION = 0.8f;
+
         // FileBrowserUIController.cs（末尾の方に追記）
         private void OnEnable()
         {
@@ -62,6 +67,10 @@ namespace AICam.FBXLoader
             btnLoad.clicked += OnLoadClicked;
             btnExtract.clicked += OnExtractClicked;
 
+            // 長押しイベント登録
+            btnOpen.RegisterCallback<PointerDownEvent>(OnPointerDown);
+            btnOpen.RegisterCallback<PointerUpEvent>(OnPointerUp);
+
             // 初期状態
             progressPanel.style.display = DisplayStyle.None;
             UpdateStatus("待機中...");
@@ -69,6 +78,106 @@ namespace AICam.FBXLoader
             btnExtract.SetEnabled(false);
 
             AppendLog("システム初期化完了");
+        }
+
+        void Update()
+        {
+            // 長押し検出
+            if (isPointerDown && Time.time - pointerDownTime >= LONG_PRESS_DURATION)
+            {
+                isPointerDown = false;
+                OnLongPress();
+            }
+        }
+
+        void OnPointerDown(PointerDownEvent evt)
+        {
+            pointerDownTime = Time.time;
+            isPointerDown = true;
+        }
+
+        void OnPointerUp(PointerUpEvent evt)
+        {
+            isPointerDown = false;
+        }
+
+        void OnLongPress()
+        {
+            AppendLog("長押し検出 - 解凍済みフォルダから選択");
+            OpenExtractedFolder();
+        }
+
+        void OpenExtractedFolder()
+        {
+            if (fileBrowser == null) return;
+
+            // 解凍済みフォルダのベースパスを取得
+#if UNITY_IOS && !UNITY_EDITOR
+            string basePath = Application.persistentDataPath;
+#else
+            string userProfile = System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile);
+            string basePath = System.IO.Path.Combine(userProfile, "Downloads");
+#endif
+
+            // ExtractedFBXとExtractedUnityPackageの両方をチェック
+            string extractedFBX = System.IO.Path.Combine(basePath, "ExtractedFBX");
+            string extractedUnityPackage = System.IO.Path.Combine(basePath, "ExtractedUnityPackage");
+
+            string targetFolder = null;
+
+            // 最近変更されたフォルダを優先
+            if (System.IO.Directory.Exists(extractedFBX) && System.IO.Directory.Exists(extractedUnityPackage))
+            {
+                var fbxTime = System.IO.Directory.GetLastWriteTime(extractedFBX);
+                var pkgTime = System.IO.Directory.GetLastWriteTime(extractedUnityPackage);
+                targetFolder = fbxTime > pkgTime ? extractedFBX : extractedUnityPackage;
+            }
+            else if (System.IO.Directory.Exists(extractedFBX))
+            {
+                targetFolder = extractedFBX;
+            }
+            else if (System.IO.Directory.Exists(extractedUnityPackage))
+            {
+                targetFolder = extractedUnityPackage;
+            }
+
+            if (targetFolder != null)
+            {
+                AppendLog($"解凍済みフォルダを開く: {targetFolder}");
+                OpenFilePickerInFolder(targetFolder);
+            }
+            else
+            {
+                AppendLog("解凍済みフォルダが見つかりません");
+                UpdateStatus("解凍済みフォルダなし");
+            }
+        }
+
+        void OpenFilePickerInFolder(string folderPath)
+        {
+#if UNITY_EDITOR
+            // Unity Editorでの動作：指定フォルダから開く
+            string path = UnityEditor.EditorUtility.OpenFilePanel("Select VRM or FBX from Extracted Folder", folderPath, "vrm,fbx");
+
+            if (!string.IsNullOrEmpty(path))
+            {
+                // 選択されたファイルをFileBrowserControllerに設定
+                System.Reflection.FieldInfo selectedPathField = typeof(FileBrowserController).GetField("SelectedPath",
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                selectedPathField?.SetValue(fileBrowser, path);
+
+                OnFileSelected(true, path);
+            }
+            else
+            {
+                AppendLog("選択をキャンセル");
+            }
+#else
+            // モバイルでは通常のファイルピッカーを使用
+            // （特定フォルダから開く機能はNativeFilePickerではサポートされていない）
+            AppendLog("モバイルでは通常のファイル選択を使用してください");
+            OnOpenClicked();
+#endif
         }
 
         void OnOpenClicked()
