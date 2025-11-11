@@ -138,6 +138,7 @@ namespace AICam.FBXLoader
             var mFbxLocal   = ConvertAssimpMatrix(node.Transform);
             var mUnityLocal = basisB * mFbxLocal * basisBinv;
             DecomposeTRS_NoReflection(mUnityLocal, out var t, out var q, out var s);
+
             tr.localPosition = t;
             tr.localRotation = q;
             tr.localScale    = s;
@@ -827,10 +828,15 @@ namespace AICam.FBXLoader
         // =====================================================================================
         private void BuildBasisFromFbxMetadata(AssimpScene scene)
         {
-            // デフォルト：Front=-Z, Up=+Y（多くのFBXに一致）
-            basisB    = UnityMatrix4x4.Scale(new Vector3(1, 1, -1));
-            basisBinv = basisB;
-            basisDet  = -1f;
+            // デフォルト：Z軸反転 + X軸周り+90度回転（FBXの-90度X軸回転を相殺）
+            // Rx(90°) * Scale(1, 1, -1) の結果
+            basisB = new UnityMatrix4x4();
+            basisB.SetColumn(0, new Vector4(1, 0, 0, 0));   // X軸: そのまま
+            basisB.SetColumn(1, new Vector4(0, 0, 1, 0));   // Y軸: 元のZ軸
+            basisB.SetColumn(2, new Vector4(0, -1, 0, 0));  // Z軸: 元のY軸を反転
+            basisB.SetColumn(3, new Vector4(0, 0, 0, 1));
+            basisBinv = basisB.transpose;  // 直交行列なので転置が逆行列
+            basisDet  = -1f;               // det = -1
 
             Debug.Log("[FBXLoader] Building basis from FBX metadata...");
 
@@ -841,6 +847,9 @@ namespace AICam.FBXLoader
                     Debug.LogWarning("[FBXLoader] Scene or RootNode is null, using default basis");
                     return;
                 }
+
+                // FBXヘッダをダンプ
+                DumpFBXMetadata(scene.RootNode);
 
                 bool found = TryBuildBasisFromNodeMetadata(scene.RootNode, out var B, out var det);
                 if (!found)
@@ -919,6 +928,115 @@ namespace AICam.FBXLoader
                 return true;
             }
             return false;
+        }
+
+        // =====================================================================================
+        // FBXメタデータダンプ機能
+        // =====================================================================================
+        private static void DumpFBXMetadata(AssimpNode node)
+        {
+            if (node == null || node.Metadata == null)
+            {
+                Debug.Log("[FBXLoader] No metadata found in node");
+                return;
+            }
+
+            try
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine("=== FBX Metadata Dump ===");
+                sb.AppendLine($"Node: {node.Name}");
+                sb.AppendLine($"Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                sb.AppendLine();
+
+                var mdObj = node.Metadata;
+                var mdType = mdObj.GetType();
+
+                // Count プロパティを取得
+                var countProp = mdType.GetProperty("Count");
+                int count = 0;
+                if (countProp != null)
+                {
+                    try { count = (int)countProp.GetValue(mdObj); }
+                    catch { count = 0; }
+                }
+
+                sb.AppendLine($"Metadata entries: {count}");
+                sb.AppendLine();
+
+                // Keys プロパティを取得
+                var keysProp = mdType.GetProperty("Keys");
+                if (keysProp != null)
+                {
+                    try
+                    {
+                        var keys = keysProp.GetValue(mdObj) as System.Collections.IEnumerable;
+                        if (keys != null)
+                        {
+                            foreach (var key in keys)
+                            {
+                                string keyStr = key.ToString();
+
+                                // 値を取得
+                                var indexer = mdType.GetProperty("Item");
+                                if (indexer != null)
+                                {
+                                    try
+                                    {
+                                        object entry = indexer.GetValue(mdObj, new object[] { keyStr });
+                                        if (entry != null)
+                                        {
+                                            var entryType = entry.GetType();
+                                            var dataProp = entryType.GetProperty("Data");
+                                            object data = null;
+
+                                            if (dataProp != null)
+                                            {
+                                                try { data = dataProp.GetValue(entry); }
+                                                catch { data = null; }
+                                            }
+
+                                            if (data == null) data = entry;
+
+                                            string dataType = data.GetType().Name;
+                                            string dataValue = data.ToString();
+
+                                            sb.AppendLine($"{keyStr,-30} = {dataValue,-20} ({dataType})");
+                                        }
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        sb.AppendLine($"{keyStr,-30} = [Error: {e.Message}]");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        sb.AppendLine($"Error enumerating keys: {e.Message}");
+                    }
+                }
+
+                sb.AppendLine();
+                sb.AppendLine("=========================");
+
+                // ファイルに保存
+                string logDir = RuntimeHumanoidAvatarBuilderDebugHelper.LogDirPath;
+                string timestamp = DateTime.Now.ToString("yyMMdd_HHmmss");
+                string filePath = Path.Combine(logDir, $"{timestamp}_FBX_Metadata.txt");
+
+                File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
+                Debug.Log($"[FBXLoader] FBX metadata dumped to: {filePath}");
+
+                // コンソールにも出力
+                Debug.Log(sb.ToString());
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[FBXLoader] Failed to dump FBX metadata: {e.Message}");
+                Debug.LogException(e);
+            }
         }
 
         // Metadata から int を取得（Assimpバージョン差吸収のためリフレクションで読む）
