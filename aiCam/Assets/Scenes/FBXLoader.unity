@@ -314,7 +314,7 @@ MonoBehaviour:
   modelPosition: {x: 0, y: 0, z: 0}
   modelRotation: {x: 0, y: 180, z: 0}
   modelScale: {x: 1, y: 1, z: 1}
-  animatorController: {fileID: 0}
+  animatorController: {fileID: 9100000, guid: 8d5a0e0d58f4e4176a844a1a03976c19, type: 2}
   initialStateName: Idle
 --- !u!114 &871856094
 MonoBehaviour:
