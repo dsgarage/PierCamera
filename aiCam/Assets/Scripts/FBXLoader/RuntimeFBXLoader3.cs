@@ -157,18 +157,52 @@ namespace AICam.FBXLoader
                     node.MeshIndices,
                     scene,
                     out var bones,
-                    out var boneWeights
+                    out var boneWeights,
+                    out var materialIndices,
+                    fbxPath
                 );
 
                 smr.sharedMesh   = mesh;
                 mesh.boneWeights = boneWeights;
                 smr.bones        = bones.ToArray();
 
-                // 先頭マテリアルのみ設定（必要なら拡張）
-                if (scene.Materials?.Count > 0)
-                    ApplyMaterialWithTexture(scene.Materials[0], smr, fbxPath);
+                // メッシュに使用されているマテリアルを設定
+                if (materialIndices.Count > 0)
+                {
+                    var materials = new List<UnityMaterial>();
+                    foreach (int matIdx in materialIndices)
+                    {
+                        if (matIdx >= 0 && matIdx < scene.Materials.Count)
+                        {
+                            materials.Add(CreateMaterialWithTexture(scene.Materials[matIdx], fbxPath, matIdx));
+                        }
+                        else
+                        {
+                            materials.Add(new UnityMaterial(Shader.Find("Standard")));
+                        }
+                    }
+                    smr.materials = materials.ToArray();
+                }
 
                 go.tag = MeshNodeTag;
+
+                // MeshNode名とMaterial名のマッピングを記録
+                var materialNames = new List<string>();
+                foreach (int meshIdx in node.MeshIndices)
+                {
+                    if (meshIdx >= 0 && meshIdx < scene.Meshes.Count)
+                    {
+                        var assimpMesh = scene.Meshes[meshIdx];
+                        if (assimpMesh.MaterialIndex >= 0 && assimpMesh.MaterialIndex < scene.Materials.Count)
+                        {
+                            string matName = scene.Materials[assimpMesh.MaterialIndex].Name ?? $"Material_{assimpMesh.MaterialIndex}";
+                            if (!materialNames.Contains(matName))
+                                materialNames.Add(matName);
+                        }
+                    }
+                }
+                if (materialNames.Count > 0)
+                    meshNodeToMaterialNames[node.Name] = materialNames;
 
                 // 収集
                 createdSmrs.Add(smr);
@@ -488,15 +522,20 @@ namespace AICam.FBXLoader
             IList<int> meshIdx,
             AssimpScene scene,
             out List<Transform> boneTrs,
-            out BoneWeight[] bwArr)
+            out BoneWeight[] bwArr,
+            out List<int> materialIndices,
+            string fbxPath)
         {
             boneTrs = new List<Transform>();
+            materialIndices = new List<int>();
 
             var verts = new List<Vector3>();
             var norms = new List<Vector3>();
             var tans  = new List<Vector4>();
             var uvs   = new List<Vector2>();
-            var tris  = new List<int>();
+
+            // サブメッシュごとの三角形リスト
+            var subMeshTriangles = new Dictionary<int, List<int>>();
 
             var boneNameToIndex = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             var vtxInfluences   = new List<List<(int idx, float w)>>();
@@ -539,22 +578,30 @@ namespace AICam.FBXLoader
                         uvs.Add(new Vector2(uv.X, uv.Y));
                 }
 
-                // 三角形（det(B)<0 のときだけ反転）
+                // 三角形（マテリアルインデックスごとにサブメッシュに分ける）
+                int matIdx = am.MaterialIndex;
+                if (!subMeshTriangles.ContainsKey(matIdx))
+                {
+                    subMeshTriangles[matIdx] = new List<int>();
+                    materialIndices.Add(matIdx);
+                }
+
+                var triList = subMeshTriangles[matIdx];
                 foreach (var f in am.Faces)
                 {
                     if (f.IndexCount == 3)
                     {
                         if (basisDet < 0f)
                         {
-                            tris.Add(f.Indices[0] + vOffset);
-                            tris.Add(f.Indices[2] + vOffset);
-                            tris.Add(f.Indices[1] + vOffset);
+                            triList.Add(f.Indices[0] + vOffset);
+                            triList.Add(f.Indices[2] + vOffset);
+                            triList.Add(f.Indices[1] + vOffset);
                         }
                         else
                         {
-                            tris.Add(f.Indices[0] + vOffset);
-                            tris.Add(f.Indices[1] + vOffset);
-                            tris.Add(f.Indices[2] + vOffset);
+                            triList.Add(f.Indices[0] + vOffset);
+                            triList.Add(f.Indices[1] + vOffset);
+                            triList.Add(f.Indices[2] + vOffset);
                         }
                     }
                 }
@@ -627,7 +674,19 @@ namespace AICam.FBXLoader
             if (norms.Count == verts.Count) uMesh.SetNormals(norms); else uMesh.RecalculateNormals();
             if (tans.Count  == verts.Count) uMesh.SetTangents(tans);
             if (uvs.Count   == verts.Count) uMesh.SetUVs(0, uvs);
-            uMesh.SetTriangles(tris, 0, true);
+
+            // サブメッシュを設定
+            uMesh.subMeshCount = subMeshTriangles.Count;
+            int subMeshIndex = 0;
+            foreach (var matIdx in materialIndices)
+            {
+                if (subMeshTriangles.TryGetValue(matIdx, out var triList))
+                {
+                    uMesh.SetTriangles(triList, subMeshIndex, false);
+                    subMeshIndex++;
+                }
+            }
+
             uMesh.RecalculateBounds();
 
             return uMesh;
@@ -667,21 +726,44 @@ namespace AICam.FBXLoader
         // =====================================================================================
         // Material / Texture
         // =====================================================================================
-        private void ApplyMaterialWithTexture(AssimpMaterial aMat, SkinnedMeshRenderer rdr, string fbxPath)
+        private UnityMaterial CreateMaterialWithTexture(AssimpMaterial aMat, string fbxPath, int index)
         {
             Shader std = Shader.Find("Standard");
-            if (!std) return;
+            if (!std)
+            {
+                Debug.LogWarning("[FBXLoader] Standard shader not found");
+                std = Shader.Find("Diffuse");
+            }
+            if (!std) return null;
 
             UnityMaterial mat = new UnityMaterial(std);
+            mat.name = aMat.Name ?? $"Material_{index}";
 
+            // ベースカラーを設定
+            if (aMat.HasColorDiffuse)
+            {
+                var color = aMat.ColorDiffuse;
+                mat.color = new Color(color.R, color.G, color.B, color.A);
+            }
+
+            // Diffuseテクスチャを設定
             if (aMat.GetMaterialTexture(TextureType.Diffuse, 0, out var texSlot))
             {
                 string baseDir = Path.GetDirectoryName(fbxPath) ?? "";
                 string texPath = Path.Combine(baseDir, texSlot.FilePath);
                 Texture2D tex  = LoadTexture(texPath);
-                if (tex) mat.mainTexture = tex;
+                if (tex)
+                {
+                    mat.mainTexture = tex;
+                    Debug.Log($"[FBXLoader] Loaded texture: {texSlot.FilePath}");
+                }
+                else
+                {
+                    Debug.LogWarning($"[FBXLoader] Failed to load texture: {texPath}");
+                }
             }
-            rdr.material = mat;
+
+            return mat;
         }
 
         private static Texture2D LoadTexture(string path)
@@ -753,31 +835,46 @@ namespace AICam.FBXLoader
             basisBinv = basisB;
             basisDet  = -1f;
 
+            Debug.Log("[FBXLoader] Building basis from FBX metadata...");
+
             try
             {
-                if (scene == null || scene.RootNode == null) return;
+                if (scene == null || scene.RootNode == null)
+                {
+                    Debug.LogWarning("[FBXLoader] Scene or RootNode is null, using default basis");
+                    return;
+                }
 
                 bool found = TryBuildBasisFromNodeMetadata(scene.RootNode, out var B, out var det);
                 if (!found)
                 {
+                    Debug.Log("[FBXLoader] Metadata not found in RootNode, scanning all nodes...");
                     // 全ノード走査
                     var q = new Queue<AssimpNode>();
                     q.Enqueue(scene.RootNode);
+                    int nodesChecked = 0;
                     while (q.Count > 0 && !found)
                     {
                         var n = q.Dequeue();
+                        nodesChecked++;
                         if (n != scene.RootNode && TryBuildBasisFromNodeMetadata(n, out B, out det))
                         {
                             found = true;
                             basisB = B; basisBinv = B.transpose; basisDet = det;
+                            Debug.Log($"[FBXLoader] Metadata found in node: {n.Name} (after checking {nodesChecked} nodes)");
                             break;
                         }
                         foreach (var c in n.Children) q.Enqueue(c);
+                    }
+                    if (!found)
+                    {
+                        Debug.LogWarning($"[FBXLoader] No metadata found in {nodesChecked} nodes, using default basis (Front=-Z, Up=+Y)");
                     }
                 }
                 else
                 {
                     basisB = B; basisBinv = B.transpose; basisDet = det;
+                    Debug.Log("[FBXLoader] Metadata found in RootNode");
                 }
             }
             catch (Exception e)
@@ -796,6 +893,8 @@ namespace AICam.FBXLoader
                                                   out int frontAxis, out int frontSign,
                                                   out int rightAxis, out int rightSign))
             {
+                Debug.Log($"[FBXLoader] Axis metadata found - UpAxis:{upAxis}({upSign}), FrontAxis:{frontAxis}({frontSign}), RightAxis:{rightAxis}({rightSign})");
+
                 Vector3 AxisOf(int idx)
                 {
                     switch (idx)
@@ -819,6 +918,7 @@ namespace AICam.FBXLoader
                 B.SetColumn(3, new Vector4(0, 0, 0, 1));
 
                 det = Vector3.Dot(Vector3.Cross(ex, ey), ez);
+                Debug.Log($"[FBXLoader] Built basis matrix - ex:{ex}, ey:{ey}, ez:{ez}, det:{det:F3}");
                 return true;
             }
             return false;

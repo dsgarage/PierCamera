@@ -1,0 +1,156 @@
+﻿=== kyoko - BuildHumanAvatar failed ===
+Root : kyoko
+Time : 2025-11-11 17:24:46
+
+- kyoko
+  - Armature
+    - Hips
+      - Spine
+        - Chest
+          - Neck
+            - Head
+              - LeftEye
+                - LeftEye_end
+              - RightEye
+                - RightEye_end
+              - Hair
+                - Hair1
+                  - Hair1_end
+                - ear1_L
+                  - ear2_L
+                    - ear2_L_end
+                - ear1_R
+                  - ear2_R
+                    - ear2_R_end
+                - Hair_L
+                  - Hair_L_end
+                - Hair_R
+                  - Hair_R_end
+                - Hair2
+                  - Hair2_end
+                - Hair2_L
+                  - Hair2_L_end
+                - Hair2_R
+                  - Hair2_R_end
+                - tie_head
+                  - tie_head.001
+                    - tie_head.002
+                      - tie_head.002_end
+          - Shoulder.L
+            - Upper Arm.L
+              - Lower Arm.L
+                - Hand.L
+                  - Proximal Little.L
+                    - Intermediate Little.L
+                      - Distal Little.L
+                        - Distal Little.L_end
+                  - Proximal Ring.L
+                    - Intermediate Ring.L
+                      - Distal Ring.L
+                        - Distal Ring.L_end
+                  - Proximal Middle.L
+                    - Intermediate Middle.L
+                      - Distal Middle.L
+                        - Distal Middle.L_end
+                  - Proximal Index.L
+                    - Intermediate Index.L
+                      - Distal Index.L
+                        - Distal Index.L_end
+                  - Proximal Thumb.L
+                    - Intermediate Thumb.L
+                      - Distal Thumb.L
+                        - Distal Thumb.L_end
+          - Shoulder.R
+            - Upper Arm.R
+              - Lower Arm.R
+                - Hand.R
+                  - Proximal Little.R
+                    - Intermediate Little.R
+                      - Distal Little.R
+                        - Distal Little.R_end
+                  - Proximal Ring.R
+                    - Intermediate Ring.R
+                      - Distal Ring.R
+                        - Distal Ring.R_end
+                  - Proximal Middle.R
+                    - Intermediate Middle.R
+                      - Distal Middle.R
+                        - Distal Middle.R_end
+                  - Proximal Index.R
+                    - Intermediate Index.R
+                      - Distal Index.R
+                        - Distal Index.R_end
+                  - Proximal Thumb.R
+                    - Intermediate Thumb.R
+                      - Distal Thumb.R
+                        - Distal Thumb.R_end
+          - tie
+            - tie.001
+              - tie.002
+                - tie.002_end
+          - Chest_L
+            - Chest_L_end
+          - Chest_R
+            - Chest_R_end
+          - Chest.001
+            - Chest.001_end
+      - Upper Leg.L
+        - Lower Leg.L
+          - Foot.L
+            - Toes.L
+              - Toes.L_end
+      - Upper Leg.R
+        - Lower Leg.R
+          - Foot.R
+            - Toes.R
+              - Toes.R_end
+      - Coat
+        - coat_L
+          - coat2_L
+            - coat3_L
+              - coat4_L
+                - coat4_L_end
+        - coat_R
+          - coat2_R
+            - coat3_R
+              - coat4_R
+                - coat4_R_end
+        - coat5_L
+          - coat6_L
+            - coat7_L
+              - coat8_L
+                - coat8_L_end
+        - coat5_R
+          - coat6_R
+            - coat7_R
+              - coat8_R
+                - coat8_R_end
+        - tail
+          - tail2
+            - tail3
+              - tail4
+                - tail4_end
+      - Hips_L
+        - Hips_L_end
+      - Hips_R
+        - Hips_R_end
+      - ribbon.L
+        - ribbon.L_end
+      - ribbon.R
+        - ribbon.R_end
+  - Underwear
+  - Tail
+  - Socks
+  - Shoes
+  - Outer
+  - Inner
+  - Hat
+  - Hair
+  - Ear
+  - Body
+  - Karada_new
+  - Swimwear
+  - Loungewear_saneko
+  - Loungewear_kyoko_Underwear
+  - Loungewear_kyoko
+  - Nail
