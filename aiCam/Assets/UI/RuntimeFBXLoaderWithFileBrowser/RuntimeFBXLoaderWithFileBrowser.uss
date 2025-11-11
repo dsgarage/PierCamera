@@ -1,129 +1,138 @@
-/* Root */
-.root {
+/* ベースレイアウト */
+.app-root {
+    position: relative;
     flex-direction: column;
-    background-color: rgb(242, 242, 247);
+    background-color: rgb(30, 31, 34);
+    color: rgb(229, 229, 229);
     height: 100%;
     width: 100%;
+    padding-top: 12px;
+    padding-bottom: 0;
+    padding-left: 0;
+    padding-right: 0;
 }
 
-/* Content Area - Scrollable */
-.content-area {
+/* ログパネル */
+.log-panel {
     flex-grow: 1;
-    padding: 16px;
-    padding-bottom: 24px;
-}
-
-/* Card Style */
-.card {
-    background-color: rgb(255, 255, 255);
-    border-radius: 16px;
-    padding: 20px;
-    margin-bottom: 16px;
-}
-
-/* Status Card */
-.status-label {
-    font-size: 18px;
-    color: rgb(60, 60, 67);
-    -unity-font-style: bold;
-    margin-bottom: 16px;
-}
-
-.loading-container {
+    flex-shrink: 1;
     flex-direction: column;
-    display: none;
+    background-color: rgb(37, 38, 42);
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: rgb(46, 47, 51);
+    padding: 12px;
+    margin-left: 16px;
+    margin-right: 16px;
+    margin-bottom: 10px;
+    padding-bottom: 100px;
+    min-height: 200px;
+}
+
+.log-title {
+    font-size: 15px;
+    -unity-font-style: bold;
+    color: rgb(255, 255, 255);
+    margin-bottom: 6px;
+}
+
+.log-scroll {
+    flex-grow: 1;
+    background-color: rgb(24, 25, 27);
+    border-radius: 4px;
+    padding: 8px;
+}
+
+.log-field {
+    background-color: transparent;
+    border-width: 0;
+    color: rgb(204, 204, 204);
+    font-size: 13px;
+    min-height: 180px;
+}
+
+/* 進行パネル */
+.progress-panel {
+    flex-grow: 0;
+    flex-shrink: 0;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    margin-left: 16px;
+    margin-right: 16px;
+    padding-bottom: 100px;
+    background-color: rgb(32, 33, 36);
+    border-width: 1px;
+    border-color: rgb(46, 47, 51);
+    border-radius: 6px;
+    padding: 10px 14px;
+}
+
+.loading-label {
+    font-size: 13px;
+    color: rgb(170, 170, 170);
+    margin-bottom: 4px;
 }
 
 .progress-bar {
-    height: 6px;
-    border-radius: 3px;
-    background-color: rgb(229, 229, 234);
-    margin-bottom: 8px;
+    height: 10px;
 }
 
-.progress-label {
-    font-size: 14px;
-    color: rgb(142, 142, 147);
-    -unity-text-align: middle-center;
-}
-
-/* Log Card */
-.card-title {
-    font-size: 14px;
-    color: rgb(142, 142, 147);
-    -unity-font-style: bold;
-    margin-bottom: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.log-area {
-    min-height: 200px;
-    background-color: rgb(249, 249, 249);
-    border-radius: 12px;
-    padding: 16px;
-    font-size: 13px;
-    color: rgb(60, 60, 67);
-    border-width: 0;
-}
-
-/* Bottom Bar - Fixed */
-.bottom-bar {
+/* 操作パネル（下部固定） */
+.control-panel {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
     flex-direction: row;
-    background-color: rgb(255, 255, 255);
-    padding: 12px 16px;
-    padding-bottom: 24px;
-    border-top-width: 0.5px;
-    border-top-color: rgb(229, 229, 234);
+    background-color: rgb(41, 43, 48);
+    border-radius: 12px;
+    padding: 14px 12px;
+    margin-left: 12px;
+    margin-right: 12px;
+    margin-bottom: 12px;
+    border-top-width: 1px;
+    border-top-color: rgb(51, 51, 51);
 }
 
-/* Action Buttons */
-.action-button {
+/* ボタンデザイン */
+.btn {
     flex-grow: 1;
-    height: 56px;
-    margin: 0 6px;
-    border-radius: 14px;
-    font-size: 16px;
+    flex-basis: 0;
+    height: 44px;
+    border-radius: 8px;
     -unity-font-style: bold;
+    font-size: 15px;
     border-width: 0;
-    transition-duration: 0.2s;
-}
-
-.primary-button {
-    background-color: rgb(0, 122, 255);
     color: rgb(255, 255, 255);
+    transition-duration: 0.12s;
+    margin-left: 6px;
+    margin-right: 6px;
 }
 
-.primary-button:hover {
-    background-color: rgb(10, 132, 255);
+.btn.primary {
+    background-color: rgb(42, 130, 218);
+}
+.btn.primary:hover {
+    background-color: rgb(61, 150, 235);
+}
+.btn.primary:active {
+    background-color: rgb(31, 107, 184);
+}
+.btn.primary:disabled {
+    background-color: rgb(68, 68, 68);
+    color: rgb(102, 102, 102);
 }
 
-.primary-button:active {
-    background-color: rgb(0, 112, 245);
+.btn.success {
+    background-color: rgb(58, 165, 93);
 }
-
-.primary-button:disabled {
-    background-color: rgb(209, 209, 214);
-    color: rgb(174, 174, 178);
+.btn.success:hover {
+    background-color: rgb(78, 194, 113);
 }
-
-.secondary-button {
-    background-color: rgb(242, 242, 247);
-    color: rgb(0, 122, 255);
-    border-width: 2px;
-    border-color: rgb(0, 122, 255);
+.btn.success:active {
+    background-color: rgb(45, 138, 71);
 }
-
-.secondary-button:hover {
-    background-color: rgb(229, 229, 234);
-}
-
-.secondary-button:active {
-    background-color: rgb(219, 219, 224);
-}
-
-.secondary-button:disabled {
-    background-color: rgb(249, 249, 249);
-    color: rgb(174, 174, 178);
-    border-color: rgb(209, 209, 214);
+.btn.success:disabled {
+    background-color: rgb(68, 68, 68);
+    color: rgb(102, 102, 102);
 }
