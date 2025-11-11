@@ -118,7 +118,7 @@ namespace AICam.FBXLoader
         private async UniTask CreateMeshesAndMaterials(Scene scene, GameObject rootObject)
         {
             // マテリアルを作成
-            Material[] materials = new Material[scene.MaterialCount];
+            UnityEngine.Material[] materials = new UnityEngine.Material[scene.MaterialCount];
             for (int i = 0; i < scene.MaterialCount; i++)
             {
                 materials[i] = CreateMaterial(scene.Materials[i], i);
@@ -138,10 +138,10 @@ namespace AICam.FBXLoader
             }
         }
 
-        private Material CreateMaterial(Assimp.Material assimpMaterial, int index)
+        private UnityEngine.Material CreateMaterial(Assimp.Material assimpMaterial, int index)
         {
             // シンプルなStandardマテリアルを作成
-            Material material = new Material(Shader.Find("Standard"));
+            UnityEngine.Material material = new UnityEngine.Material(Shader.Find("Standard"));
             material.name = assimpMaterial.Name ?? $"Material_{index}";
 
             // ベースカラーを設定
@@ -154,7 +154,7 @@ namespace AICam.FBXLoader
             return material;
         }
 
-        private void CreateMeshRenderer(Assimp.Mesh assimpMesh, Material[] materials, GameObject rootObject, int meshIndex)
+        private void CreateMeshRenderer(Assimp.Mesh assimpMesh, UnityEngine.Material[] materials, GameObject rootObject, int meshIndex)
         {
             // メッシュノードを探す
             string nodeName = assimpMesh.Name ?? $"Mesh_{meshIndex}";
@@ -185,7 +185,7 @@ namespace AICam.FBXLoader
             }
             else
             {
-                meshRenderer.material = new Material(Shader.Find("Standard"));
+                meshRenderer.material = new UnityEngine.Material(Shader.Find("Standard"));
             }
         }
 

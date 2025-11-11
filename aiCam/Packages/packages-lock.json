@@ -7,6 +7,31 @@
       "dependencies": {},
       "hash": "73a63b7f672b88f7e9992f6917eb458a8cbb6fa9"
     },
+    "com.frozenstorminteractive.assimp": {
+      "version": "4.1.0",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://upm.frozenstorminteractive.com"
+    },
+    "com.frozenstorminteractive.assimp.ios": {
+      "version": "4.1.0",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "com.frozenstorminteractive.assimp": "4.1.0"
+      },
+      "url": "https://upm.frozenstorminteractive.com"
+    },
+    "com.frozenstorminteractive.assimp.macos": {
+      "version": "4.1.0",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "com.frozenstorminteractive.assimp": "4.1.0"
+      },
+      "url": "https://upm.frozenstorminteractive.com"
+    },
     "com.kyrylokuzyk.arfoundationremote": {
       "version": "file:../Assets/Plugins/ARFoundationRemoteInstaller/com.kyrylokuzyk.arfoundationremote.tgz",
       "depth": 0,
