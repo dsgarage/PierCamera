@@ -112,8 +112,28 @@ namespace AICam.FBXLoader
                 if (bone == HumanBodyBones.LastBone || resolved.ContainsKey(bone)) continue;
                 if (!KeywordDict.TryGetValue(bone, out var keys)) continue;
 
+                // ボーンが Left/Right の場合、名前にその指示がある Transform のみマッチさせる
+                bool isLeftBone = bone.ToString().StartsWith("Left");
+                bool isRightBone = bone.ToString().StartsWith("Right");
+
                 foreach (var (normName, tr) in normMap)
                 {
+                    string originalName = tr.name.ToLower();
+
+                    // 左右の判定
+                    bool hasLeft = originalName.Contains("left") || originalName.EndsWith(".l") ||
+                                   originalName.EndsWith("_l") || originalName.Contains("_l_") || originalName.Contains(".l.");
+                    bool hasRight = originalName.Contains("right") || originalName.EndsWith(".r") ||
+                                    originalName.EndsWith("_r") || originalName.Contains("_r_") || originalName.Contains(".r.");
+
+                    // Left系のボーンには Left の名前のみ
+                    if (isLeftBone && !hasLeft) continue;
+                    if (isLeftBone && hasRight) continue;
+
+                    // Right系のボーンには Right の名前のみ
+                    if (isRightBone && !hasRight) continue;
+                    if (isRightBone && hasLeft) continue;
+
                     foreach (string kw in keys)
                         if (normName.Contains(kw)) { resolved[bone] = tr; goto NEXT_B; }
                 }
@@ -122,6 +142,29 @@ namespace AICam.FBXLoader
 
             // ---------- 1-D : ヒューリスティック補完 (Toe) ----------
             InferFromHierarchy(resolved);
+
+            // ---------- 1-E : 重複チェック ----------
+            var usedTransforms = new Dictionary<Transform, HumanBodyBones>();
+            var duplicates = new List<(HumanBodyBones bone1, HumanBodyBones bone2, Transform transform)>();
+
+            foreach (var kv in resolved)
+            {
+                if (usedTransforms.TryGetValue(kv.Value, out var existingBone))
+                {
+                    duplicates.Add((existingBone, kv.Key, kv.Value));
+                }
+                else
+                {
+                    usedTransforms[kv.Value] = kv.Key;
+                }
+            }
+
+            // 重複があればログ出力して削除
+            foreach (var (bone1, bone2, transform) in duplicates)
+            {
+                Debug.LogWarning($"[RuntimeHumanoidAvatarBuilder] Duplicate transform '{transform.name}' for bones '{bone1}' and '{bone2}'. Removing '{bone2}'.");
+                resolved.Remove(bone2);
+            }
 
             return resolved;
         }
