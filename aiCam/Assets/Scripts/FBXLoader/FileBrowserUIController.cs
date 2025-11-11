@@ -10,16 +10,31 @@ namespace AICam.FBXLoader
     {
         [SerializeField] private UIDocument uiDocument;
 
-        private Button btnOpen, btnExtract, btnLoad;
-        private VisualElement loadingPanel;
+        private Button btnOpen, btnLoad;
+        private VisualElement progressPanel;
         private TextField logField;
         private ProgressBar progressBar;
         private Label loadingLabel;
-        private Label statusLabel;
 
         private FileBrowserController fileBrowser;
         private RuntimeFBXLoaderBridge loaderBridge;
 
+        // FileBrowserUIController.cs（末尾の方に追記）
+        private void OnEnable()
+        {
+            var root = uiDocument.rootVisualElement;
+            root.RegisterCallback<GeometryChangedEvent>(_ => UpdateCompact(root));
+            UpdateCompact(root);
+        }
+
+        private void UpdateCompact(VisualElement root)
+        {
+            // 閾値は好みで調整。800未満なら縦積み
+            bool compact = root.worldBound.width < 800f;
+            root.EnableInClassList("compact", compact);
+        }
+
+        
         void Awake()
         {
             if (uiDocument == null)
@@ -31,10 +46,8 @@ namespace AICam.FBXLoader
 
             // UI要素を取得
             btnOpen = root.Q<Button>("BtnOpen");
-            btnExtract = root.Q<Button>("BtnExtract");
             btnLoad = root.Q<Button>("BtnLoad");
-            statusLabel = root.Q<Label>("StatusLabel");
-            loadingPanel = root.Q<VisualElement>("LoadingPanel");
+            progressPanel = root.Q<VisualElement>("ProgressPanel");
             loadingLabel = root.Q<Label>("LoadingLabel");
             progressBar = root.Q<ProgressBar>("ProgressBar");
             logField = root.Q<TextField>("LogField");
@@ -45,12 +58,11 @@ namespace AICam.FBXLoader
 
             // ボタンイベント登録
             btnOpen.clicked += OnOpenClicked;
-            btnExtract.clicked += OnExtractClicked;
             btnLoad.clicked += OnLoadClicked;
 
             // 初期状態
-            UpdateStatus("準備完了");
-            btnExtract.SetEnabled(false);
+            progressPanel.style.display = DisplayStyle.None;
+            UpdateStatus("待機中...");
             btnLoad.SetEnabled(false);
 
             AppendLog("システム初期化完了");
@@ -59,7 +71,6 @@ namespace AICam.FBXLoader
         void OnOpenClicked()
         {
             AppendLog("ファイルピッカーを起動");
-            UpdateStatus("ファイル選択中...");
 
             if (fileBrowser != null)
             {
@@ -78,39 +89,35 @@ namespace AICam.FBXLoader
             {
                 AppendLog($"選択: {System.IO.Path.GetFileName(path)}");
 
-                // ZIPファイルの場合は解凍ボタンを有効化
+                // ZIPファイルの場合は自動的に解凍
                 bool isZip = path.ToLower().EndsWith(".zip");
-                btnExtract.SetEnabled(isZip);
 
                 // VRM/FBXファイルの場合はロードボタンを有効化
                 bool isModelFile = path.ToLower().EndsWith(".vrm") || path.ToLower().EndsWith(".fbx");
-                btnLoad.SetEnabled(isModelFile);
 
                 if (isZip)
                 {
-                    UpdateStatus("ZIPファイル選択済み");
-                    AppendLog("ZIPファイルを検出。「解凍」をタップしてください");
+                    UpdateStatus("ZIPファイル検出 - 自動解凍中...");
+                    AppendLog("ZIPファイルを検出。自動的に解凍します");
+                    AutoExtract();
                 }
                 else if (isModelFile)
                 {
                     UpdateStatus("ファイル選択済み");
+                    btnLoad.SetEnabled(true);
                 }
             }
             else
             {
                 AppendLog("選択をキャンセル");
-                UpdateStatus("準備完了");
-                btnExtract.SetEnabled(false);
+                UpdateStatus("待機中...");
                 btnLoad.SetEnabled(false);
             }
         }
 
-        void OnExtractClicked()
+        void AutoExtract()
         {
-            AppendLog("ZIPパッケージを解凍中...");
-            UpdateStatus("解凍中...", showProgress: true);
             btnOpen.SetEnabled(false);
-            btnExtract.SetEnabled(false);
             btnLoad.SetEnabled(false);
 
             if (fileBrowser != null)
@@ -126,20 +133,17 @@ namespace AICam.FBXLoader
 
         void OnExtractComplete(bool success, string extractedFilePath)
         {
-            UpdateStatus("準備完了", showProgress: false);
             btnOpen.SetEnabled(true);
 
             if (success && !string.IsNullOrEmpty(extractedFilePath))
             {
                 AppendLog($"解凍完了: {System.IO.Path.GetFileName(extractedFilePath)}");
-                btnExtract.SetEnabled(false);
                 btnLoad.SetEnabled(true);
                 UpdateStatus("解凍完了 - ロード可能");
             }
             else
             {
                 AppendLog("解凍失敗");
-                btnExtract.SetEnabled(true);
                 UpdateStatus("解凍失敗");
             }
         }
@@ -149,7 +153,6 @@ namespace AICam.FBXLoader
             AppendLog("モデルをロード中...");
             UpdateStatus("ロード中...", showProgress: true);
             btnOpen.SetEnabled(false);
-            btnExtract.SetEnabled(false);
             btnLoad.SetEnabled(false);
 
             if (loaderBridge != null)
@@ -166,14 +169,13 @@ namespace AICam.FBXLoader
         void OnProgress(float percent)
         {
             progressBar.value = percent;
-            loadingLabel.text = $"{percent:F0}%";
+            loadingLabel.text = $"ロード中... {percent:F0}%";
         }
 
         void OnComplete(bool success)
         {
-            UpdateStatus("準備完了", showProgress: false);
+            UpdateStatus("待機中...", showProgress: false);
             btnOpen.SetEnabled(true);
-            btnExtract.SetEnabled(false);
             btnLoad.SetEnabled(false);
 
             if (success)
@@ -194,14 +196,15 @@ namespace AICam.FBXLoader
             logField.value += $"[{timestamp}] {message}\n";
 
             // ログを最下部にスクロール
-            logField.schedule.Execute(() =>
+            var root = uiDocument.rootVisualElement;
+            var scrollView = root.Q<ScrollView>("LogScroll");
+            if (scrollView != null)
             {
-                var scrollView = logField.Q<ScrollView>();
-                if (scrollView != null)
+                scrollView.schedule.Execute(() =>
                 {
                     scrollView.scrollOffset = new Vector2(0, float.MaxValue);
-                }
-            }).StartingIn(10);
+                }).StartingIn(10);
+            }
         }
 
         /// <summary>
@@ -225,17 +228,16 @@ namespace AICam.FBXLoader
         /// </summary>
         private void UpdateStatus(string status, bool showProgress = false)
         {
-            statusLabel.text = status;
+            loadingLabel.text = status;
 
             if (showProgress)
             {
-                loadingPanel.style.display = DisplayStyle.Flex;
+                progressPanel.style.display = DisplayStyle.Flex;
             }
             else
             {
-                loadingPanel.style.display = DisplayStyle.None;
+                progressPanel.style.display = DisplayStyle.None;
                 progressBar.value = 0;
-                loadingLabel.text = "";
             }
         }
     }
