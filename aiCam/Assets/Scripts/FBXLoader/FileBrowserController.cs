@@ -107,8 +107,9 @@ namespace AICam.FBXLoader
                 else if (path.ToLower().EndsWith(".vrm") || path.ToLower().EndsWith(".fbx"))
                 {
                     // VRM/FBXファイルを直接選択
+                    // 重要: ExtractedFolderPathは設定しない（ユーザーのフォルダを削除しないため）
                     SelectedPath = path;
-                    ExtractedFolderPath = Path.GetDirectoryName(path);
+                    ExtractedFolderPath = null;
 
                     Debug.Log($"[FileBrowserController] Model file selected: {SelectedPath}");
                     onFileSelectedCallback?.Invoke(true, SelectedPath);
