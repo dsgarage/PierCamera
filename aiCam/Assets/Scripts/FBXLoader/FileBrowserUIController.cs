@@ -92,16 +92,19 @@ namespace AICam.FBXLoader
             {
                 AppendLog($"選択: {System.IO.Path.GetFileName(path)}");
 
-                // ZIPファイルの場合は解凍ボタンを有効化
-                bool isZip = path.ToLower().EndsWith(".zip");
+                string lowerPath = path.ToLower();
+
+                // ZIP/UnityPackageファイルの場合は解凍ボタンを有効化
+                bool needsExtraction = lowerPath.EndsWith(".zip") || lowerPath.EndsWith(".unitypackage");
 
                 // VRM/FBXファイルの場合はロードボタンを有効化
-                bool isModelFile = path.ToLower().EndsWith(".vrm") || path.ToLower().EndsWith(".fbx");
+                bool isModelFile = lowerPath.EndsWith(".vrm") || lowerPath.EndsWith(".fbx");
 
-                if (isZip)
+                if (needsExtraction)
                 {
-                    UpdateStatus("ZIPファイル選択済み - 解凍してください");
-                    AppendLog("ZIPファイルを検出。解凍ボタンを押してください");
+                    string fileType = lowerPath.EndsWith(".zip") ? "ZIP" : "UnityPackage";
+                    UpdateStatus($"{fileType}ファイル選択済み - 解凍してください");
+                    AppendLog($"{fileType}ファイルを検出。解凍ボタンを押してください");
                     btnExtract.SetEnabled(true);
                     btnLoad.SetEnabled(false);
                 }
@@ -123,7 +126,7 @@ namespace AICam.FBXLoader
 
         void OnExtractClicked()
         {
-            AppendLog("ZIPパッケージを解凍中...");
+            AppendLog("パッケージを解凍中...");
             UpdateStatus("解凍中...");
             btnOpen.SetEnabled(false);
             btnLoad.SetEnabled(false);

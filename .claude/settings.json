@@ -1,9 +1,9 @@
 {
   "mcpServers": {
-    "unity-mcp": {
+    "unity-mcp-bridge": {
       "command": "node",
       "args": [
-        "/Users/daisuketsukada/Documents/dsgarageScript/UnityMCP/mcp-bridge/index.js"
+        "/Users/daisuketsukada/Documents/dsgarageUnity/arCam/aiCam/mcp-bridge/index.js"
       ],
       "env": {
         "UNITY_HTTP_URL": "http://localhost:5051"

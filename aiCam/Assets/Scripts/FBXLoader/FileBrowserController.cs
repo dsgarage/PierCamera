@@ -5,8 +5,8 @@ using System.IO;
 namespace AICam.FBXLoader
 {
     /// <summary>
-    /// NativeFilePickerを使用したファイル選択とZIP展開を管理
-    /// 対応形式: VRM, FBX, ZIP
+    /// NativeFilePickerを使用したファイル選択とZIP/UnityPackage展開を管理
+    /// 対応形式: VRM, FBX, ZIP, UnityPackage
     /// iOS: Application.persistentDataPathに展開（iCloudではなくアプリ内ディレクトリ）
     /// </summary>
     public class FileBrowserController : MonoBehaviour
@@ -28,7 +28,7 @@ namespace AICam.FBXLoader
 
 #if UNITY_EDITOR
             // Unity Editorでの動作
-            string path = UnityEditor.EditorUtility.OpenFilePanel("Select VRM, FBX or ZIP File", "", "vrm,fbx,zip");
+            string path = UnityEditor.EditorUtility.OpenFilePanel("Select VRM, FBX, ZIP or UnityPackage File", "", "vrm,fbx,zip,unitypackage");
 
             if (string.IsNullOrEmpty(path))
             {
@@ -50,7 +50,7 @@ namespace AICam.FBXLoader
                 }
 
                 ProcessSelectedFile(path);
-            }, new string[] { "vrm", "fbx", "zip" });
+            }, new string[] { "vrm", "fbx", "zip", "unitypackage" });
 
             if (permission == NativeFilePicker.Permission.Denied)
             {
@@ -66,45 +66,19 @@ namespace AICam.FBXLoader
 
             try
             {
-                if (path.ToLower().EndsWith(".zip"))
+                string lowerPath = path.ToLower();
+
+                if (lowerPath.EndsWith(".zip") || lowerPath.EndsWith(".unitypackage"))
                 {
-                    // ZIPファイルの場合は展開
-                    Debug.Log("[FileBrowserController] ZIP file detected, extracting...");
+                    // ZIP/UnityPackageファイルの場合は、解凍ボタン待ち
+                    SelectedPath = path;
+                    ExtractedFolderPath = null;
 
-                    // iOS対応: Application.persistentDataPathを使用（iCloudではなくアプリ内）
-                    string extractFolder = Path.Combine(Application.persistentDataPath, "ExtractedFBX");
-
-                    // 既存のフォルダがあれば削除
-                    if (Directory.Exists(extractFolder))
-                    {
-                        Directory.Delete(extractFolder, true);
-                    }
-
-                    Directory.CreateDirectory(extractFolder);
-
-                    ExtractedFolderPath = extractFolder;
-
-                    // ZIP展開
-                    ZipUtility.Extract(path, extractFolder);
-
-                    Debug.Log($"[FileBrowserController] Extracted to: {extractFolder}");
-
-                    // 展開したフォルダ内のVRM/FBXファイルを検索
-                    string modelFile = FindModelFileInFolder(extractFolder);
-
-                    if (modelFile != null)
-                    {
-                        SelectedPath = modelFile;
-                        Debug.Log($"[FileBrowserController] Found model file: {modelFile}");
-                        onFileSelectedCallback?.Invoke(true, SelectedPath);
-                    }
-                    else
-                    {
-                        Debug.LogError("[FileBrowserController] No VRM/FBX file found in ZIP");
-                        onFileSelectedCallback?.Invoke(false, null);
-                    }
+                    string fileType = lowerPath.EndsWith(".zip") ? "ZIP" : "UnityPackage";
+                    Debug.Log($"[FileBrowserController] {fileType} file selected, waiting for extraction");
+                    onFileSelectedCallback?.Invoke(true, path);
                 }
-                else if (path.ToLower().EndsWith(".vrm") || path.ToLower().EndsWith(".fbx"))
+                else if (lowerPath.EndsWith(".vrm") || lowerPath.EndsWith(".fbx"))
                 {
                     // VRM/FBXファイルを直接選択
                     // 重要: ExtractedFolderPathは設定しない（ユーザーのフォルダを削除しないため）
@@ -158,7 +132,7 @@ namespace AICam.FBXLoader
         }
 
         /// <summary>
-        /// ZIPパッケージを解凍する
+        /// ZIP/UnityPackageパッケージを解凍する
         /// </summary>
         public void ExtractZipPackage(Action<bool, string> onComplete)
         {
@@ -171,19 +145,24 @@ namespace AICam.FBXLoader
                 return;
             }
 
-            if (!SelectedPath.ToLower().EndsWith(".zip"))
+            string lowerPath = SelectedPath.ToLower();
+            bool isZip = lowerPath.EndsWith(".zip");
+            bool isUnityPackage = lowerPath.EndsWith(".unitypackage");
+
+            if (!isZip && !isUnityPackage)
             {
-                Debug.LogError("[FileBrowserController] Selected file is not a ZIP file");
+                Debug.LogError("[FileBrowserController] Selected file is not a ZIP or UnityPackage file");
                 onExtractCompleteCallback?.Invoke(false, null);
                 return;
             }
 
             try
             {
-                Debug.Log("[FileBrowserController] Extracting ZIP package...");
+                string fileType = isZip ? "ZIP" : "UnityPackage";
+                Debug.Log($"[FileBrowserController] Extracting {fileType} package...");
 
                 // iOS対応: Application.persistentDataPathを使用（iCloudではなくアプリ内）
-                string extractFolder = Path.Combine(Application.persistentDataPath, "ExtractedFBX");
+                string extractFolder = Path.Combine(Application.persistentDataPath, isUnityPackage ? "ExtractedUnityPackage" : "ExtractedFBX");
 
                 // 既存のフォルダがあれば削除
                 if (Directory.Exists(extractFolder))
@@ -195,8 +174,18 @@ namespace AICam.FBXLoader
 
                 ExtractedFolderPath = extractFolder;
 
-                // ZIP展開
-                ZipUtility.Extract(SelectedPath, extractFolder);
+                // 解凍処理
+                if (isUnityPackage)
+                {
+                    // UnityPackage解凍
+                    UnityPackageExtractor extractor = new UnityPackageExtractor();
+                    extractor.Extract(SelectedPath, extractFolder);
+                }
+                else
+                {
+                    // ZIP解凍
+                    ZipUtility.Extract(SelectedPath, extractFolder);
+                }
 
                 Debug.Log($"[FileBrowserController] Extracted to: {extractFolder}");
 
@@ -211,13 +200,13 @@ namespace AICam.FBXLoader
                 }
                 else
                 {
-                    Debug.LogError("[FileBrowserController] No VRM/FBX file found in ZIP");
+                    Debug.LogError($"[FileBrowserController] No VRM/FBX file found in {fileType}");
                     onExtractCompleteCallback?.Invoke(false, null);
                 }
             }
             catch (Exception e)
             {
-                Debug.LogError($"[FileBrowserController] Error extracting ZIP: {e.Message}");
+                Debug.LogError($"[FileBrowserController] Error extracting package: {e.Message}");
                 Debug.LogException(e);
                 onExtractCompleteCallback?.Invoke(false, null);
             }
