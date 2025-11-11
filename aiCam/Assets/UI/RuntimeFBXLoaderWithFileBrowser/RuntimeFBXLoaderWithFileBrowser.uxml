@@ -1,0 +1,28 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+  <ui:VisualElement name="RootPanel" class="root">
+    <!-- Content Area (scrollable) -->
+    <ui:ScrollView name="ContentScroll" class="content-area">
+      <!-- Status Card -->
+      <ui:VisualElement name="StatusCard" class="card">
+        <ui:Label name="StatusLabel" text="準備完了" class="status-label"/>
+        <ui:VisualElement name="LoadingPanel" class="loading-container">
+          <ui:ProgressBar name="ProgressBar" value="0" high-value="100" class="progress-bar"/>
+          <ui:Label name="LoadingLabel" text="" class="progress-label"/>
+        </ui:VisualElement>
+      </ui:VisualElement>
+
+      <!-- Log Card -->
+      <ui:VisualElement name="LogCard" class="card">
+        <ui:Label text="ログ" class="card-title"/>
+        <ui:TextField name="LogField" multiline="true" readonly="true" class="log-area"/>
+      </ui:VisualElement>
+    </ui:ScrollView>
+
+    <!-- Bottom Action Bar (fixed) -->
+    <ui:VisualElement name="BottomBar" class="bottom-bar">
+      <ui:Button name="BtnOpen" text="ファイルを選択" class="action-button primary-button"/>
+      <ui:Button name="BtnExtract" text="解凍" class="action-button secondary-button"/>
+      <ui:Button name="BtnLoad" text="ロード" class="action-button primary-button"/>
+    </ui:VisualElement>
+  </ui:VisualElement>
+</ui:UXML>
