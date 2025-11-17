@@ -19,7 +19,7 @@ namespace AICam.FBXLoader
 
         [Header("Settings")]
         [SerializeField] private Transform modelParent;
-        [SerializeField] private Vector3 modelPosition = Vector3.zero;
+        [SerializeField] private Vector3 modelPosition = new Vector3(0f, -0.3f, 1.5f); // 中心より上、カメラに近い位置
         [SerializeField] private Vector3 modelRotation = Vector3.zero; // 変更: デフォルトの向き
         [SerializeField] private Vector3 modelScale = Vector3.one;
 
@@ -192,11 +192,21 @@ namespace AICam.FBXLoader
                 }
 
                 Debug.Log($"[RuntimeFBXLoaderBridge] Successfully loaded skeleton: {currentModel.name}");
-                onProgress?.Invoke(40f);
+                onProgress?.Invoke(30f);
 
                 // モデルを配置
                 PlaceModel(currentModel);
+                onProgress?.Invoke(40f);
+
+                // メッシュをロード（頂点、UV、三角形のみ）
+                Debug.Log("[RuntimeFBXLoaderBridge] Loading meshes...");
+                loader.LoadMeshes(currentModel);
                 onProgress?.Invoke(50f);
+
+                // STEP 8: 座標変換をroot全体に適用
+                Debug.Log("[RuntimeFBXLoaderBridge] Applying coordinate conversion to root...");
+                loader.ApplyCoordinateConversionToRoot(currentModel);
+                onProgress?.Invoke(55f);
 
                 // デバッグビジュアライザーをアタッチ
                 var visualizer = currentModel.AddComponent<AICam.DebugTools.BoneDebugVisualizer>();
