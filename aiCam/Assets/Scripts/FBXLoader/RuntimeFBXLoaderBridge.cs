@@ -5,8 +5,6 @@ using AICam.VRM;
 using AICam.AvatarBuilder;
 using VRM;
 using UniGLTF;
-using TriLibCore;
-using TriLibCore.General;
 
 namespace AICam.FBXLoader
 {
@@ -30,8 +28,6 @@ namespace AICam.FBXLoader
         [SerializeField] private string initialStateName = "Idle";
 
         [Header("Avatar Generation")]
-        [SerializeField] private bool useRuntimeHumanoidAvatarBuilder = false;
-        [SerializeField] private TriLibCore.Mappers.HumanoidAvatarMapper humanoidAvatarMapper;
         [SerializeField] private AvatarBuilder.AvatarTemplate avatarTemplate;
 
         private RuntimeGltfInstance currentInstance;
@@ -169,7 +165,7 @@ namespace AICam.FBXLoader
         }
 
         /// <summary>
-        /// FBXファイルをロード（TriLib使用）
+        /// FBXファイルをロード（Assimp使用・骨格のみ）
         /// </summary>
         private async UniTask LoadFBXFile(Action<float> onProgress, Action<bool> onComplete)
         {
@@ -178,203 +174,94 @@ namespace AICam.FBXLoader
                 // ログキャプチャ開始
                 FBXImportLogger.StartCapture();
 
-                Debug.Log($"[RuntimeFBXLoaderBridge] Starting FBX load: {browser.SelectedPath}");
+                Debug.Log($"[RuntimeFBXLoaderBridge] Starting Assimp FBX load: {browser.SelectedPath}");
 
                 onProgress?.Invoke(20f);
 
-                // TriLibのロードオプションを作成（BindPose保持を最優先に設定）
-                var assetLoaderOptions = AssetLoader.CreateDefaultLoaderOptions(false, true);
+                // Assimpでボーン階層をロード
+                var loader = new RuntimeAssimpFBXLoader();
+                currentModel = loader.LoadBoneHierarchy(browser.SelectedPath);
 
-                // ===== BindPose破壊を防ぐための重要設定 =====
-                assetLoaderOptions.AnimationType = AnimationType.Humanoid; // Humanoidに設定してSkinnedMeshRendererを生成
-
-                // ===== TriLib デフォルト設定の確認 =====
-                // CreateDefaultLoaderOptions()は以下を設定する（TriLib 2.x仕様）:
-                //   - Triangulate: 有効（必須）
-                //   - JoinIdenticalVertices: 有効（Mesh品質向上）
-                //   - ValidateDataStructure: 有効（破損FBX対策）
-                //   - LimitBoneWeights: 有効（Unity互換性）
-                //   - CalculateTangentSpace: 有効（法線計算）
-                //
-                // 【重要】以下のオプションは含まれていないことを確認:
-                //   ❌ OptimizeGraph - Bone階層を変更しBindPoseを破壊
-                //   ❌ OptimizeMeshes - Vertex→BoneIndexの対応を変更
-                //   ❌ PreTransformVertices - BindPoseとTransformの関係を破壊
-                //   ❌ Debone - Bone情報を削除
-                //   ❌ RemoveRedundantMaterials - BoneIndexがずれる可能性
-                //
-                // これらのオプションがデフォルトで有効になっている場合は、
-                // 明示的に無効化する必要がある。
-
-                Debug.Log("[RuntimeFBXLoaderBridge] Using TriLib default loader options");
-                Debug.Log("[RuntimeFBXLoaderBridge] BindPose preservation: Avoiding OptimizeGraph, OptimizeMeshes, PreTransformVertices");
-
-                // HumanoidAvatarMapperを設定
-                if (humanoidAvatarMapper != null)
+                if (currentModel == null)
                 {
-                    assetLoaderOptions.HumanoidAvatarMapper = humanoidAvatarMapper;
-                    Debug.Log($"[RuntimeFBXLoaderBridge] Using HumanoidAvatarMapper: {humanoidAvatarMapper.name}");
+                    Debug.LogError("[RuntimeFBXLoaderBridge] Failed to load FBX skeleton");
+                    onProgress?.Invoke(100f);
+                    onComplete?.Invoke(false);
+                    FBXImportLogger.StopCaptureAndSave(takeScreenshot: false);
+                    return;
+                }
+
+                Debug.Log($"[RuntimeFBXLoaderBridge] Successfully loaded skeleton: {currentModel.name}");
+                onProgress?.Invoke(40f);
+
+                // モデルを配置
+                PlaceModel(currentModel);
+                onProgress?.Invoke(50f);
+
+                // デバッグビジュアライザーをアタッチ
+                var visualizer = currentModel.AddComponent<AICam.DebugTools.BoneDebugVisualizer>();
+                Debug.Log("[RuntimeFBXLoaderBridge] BoneDebugVisualizer attached");
+                onProgress?.Invoke(60f);
+
+                // Humanoidボーンマッピング
+                var boneMap = loader.MapHumanoidBones(currentModel.transform);
+                Debug.Log($"[RuntimeFBXLoaderBridge] Humanoid bones mapped: {boneMap.Count}");
+                onProgress?.Invoke(70f);
+
+                // Avatar生成
+                var avatarBuilder = new RuntimeHumanoidAvatarBuilder();
+                UnityEngine.Avatar newAvatar = null;
+
+                if (avatarTemplate != null)
+                {
+                    Debug.Log($"[RuntimeFBXLoaderBridge] Using AvatarTemplate: {avatarTemplate.name}");
+                    newAvatar = avatarBuilder.CreateHumanoidAvatarFromTemplate(
+                        currentModel.name,
+                        currentModel,
+                        avatarTemplate);
                 }
                 else
                 {
-                    Debug.LogWarning("[RuntimeFBXLoaderBridge] No HumanoidAvatarMapper assigned. Using TriLib defaults.");
+                    Debug.Log("[RuntimeFBXLoaderBridge] Using RuntimeHumanoidAvatarBuilder");
+                    newAvatar = avatarBuilder.CreateHumanoidAvatarFromFBX(currentModel.name, currentModel);
                 }
 
-                bool loadComplete = false;
+                onProgress?.Invoke(80f);
+
                 bool loadSuccess = false;
-                float currentProgress = 20f;
 
-                // TriLibでFBXをロード
-                Transform parent = modelParent != null ? modelParent : transform;
-
-                AssetLoader.LoadModelFromFile(
-                    path: browser.SelectedPath,
-                    onLoad: (assetLoaderContext) =>
-                    {
-                        Debug.Log("[RuntimeFBXLoaderBridge] FBX meshes loaded");
-                        onProgress?.Invoke(50f);
-                    },
-                    onMaterialsLoad: (assetLoaderContext) =>
-                    {
-                        Debug.Log("[RuntimeFBXLoaderBridge] FBX materials loaded");
-                        currentModel = assetLoaderContext.RootGameObject;
-
-                        if (currentModel != null)
-                        {
-                            Debug.Log($"[RuntimeFBXLoaderBridge] FBX root: {currentModel.name}");
-
-                            // モデルを配置
-                            PlaceModel(currentModel);
-
-                            // TriLibが生成したAnimatorを確認
-                            var animator = currentModel.GetComponent<Animator>();
-                            if (animator != null)
-                            {
-                                Debug.Log($"[RuntimeFBXLoaderBridge] TriLib generated Animator. Avatar: {(animator.avatar != null ? animator.avatar.name : "null")}");
-
-                                // SkinnedMeshRendererの確認
-                                var skinnedMeshRenderers = currentModel.GetComponentsInChildren<SkinnedMeshRenderer>();
-                                Debug.Log($"[RuntimeFBXLoaderBridge] Found {skinnedMeshRenderers.Length} SkinnedMeshRenderer(s)");
-                                foreach (var smr in skinnedMeshRenderers)
-                                {
-                                    Debug.Log($"[RuntimeFBXLoaderBridge]   - SMR: {smr.name}, bones: {smr.bones?.Length ?? 0}, rootBone: {(smr.rootBone != null ? smr.rootBone.name : "null")}");
-                                }
-                            }
-                            else
-                            {
-                                Debug.LogWarning("[RuntimeFBXLoaderBridge] No Animator component found!");
-                            }
-
-                            // Avatar生成方法の選択
-                            onProgress?.Invoke(70f);
-                            UnityEngine.Avatar newAvatar = null;
-
-                            if (useRuntimeHumanoidAvatarBuilder)
-                            {
-                                var avatarBuilder = new RuntimeHumanoidAvatarBuilder();
-
-                                if (avatarTemplate != null)
-                                {
-                                    Debug.Log($"[RuntimeFBXLoaderBridge] Using AvatarTemplate: {avatarTemplate.name}");
-                                    newAvatar = avatarBuilder.CreateHumanoidAvatarFromTemplate(
-                                        currentModel.name,
-                                        currentModel,
-                                        avatarTemplate);
-                                }
-                                else
-                                {
-                                    Debug.Log("[RuntimeFBXLoaderBridge] Using RuntimeHumanoidAvatarBuilder (no template)");
-                                    newAvatar = avatarBuilder.CreateHumanoidAvatarFromFBX(currentModel.name, currentModel);
-                                }
-                            }
-                            else
-                            {
-                                Debug.Log("[RuntimeFBXLoaderBridge] Using TriLib-generated Avatar");
-                                newAvatar = animator?.avatar;
-                            }
-
-                            if (newAvatar != null && newAvatar.isValid && newAvatar.isHuman)
-                            {
-                                string avatarSource = useRuntimeHumanoidAvatarBuilder ? "RuntimeHumanoidAvatarBuilder" : "TriLib";
-                                Debug.Log($"[RuntimeFBXLoaderBridge] ✓ Avatar ready from {avatarSource}. IsValid: {newAvatar.isValid}, IsHuman: {newAvatar.isHuman}");
-
-                                // Animatorに設定
-                                if (animator == null)
-                                {
-                                    animator = currentModel.AddComponent<Animator>();
-                                }
-
-                                if (useRuntimeHumanoidAvatarBuilder && animator.avatar != null && animator.avatar != newAvatar)
-                                {
-                                    Debug.Log($"[RuntimeFBXLoaderBridge] Replacing TriLib Avatar with RuntimeHumanoidAvatarBuilder Avatar");
-                                }
-
-                                animator.avatar = newAvatar;
-
-                                onProgress?.Invoke(90f);
-
-                                // アニメーションの設定
-                                SetupAnimator(currentModel);
-
-                                onProgress?.Invoke(100f);
-                                loadSuccess = true;
-                            }
-                            else
-                            {
-                                string avatarSource = useRuntimeHumanoidAvatarBuilder ? "RuntimeHumanoidAvatarBuilder" : "TriLib";
-                                Debug.LogError($"[RuntimeFBXLoaderBridge] ✗ Failed to create valid Avatar. Source: {avatarSource}, Avatar: {(newAvatar != null ? "not null" : "null")}, IsValid: {newAvatar?.isValid}, IsHuman: {newAvatar?.isHuman}");
-
-                                // フォールバック: TriLibのAvatarを使用
-                                if (!useRuntimeHumanoidAvatarBuilder && animator != null && animator.avatar != null)
-                                {
-                                    // TriLib使用時にここに来ることはないはず
-                                    Debug.LogError("[RuntimeFBXLoaderBridge] Unexpected: TriLib Avatar is invalid");
-                                    loadSuccess = false;
-                                }
-                                else if (useRuntimeHumanoidAvatarBuilder && animator != null && animator.avatar != null && animator.avatar.isValid && animator.avatar.isHuman)
-                                {
-                                    Debug.Log("[RuntimeFBXLoaderBridge] Falling back to TriLib-generated Avatar");
-                                    newAvatar = animator.avatar;
-                                    SetupAnimator(currentModel);
-                                    loadSuccess = true;
-                                }
-                                else
-                                {
-                                    Debug.LogError("[RuntimeFBXLoaderBridge] No valid Avatar available");
-                                    loadSuccess = false;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            Debug.LogError("[RuntimeFBXLoaderBridge] Failed to load FBX: RootGameObject is null");
-                            loadSuccess = false;
-                        }
-
-                        loadComplete = true;
-                    },
-                    onProgress: (assetLoaderContext, progress) =>
-                    {
-                        currentProgress = 20f + (progress * 30f);
-                        onProgress?.Invoke(currentProgress);
-                    },
-                    onError: (contextualizedError) =>
-                    {
-                        Debug.LogError($"[RuntimeFBXLoaderBridge] FBX load error: {contextualizedError}");
-                        loadSuccess = false;
-                        loadComplete = true;
-                    },
-                    wrapperGameObject: parent.gameObject,
-                    assetLoaderOptions: assetLoaderOptions
-                );
-
-                // ロード完了を待機
-                while (!loadComplete)
+                if (newAvatar != null && newAvatar.isValid && newAvatar.isHuman)
                 {
-                    await UniTask.Yield();
+                    Debug.Log($"[RuntimeFBXLoaderBridge] ✓ Avatar created. IsValid: {newAvatar.isValid}, IsHuman: {newAvatar.isHuman}");
+
+                    // Animatorをアタッチ
+                    var animator = currentModel.GetComponent<Animator>();
+                    if (animator == null)
+                    {
+                        animator = currentModel.AddComponent<Animator>();
+                    }
+
+                    animator.avatar = newAvatar;
+                    animator.applyRootMotion = true;
+
+                    onProgress?.Invoke(90f);
+
+                    // アニメーションの設定
+                    SetupAnimator(currentModel);
+
+                    onProgress?.Invoke(100f);
+                    loadSuccess = true;
+                }
+                else
+                {
+                    Debug.LogError($"[RuntimeFBXLoaderBridge] ✗ Failed to create Avatar. IsValid: {newAvatar?.isValid}, IsHuman: {newAvatar?.isHuman}");
+                    loadSuccess = false;
                 }
 
-                Debug.Log($"[RuntimeFBXLoaderBridge] FBX load completed. Success: {loadSuccess}");
+                Debug.Log($"[RuntimeFBXLoaderBridge] Assimp FBX load completed. Success: {loadSuccess}");
+
+                // 非同期処理を模倣（UIの進捗表示のため）
+                await UniTask.Yield();
 
                 // ログとスクリーンショットを保存
                 if (loadSuccess && currentModel != null)
