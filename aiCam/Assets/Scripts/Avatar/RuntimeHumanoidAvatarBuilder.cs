@@ -73,10 +73,12 @@ namespace AICam.AvatarBuilder
         // ───────────────────────────────────────────────────────────
         private Dictionary<HumanBodyBones, Transform> ResolveBoneMapping(GameObject root)
         {
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] === Bone Mapping Start for '{root.name}' ===");
             var resolved = new Dictionary<HumanBodyBones, Transform>();
 
             // 全 Transform 収集
             Transform[] all = root.GetComponentsInChildren<Transform>(true);
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Total transforms found: {all.Length}");
 
             // --- 1) 大文字小文字を区別せず *生の名前* で検索できる辞書
             var rawNameMap = new Dictionary<string, Transform>(StringComparer.OrdinalIgnoreCase);
@@ -122,6 +124,14 @@ namespace AICam.AvatarBuilder
 
             // ---------- 1-D : ヒューリスティック補完 (Toe) ----------
             InferFromHierarchy(resolved);
+
+            // デバッグ: マッピング結果を出力
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Bone mapping completed. Mapped {resolved.Count} bones:");
+            foreach (var kvp in resolved)
+            {
+                Debug.Log($"  {kvp.Key} => '{kvp.Value.name}'");
+            }
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] === Bone Mapping End ===");
 
             return resolved;
         }
@@ -197,6 +207,9 @@ namespace AICam.AvatarBuilder
         {
             bool IsLeft(Transform t) => hips.InverseTransformPoint(t.position).x < 0f;
 
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] === Left/Right Correction Start ===");
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Hips transform: {hips.name}");
+
             // 「Left*/Right*」ペア一覧作成
             var leftDict  = new Dictionary<string, HumanBodyBones>();
             var rightDict = new Dictionary<string, HumanBodyBones>();
@@ -208,6 +221,7 @@ namespace AICam.AvatarBuilder
                 if (n.StartsWith("Right")) rightDict[n[5..]] = b;
             }
 
+            int swapCount = 0;
             foreach (var key in leftDict.Keys)
             {
                 if (!rightDict.ContainsKey(key)) continue;
@@ -219,14 +233,40 @@ namespace AICam.AvatarBuilder
                 // 名前に "Left/Right" が含まれれば信頼し Swap しない
                 string ln = map[lb].name.ToLower();
                 string rn = map[rb].name.ToLower();
-                if ((ln.Contains("left") || ln.EndsWith(".l") || ln.EndsWith("_l")) &&
-                    (rn.Contains("right")|| rn.EndsWith(".r")|| rn.EndsWith("_r")))
-                    continue;
 
-                bool lIsLeft = IsLeft(map[lb]);
-                bool rIsLeft = IsLeft(map[rb]);
-                if (!lIsLeft && rIsLeft) (map[lb], map[rb]) = (map[rb], map[lb]);
+                bool hasLeftRightInName = (ln.Contains("left") || ln.EndsWith(".l") || ln.EndsWith("_l")) &&
+                                         (rn.Contains("right")|| rn.EndsWith(".r")|| rn.EndsWith("_r"));
+
+                Vector3 lPosLocal = hips.InverseTransformPoint(map[lb].position);
+                Vector3 rPosLocal = hips.InverseTransformPoint(map[rb].position);
+                bool lIsLeft = lPosLocal.x < 0f;
+                bool rIsLeft = rPosLocal.x < 0f;
+
+                Debug.Log($"[RuntimeHumanoidAvatarBuilder] Checking {key}:");
+                Debug.Log($"  Left({lb}): '{ln}' at local X={lPosLocal.x:F3}, isLeft={lIsLeft}");
+                Debug.Log($"  Right({rb}): '{rn}' at local X={rPosLocal.x:F3}, isLeft={rIsLeft}");
+                Debug.Log($"  Has L/R in name: {hasLeftRightInName}");
+
+                if (hasLeftRightInName)
+                {
+                    Debug.Log($"  => Trusting bone names, no swap");
+                    continue;
+                }
+
+                if (!lIsLeft && rIsLeft)
+                {
+                    Debug.Log($"  => SWAPPING bones (position-based correction)");
+                    (map[lb], map[rb]) = (map[rb], map[lb]);
+                    swapCount++;
+                }
+                else
+                {
+                    Debug.Log($"  => No swap needed");
+                }
             }
+
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Left/Right correction: {swapCount} pairs swapped");
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] === Left/Right Correction End ===");
         }
 
         // ───────────────────────────────────────────────────────────
