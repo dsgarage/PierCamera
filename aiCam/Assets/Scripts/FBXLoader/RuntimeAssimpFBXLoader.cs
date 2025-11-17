@@ -793,9 +793,11 @@ namespace AICam.FBXLoader
             int assimpMeshIndex = node.MeshIndices[0];
             Assimp.Mesh assimpMesh = currentScene.Meshes[assimpMeshIndex];
 
+            // ボーンがない場合は静的メッシュとして作成
             if (!assimpMesh.HasBones)
             {
-                UnityEngine.Debug.LogWarning($"{LOG_PREFIX} Mesh has no bones, skipping SkinnedMeshRenderer setup");
+                UnityEngine.Debug.Log($"{LOG_PREFIX} Mesh has no bones, creating static mesh (MeshFilter + MeshRenderer)");
+                CreateStaticMeshRenderer(nodeTransform, mesh);
                 return;
             }
 
@@ -858,6 +860,34 @@ namespace AICam.FBXLoader
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Material: {material.name} (Shader: {material.shader.name})");
 
             await UniTask.Yield();
+        }
+
+        /// <summary>
+        /// ボーンを持たないメッシュ用に静的レンダラーを作成
+        /// </summary>
+        private void CreateStaticMeshRenderer(Transform nodeTransform, UnityEngine.Mesh mesh)
+        {
+            UnityEngine.Debug.Log($"{LOG_PREFIX} === Creating Static Mesh Renderer ===");
+
+            // MeshFilterを追加
+            MeshFilter meshFilter = nodeTransform.gameObject.AddComponent<MeshFilter>();
+            meshFilter.sharedMesh = mesh;
+
+            // MeshRendererを追加
+            MeshRenderer meshRenderer = nodeTransform.gameObject.AddComponent<MeshRenderer>();
+
+            // マテリアル設定
+            UnityEngine.Material material = CreateLilToonMaterial(nodeTransform.name);
+            meshRenderer.sharedMaterial = material;
+
+            // ログ出力
+            UnityEngine.Debug.Log($"{LOG_PREFIX} === Static Mesh Renderer Complete ===");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Node: {nodeTransform.name}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Mesh: {mesh.name}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Vertices: {mesh.vertexCount}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Triangles: {mesh.triangles.Length / 3}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   BlendShapes: {mesh.blendShapeCount}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Material: {material.name}");
         }
 
         /// <summary>
