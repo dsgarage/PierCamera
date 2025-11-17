@@ -184,10 +184,26 @@ namespace AICam.FBXLoader
                 // ===== BindPose破壊を防ぐための重要設定 =====
                 assetLoaderOptions.AnimationType = AnimationType.Humanoid; // Humanoidに設定してSkinnedMeshRendererを生成
 
-                // 注意：CreateDefaultLoaderOptions()のデフォルト設定を信頼
-                // OptimizeGraph, OptimizeMeshes, PreTransformVertices などの
-                // BindPose破壊オプションが含まれていないことを前提とする
-                Debug.Log("[RuntimeFBXLoaderBridge] Using TriLib default loader options for BindPose preservation");
+                // ===== TriLib デフォルト設定の確認 =====
+                // CreateDefaultLoaderOptions()は以下を設定する（TriLib 2.x仕様）:
+                //   - Triangulate: 有効（必須）
+                //   - JoinIdenticalVertices: 有効（Mesh品質向上）
+                //   - ValidateDataStructure: 有効（破損FBX対策）
+                //   - LimitBoneWeights: 有効（Unity互換性）
+                //   - CalculateTangentSpace: 有効（法線計算）
+                //
+                // 【重要】以下のオプションは含まれていないことを確認:
+                //   ❌ OptimizeGraph - Bone階層を変更しBindPoseを破壊
+                //   ❌ OptimizeMeshes - Vertex→BoneIndexの対応を変更
+                //   ❌ PreTransformVertices - BindPoseとTransformの関係を破壊
+                //   ❌ Debone - Bone情報を削除
+                //   ❌ RemoveRedundantMaterials - BoneIndexがずれる可能性
+                //
+                // これらのオプションがデフォルトで有効になっている場合は、
+                // 明示的に無効化する必要がある。
+
+                Debug.Log("[RuntimeFBXLoaderBridge] Using TriLib default loader options");
+                Debug.Log("[RuntimeFBXLoaderBridge] BindPose preservation: Avoiding OptimizeGraph, OptimizeMeshes, PreTransformVertices");
 
                 // HumanoidAvatarMapperを設定
                 if (humanoidAvatarMapper != null)
