@@ -166,6 +166,34 @@ namespace AICam.FBXLoader
                 return FBXProfile.VRMStyle;
             }
 
+            // ✔ Rule 3.5: Blender検出（RootNode Y=180°なしでも）- Armature X=270° + Hips X=90°
+            Node armatureAlt = FindNodeByName(rootNode, "Armature");
+            if (armatureAlt != null)
+            {
+                Vector3 armEulerAlt = GetEulerFromAssimpMatrix(armatureAlt.Transform);
+                Debug.Log($"{LOG_PREFIX} Armature rotation (fallback check): ({armEulerAlt.x:F1}, {armEulerAlt.y:F1}, {armEulerAlt.z:F1})");
+
+                bool hasX270Alt = Mathf.Abs(armEulerAlt.x - 270f) < 5f || Mathf.Abs(armEulerAlt.x + 90f) < 5f;
+
+                if (hasX270Alt)
+                {
+                    Node hipsAlt = FindNodeByName(armatureAlt, "Hips");
+                    if (hipsAlt != null)
+                    {
+                        Vector3 hipsEulerAlt = GetEulerFromAssimpMatrix(hipsAlt.Transform);
+                        Debug.Log($"{LOG_PREFIX} Hips rotation (fallback check): ({hipsEulerAlt.x:F1}, {hipsEulerAlt.y:F1}, {hipsEulerAlt.z:F1})");
+
+                        bool hasX90Alt = Mathf.Abs(hipsEulerAlt.x - 90f) < 5f;
+
+                        if (hasX90Alt)
+                        {
+                            Debug.Log($"{LOG_PREFIX} ✓ CONFIRMED: BlenderStyle (ArmX=270, HipsX=90) - without RootY=180");
+                            return FBXProfile.BlenderStyle;
+                        }
+                    }
+                }
+            }
+
             // ✔ Rule 4: Mixamo判定 - Hips.Z=90
             Node hipsNode = FindNodeByName(rootNode, "Hips");
             if (hipsNode != null)
