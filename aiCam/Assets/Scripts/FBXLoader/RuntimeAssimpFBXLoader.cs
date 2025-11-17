@@ -600,13 +600,14 @@ namespace AICam.FBXLoader
             // バウンディングボックスを再計算
             unityMesh.RecalculateBounds();
 
-            UnityEngine.Debug.Log($"{LOG_PREFIX}   Mesh: {unityMesh.name} (V:{unityMesh.vertexCount}, T:{unityMesh.triangles.Length / 3})");
-
             // STEP 7: SkinnedMeshRendererの完全セットアップ（bones[], rootBone, bindposes）
             SkinnedMeshRenderer renderer = nodeTransform.gameObject.AddComponent<SkinnedMeshRenderer>();
             renderer.sharedMesh = unityMesh;
 
             // ボーン情報を収集（最初のメッシュからのみ - 簡易実装）
+            int bonesCount = 0;
+            int bindposesCount = 0;
+
             if (node.MeshCount > 0)
             {
                 int assimpMeshIndex = node.MeshIndices[0];
@@ -639,7 +640,8 @@ namespace AICam.FBXLoader
                     renderer.rootBone = cachedRootBone;
                     unityMesh.bindposes = bindposes;
 
-                    UnityEngine.Debug.Log($"{LOG_PREFIX}   SMR: {bones.Length} bones, rootBone={cachedRootBone.name}");
+                    bonesCount = bones.Length;
+                    bindposesCount = bindposes.Length;
                 }
             }
 
@@ -647,7 +649,18 @@ namespace AICam.FBXLoader
             UnityEngine.Material material = CreateLilToonMaterial(node.Name);
             renderer.sharedMaterial = material;
 
-            UnityEngine.Debug.Log($"{LOG_PREFIX}   Added SkinnedMeshRenderer to: {nodeTransform.name}");
+            // SkinnedMeshRenderer情報をログ出力
+            UnityEngine.Debug.Log($"{LOG_PREFIX} === SkinnedMeshRenderer: {nodeTransform.name} ===");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Mesh: {unityMesh.name}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Vertices: {unityMesh.vertexCount}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Triangles: {unityMesh.triangles.Length / 3}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Normals: {(unityMesh.normals != null && unityMesh.normals.Length > 0 ? "Yes" : "No")} ({unityMesh.normals?.Length ?? 0})");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   UVs: {(unityMesh.uv != null && unityMesh.uv.Length > 0 ? "Yes" : "No")} ({unityMesh.uv?.Length ?? 0})");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   BoneWeights: {(unityMesh.boneWeights != null && unityMesh.boneWeights.Length > 0 ? "Yes" : "No")} ({unityMesh.boneWeights?.Length ?? 0})");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Bones[]: {bonesCount}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   BindPoses[]: {bindposesCount}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   RootBone: {(renderer.rootBone != null ? renderer.rootBone.name : "NULL")}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Material: {material.name} (Shader: {material.shader.name})");
         }
 
         /// <summary>
