@@ -63,6 +63,9 @@ namespace AICam.DebugTools
             if (rootBone == null)
                 return;
 
+            if (Camera.main == null)
+                return;
+
             // マテリアルの準備
             if (lineMaterial == null)
             {
@@ -79,9 +82,10 @@ namespace AICam.DebugTools
             // マテリアルを適用
             lineMaterial.SetPass(0);
 
-            // GL描画開始
+            // GL描画開始（ワールド座標で描画）
             GL.PushMatrix();
-            GL.MultMatrix(transform.localToWorldMatrix);
+            GL.LoadIdentity();
+            GL.MultMatrix(Camera.main.worldToCameraMatrix);
             GL.Begin(GL.LINES);
 
             // ボーン階層を描画
