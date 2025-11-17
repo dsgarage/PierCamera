@@ -658,10 +658,8 @@ namespace AICam.FBXLoader
                 {
                     Assimp.MeshAnimationAttachment animMesh = assimpMesh.MeshAnimationAttachments[animIdx];
 
-                    // BlendShape名を取得（AnimMeshに名前がない場合はインデックスを使用）
-                    string blendShapeName = string.IsNullOrEmpty(animMesh.Name)
-                        ? $"BlendShape_{animIdx}"
-                        : animMesh.Name;
+                    // BlendShape名を生成（MeshAnimationAttachmentにはName プロパティがないためインデックスを使用）
+                    string blendShapeName = $"{assimpMesh.Name}_BlendShape_{animIdx}";
 
                     UnityEngine.Debug.Log($"{LOG_PREFIX}   BlendShape: {blendShapeName}");
 
