@@ -298,15 +298,15 @@ namespace dsgarage.Avatar
         }
 
         private void CheckArmTPose(string side, Transform editorArm, Transform runtimeArm,
-            Transform editorHips, Transform runtimeHips, Vector3 up)
+            Transform editorHips, Transform runtimeHips, Vector3 editorUp)
         {
             if (editorArm == null || runtimeArm == null) return;
 
             Vector3 editorDir = (editorArm.position - editorHips.position).normalized;
             Vector3 runtimeDir = (runtimeArm.position - runtimeHips.position).normalized;
 
-            float editorAngle = Vector3.Angle(up, editorDir);
-            float runtimeAngle = Vector3.Angle(up, runtimeDir);
+            float editorAngle = Vector3.Angle(editorUp, editorDir);
+            float runtimeAngle = Vector3.Angle(editorUp, runtimeDir);
 
             report.AppendLine($"{side} Upper Arm (T-Pose should be ~90° from spine):");
             report.AppendLine($"  Editor:  {editorAngle:F1}° from spine up");
@@ -322,15 +322,15 @@ namespace dsgarage.Avatar
         }
 
         private void CheckLegTPose(string side, Transform editorLeg, Transform runtimeLeg,
-            Transform editorHips, Transform runtimeHips, Vector3 up)
+            Transform editorHips, Transform runtimeHips, Vector3 editorUp)
         {
             if (editorLeg == null || runtimeLeg == null) return;
 
             Vector3 editorDir = (editorLeg.position - editorHips.position).normalized;
             Vector3 runtimeDir = (runtimeLeg.position - runtimeHips.position).normalized;
 
-            float editorAngle = Vector3.Angle(-up, editorDir);
-            float runtimeAngle = Vector3.Angle(-up, runtimeDir);
+            float editorAngle = Vector3.Angle(-editorUp, editorDir);
+            float runtimeAngle = Vector3.Angle(-editorUp, runtimeDir);
 
             report.AppendLine($"{side} Upper Leg (T-Pose should be ~0° from spine down):");
             report.AppendLine($"  Editor:  {editorAngle:F1}° from spine down");
