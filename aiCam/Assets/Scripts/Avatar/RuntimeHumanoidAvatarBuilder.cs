@@ -398,11 +398,10 @@ namespace AICam.AvatarBuilder
                     smr.rootBone = hips;
                 }
 
-                // BindPoseを再計算
-                if (smr.bones != null && smr.bones.Length > 0 && smr.sharedMesh != null)
-                {
-                    RebuildBindPoses(smr, hips);
-                }
+                // NOTE: BindPoseの再計算は行わない
+                // TriLibが生成したBindPoseは、FBXの元のバインドポーズを保持しているため、
+                // 再計算すると現在のボーン変形を記録してしまい、モデルが大きく歪む
+                Debug.Log($"[RuntimeHumanoidAvatarBuilder] Preserving original BindPoses for {smr.name}");
             }
         }
 
