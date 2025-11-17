@@ -425,6 +425,7 @@ namespace AICam.FBXLoader
             List<UnityEngine.Vector3> combinedNormals = new List<UnityEngine.Vector3>();
             List<UnityEngine.Vector2> combinedUVs = new List<UnityEngine.Vector2>();
             List<int> combinedTriangles = new List<int>();
+            List<UnityEngine.BoneWeight> combinedBoneWeights = new List<UnityEngine.BoneWeight>();
             int vertexOffset = 0;
             bool hasNormals = false;
 
@@ -515,6 +516,63 @@ namespace AICam.FBXLoader
                 vertexOffset += assimpMesh.VertexCount;
             }
 
+            // BoneWeightsをロード（最初のメッシュのボーン構造を使用）
+            if (node.MeshCount > 0)
+            {
+                int assimpMeshIndex = node.MeshIndices[0];
+                Assimp.Mesh assimpMesh = currentScene.Meshes[assimpMeshIndex];
+
+                if (assimpMesh.HasBones)
+                {
+                    // 頂点数分のBoneWeight配列を初期化
+                    UnityEngine.BoneWeight[] boneWeights = new UnityEngine.BoneWeight[combinedVertices.Count];
+
+                    // 各ボーンのウェイトデータを処理
+                    for (int boneIndex = 0; boneIndex < assimpMesh.BoneCount; boneIndex++)
+                    {
+                        Assimp.Bone bone = assimpMesh.Bones[boneIndex];
+
+                        // このボーンが影響する全頂点を処理
+                        foreach (var vertexWeight in bone.VertexWeights)
+                        {
+                            int vertexIndex = vertexWeight.VertexID;
+                            float weight = vertexWeight.Weight;
+
+                            // 頂点範囲チェック
+                            if (vertexIndex >= boneWeights.Length)
+                                continue;
+
+                            // BoneWeightに追加（最大4つまで）
+                            ref UnityEngine.BoneWeight bw = ref boneWeights[vertexIndex];
+
+                            if (bw.weight0 == 0f)
+                            {
+                                bw.boneIndex0 = boneIndex;
+                                bw.weight0 = weight;
+                            }
+                            else if (bw.weight1 == 0f)
+                            {
+                                bw.boneIndex1 = boneIndex;
+                                bw.weight1 = weight;
+                            }
+                            else if (bw.weight2 == 0f)
+                            {
+                                bw.boneIndex2 = boneIndex;
+                                bw.weight2 = weight;
+                            }
+                            else if (bw.weight3 == 0f)
+                            {
+                                bw.boneIndex3 = boneIndex;
+                                bw.weight3 = weight;
+                            }
+                        }
+                    }
+
+                    combinedBoneWeights.AddRange(boneWeights);
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}   BoneWeights: {boneWeights.Length} vertices");
+                }
+            }
+
             // Unity Meshを作成
             UnityEngine.Mesh unityMesh = new UnityEngine.Mesh();
             unityMesh.name = $"{node.Name}_Mesh";
@@ -530,6 +588,13 @@ namespace AICam.FBXLoader
             else
             {
                 unityMesh.RecalculateNormals();
+            }
+
+            // BoneWeightsを設定
+            if (combinedBoneWeights.Count > 0)
+            {
+                unityMesh.boneWeights = combinedBoneWeights.ToArray();
+                UnityEngine.Debug.Log($"{LOG_PREFIX}   BoneWeights assigned: {combinedBoneWeights.Count}");
             }
 
             // バウンディングボックスを再計算
