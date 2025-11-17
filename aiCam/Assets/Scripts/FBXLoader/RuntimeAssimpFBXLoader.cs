@@ -14,7 +14,7 @@ namespace AICam.FBXLoader
         private const string LOG_PREFIX = "[RuntimeAssimpFBXLoader]";
 
         // 座標系変換行列（FBXごとに自動検出）
-        private Matrix4x4 coordinateConversionMatrix = Matrix4x4.identity;
+        private UnityEngine.Matrix4x4 coordinateConversionMatrix = UnityEngine.Matrix4x4.identity;
         private FbxCoordProfile coordProfile;
 
         /// <summary>

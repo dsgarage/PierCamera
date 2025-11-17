@@ -143,7 +143,7 @@ namespace AICam.FBXLoader
         /// <summary>
         /// FBX座標系プロファイルからUnity座標系への変換行列を構築
         /// </summary>
-        public static Matrix4x4 BuildConversionMatrix(FbxCoordProfile profile)
+        public static UnityEngine.Matrix4x4 BuildConversionMatrix(FbxCoordProfile profile)
         {
             // Unity は 左手系・Y-up・Z forward
             // FBX は 右手系・可変
@@ -151,16 +151,16 @@ namespace AICam.FBXLoader
             Debug.Log($"{LOG_PREFIX} Building conversion matrix for profile: {profile.profileName}");
 
             // FBX基準軸からの変換行列を構築
-            Matrix4x4 fromFBX = new Matrix4x4();
+            UnityEngine.Matrix4x4 fromFBX = new UnityEngine.Matrix4x4();
             fromFBX.SetColumn(0, new Vector4(profile.right.x, profile.right.y, profile.right.z, 0));
             fromFBX.SetColumn(1, new Vector4(profile.up.x, profile.up.y, profile.up.z, 0));
             fromFBX.SetColumn(2, new Vector4(profile.front.x, profile.front.y, profile.front.z, 0));
             fromFBX.m33 = 1;
 
             // 右手系 → 左手系への変換（Z軸反転）
-            Matrix4x4 flipHanded = Matrix4x4.Scale(new Vector3(1, 1, -1));
+            UnityEngine.Matrix4x4 flipHanded = UnityEngine.Matrix4x4.Scale(new Vector3(1, 1, -1));
 
-            Matrix4x4 conversion = flipHanded * fromFBX;
+            UnityEngine.Matrix4x4 conversion = flipHanded * fromFBX;
 
             Debug.Log($"{LOG_PREFIX} Conversion matrix:");
             Debug.Log($"{LOG_PREFIX}   {conversion.GetRow(0)}");
@@ -173,7 +173,7 @@ namespace AICam.FBXLoader
         /// <summary>
         /// Assimp Matrix4x4をUnity Matrix4x4に変換（座標系変換適用）
         /// </summary>
-        public static UnityEngine.Matrix4x4 ConvertAssimpMatrix(Assimp.Matrix4x4 assimpMatrix, Matrix4x4 conversionMatrix)
+        public static UnityEngine.Matrix4x4 ConvertAssimpMatrix(Assimp.Matrix4x4 assimpMatrix, UnityEngine.Matrix4x4 conversionMatrix)
         {
             // Assimp Matrix → Unity Matrix
             UnityEngine.Matrix4x4 unityMatrix = new UnityEngine.Matrix4x4();
@@ -194,7 +194,7 @@ namespace AICam.FBXLoader
         /// <summary>
         /// Assimpベクトルを座標系変換してUnity Vector3に変換
         /// </summary>
-        public static Vector3 ConvertVector(Assimp.Vector3D assimpVec, Matrix4x4 conversionMatrix)
+        public static Vector3 ConvertVector(Assimp.Vector3D assimpVec, UnityEngine.Matrix4x4 conversionMatrix)
         {
             Vector3 vec = new Vector3(assimpVec.X, assimpVec.Y, assimpVec.Z);
             return conversionMatrix.MultiplyPoint3x4(vec);
@@ -203,7 +203,7 @@ namespace AICam.FBXLoader
         /// <summary>
         /// Assimp Quaternionを座標系変換してUnity Quaternionに変換
         /// </summary>
-        public static UnityEngine.Quaternion ConvertQuaternion(Assimp.Quaternion assimpQuat, Matrix4x4 conversionMatrix)
+        public static UnityEngine.Quaternion ConvertQuaternion(Assimp.Quaternion assimpQuat, UnityEngine.Matrix4x4 conversionMatrix)
         {
             UnityEngine.Quaternion quat = new UnityEngine.Quaternion(assimpQuat.X, assimpQuat.Y, assimpQuat.Z, assimpQuat.W);
 
