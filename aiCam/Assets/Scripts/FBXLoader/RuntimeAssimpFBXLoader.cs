@@ -19,8 +19,8 @@ namespace AICam.FBXLoader
         private FbxCoordProfile coordProfile;
         private bool shouldFlipTriangleWinding = false;
 
-        // ノード名→Transform のマップ
-        private Dictionary<string, Transform> nodeNameToTransform = new Dictionary<string, Transform>();
+        // Assimpノードオブジェクト→Transform のマップ（名前の重複に対応）
+        private Dictionary<Node, Transform> nodeToTransform = new Dictionary<Node, Transform>();
 
         // Assimp Scene
         private Scene currentScene;
@@ -87,8 +87,8 @@ namespace AICam.FBXLoader
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Should Flip Triangle Winding: {shouldFlipTriangleWinding}");
             UnityEngine.Debug.Log($"{LOG_PREFIX} === End Global Settings ===");
 
-            // ノード名マップをクリア
-            nodeNameToTransform.Clear();
+            // ノードマップをクリア
+            nodeToTransform.Clear();
 
             // ルートGameObjectを作成
             string objName = string.IsNullOrEmpty(rootName) ? Path.GetFileNameWithoutExtension(fbxPath) : rootName;
@@ -118,11 +118,9 @@ namespace AICam.FBXLoader
             // Transform情報を設定（Assimpの行列をUnityに変換）
             SetTransformFromAssimpMatrix(nodeObject.transform, node.Transform);
 
-            // ノード名→Transformマップに追加（メッシュロード時に使用）
-            if (!nodeNameToTransform.ContainsKey(node.Name))
-            {
-                nodeNameToTransform[node.Name] = nodeObject.transform;
-            }
+            // Assimpノード→Transformマップに追加（メッシュロード時に使用）
+            // ノードオブジェクト自体をキーにすることで名前重複を解決
+            nodeToTransform[node] = nodeObject.transform;
 
             // 一定の深さごとにフレームを譲る（UIフリーズ防止）
             if (depth % 10 == 0)
@@ -406,8 +404,8 @@ namespace AICam.FBXLoader
             // このノードがメッシュを持っている場合
             if (node.MeshCount > 0)
             {
-                // ノード名に対応するTransformを取得
-                if (nodeNameToTransform.TryGetValue(node.Name, out Transform nodeTransform))
+                // Assimpノードに対応するTransformを取得（ノードオブジェクトをキーに使用）
+                if (nodeToTransform.TryGetValue(node, out Transform nodeTransform))
                 {
                     UnityEngine.Debug.Log($"{LOG_PREFIX} Processing mesh node: {node.Name} with {node.MeshCount} mesh(es)");
 
