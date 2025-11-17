@@ -4,6 +4,8 @@ using Cysharp.Threading.Tasks;
 using AICam.VRM;
 using VRM;
 using UniGLTF;
+using TriLibCore;
+using TriLibCore.General;
 
 namespace AICam.FBXLoader
 {
@@ -25,6 +27,9 @@ namespace AICam.FBXLoader
         [Header("Animation")]
         [SerializeField] private RuntimeAnimatorController animatorController;
         [SerializeField] private string initialStateName = "Idle";
+
+        [Header("TriLib Settings")]
+        [SerializeField] private TriLibCore.Mappers.HumanoidAvatarMapper humanoidAvatarMapper;
 
         private RuntimeGltfInstance currentInstance;
         private GameObject currentModel;
@@ -61,23 +66,47 @@ namespace AICam.FBXLoader
                 return;
             }
 
-            Debug.Log($"[RuntimeFBXLoaderBridge] Starting VRM load: {browser.SelectedPath}");
+            // 既存のモデルを削除
+            ClearCurrentModel();
 
+            // 進捗レポート
+            onProgress?.Invoke(10f);
+
+            // ファイルの存在確認
+            if (!System.IO.File.Exists(browser.SelectedPath))
+            {
+                Debug.LogError($"[RuntimeFBXLoaderBridge] File not found: {browser.SelectedPath}");
+                onComplete?.Invoke(false);
+                return;
+            }
+
+            // ファイル拡張子で判定
+            string extension = System.IO.Path.GetExtension(browser.SelectedPath).ToLower();
+            Debug.Log($"[RuntimeFBXLoaderBridge] Loading file with extension: {extension}");
+
+            if (extension == ".vrm")
+            {
+                await LoadVRMFile(onProgress, onComplete);
+            }
+            else if (extension == ".fbx")
+            {
+                await LoadFBXFile(onProgress, onComplete);
+            }
+            else
+            {
+                Debug.LogError($"[RuntimeFBXLoaderBridge] Unsupported file extension: {extension}");
+                onComplete?.Invoke(false);
+            }
+        }
+
+        /// <summary>
+        /// VRMファイルをロード
+        /// </summary>
+        private async UniTask LoadVRMFile(Action<float> onProgress, Action<bool> onComplete)
+        {
             try
             {
-                // 既存のモデルを削除
-                ClearCurrentModel();
-
-                // 進捗レポート
-                onProgress?.Invoke(10f);
-
-                // ファイルの存在確認
-                if (!System.IO.File.Exists(browser.SelectedPath))
-                {
-                    Debug.LogError($"[RuntimeFBXLoaderBridge] File not found: {browser.SelectedPath}");
-                    onComplete?.Invoke(false);
-                    return;
-                }
+                Debug.Log($"[RuntimeFBXLoaderBridge] Starting VRM load: {browser.SelectedPath}");
 
                 onProgress?.Invoke(20f);
 
@@ -137,6 +166,104 @@ namespace AICam.FBXLoader
         }
 
         /// <summary>
+        /// FBXファイルをロード（TriLib使用）
+        /// </summary>
+        private async UniTask LoadFBXFile(Action<float> onProgress, Action<bool> onComplete)
+        {
+            try
+            {
+                Debug.Log($"[RuntimeFBXLoaderBridge] Starting FBX load: {browser.SelectedPath}");
+
+                onProgress?.Invoke(20f);
+
+                // TriLibのロードオプションを作成
+                var assetLoaderOptions = AssetLoader.CreateDefaultLoaderOptions(false, true);
+                assetLoaderOptions.AnimationType = AnimationType.Humanoid;
+
+                // HumanoidAvatarMapperが設定されていれば使用
+                if (humanoidAvatarMapper != null)
+                {
+                    assetLoaderOptions.HumanoidAvatarMapper = humanoidAvatarMapper;
+                    Debug.Log("[RuntimeFBXLoaderBridge] Using HumanoidAvatarMapper");
+                }
+                else
+                {
+                    Debug.LogWarning("[RuntimeFBXLoaderBridge] HumanoidAvatarMapper not assigned - Avatar may not be created properly");
+                }
+
+                bool loadComplete = false;
+                bool loadSuccess = false;
+                float currentProgress = 20f;
+
+                // TriLibでFBXをロード
+                Transform parent = modelParent != null ? modelParent : transform;
+
+                AssetLoader.LoadModelFromFile(
+                    path: browser.SelectedPath,
+                    onLoad: (assetLoaderContext) =>
+                    {
+                        Debug.Log("[RuntimeFBXLoaderBridge] FBX meshes loaded");
+                        onProgress?.Invoke(70f);
+                    },
+                    onMaterialsLoad: (assetLoaderContext) =>
+                    {
+                        Debug.Log("[RuntimeFBXLoaderBridge] FBX materials loaded");
+                        currentModel = assetLoaderContext.RootGameObject;
+
+                        if (currentModel != null)
+                        {
+                            Debug.Log($"[RuntimeFBXLoaderBridge] FBX root: {currentModel.name}");
+
+                            // モデルを配置
+                            PlaceModel(currentModel);
+
+                            // アニメーションの設定
+                            SetupAnimator(currentModel);
+
+                            onProgress?.Invoke(100f);
+                            loadSuccess = true;
+                        }
+                        else
+                        {
+                            Debug.LogError("[RuntimeFBXLoaderBridge] Failed to load FBX: RootGameObject is null");
+                            loadSuccess = false;
+                        }
+
+                        loadComplete = true;
+                    },
+                    onProgress: (assetLoaderContext, progress) =>
+                    {
+                        currentProgress = 20f + (progress * 50f);
+                        onProgress?.Invoke(currentProgress);
+                    },
+                    onError: (contextualizedError) =>
+                    {
+                        Debug.LogError($"[RuntimeFBXLoaderBridge] FBX load error: {contextualizedError}");
+                        loadSuccess = false;
+                        loadComplete = true;
+                    },
+                    wrapperGameObject: parent.gameObject,
+                    assetLoaderOptions: assetLoaderOptions
+                );
+
+                // ロード完了を待機
+                while (!loadComplete)
+                {
+                    await UniTask.Yield();
+                }
+
+                Debug.Log($"[RuntimeFBXLoaderBridge] FBX load completed. Success: {loadSuccess}");
+                onComplete?.Invoke(loadSuccess);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[RuntimeFBXLoaderBridge] FBX load failed: {e.Message}");
+                Debug.LogException(e);
+                onComplete?.Invoke(false);
+            }
+        }
+
+        /// <summary>
         /// モデルを配置
         /// </summary>
         private void PlaceModel(GameObject model)
@@ -168,7 +295,13 @@ namespace AICam.FBXLoader
         /// </summary>
         private void SetupAnimator(GameObject model)
         {
-            if (model == null) return;
+            if (model == null)
+            {
+                Debug.LogWarning("[RuntimeFBXLoaderBridge] SetupAnimator: model is null");
+                return;
+            }
+
+            Debug.Log($"[RuntimeFBXLoaderBridge] SetupAnimator called for model: {model.name}");
 
             var animator = model.GetComponent<Animator>();
             if (animator == null)
@@ -176,11 +309,37 @@ namespace AICam.FBXLoader
                 animator = model.AddComponent<Animator>();
                 Debug.Log("[RuntimeFBXLoaderBridge] Added Animator component");
             }
+            else
+            {
+                Debug.Log($"[RuntimeFBXLoaderBridge] Found existing Animator component. Current controller: {(animator.runtimeAnimatorController != null ? animator.runtimeAnimatorController.name : "null")}");
+            }
+
+            // Avatarのチェック
+            if (animator.avatar != null)
+            {
+                Debug.Log($"[RuntimeFBXLoaderBridge] Avatar is assigned: {animator.avatar.name}, IsValid: {animator.avatar.isValid}, IsHuman: {animator.avatar.isHuman}");
+            }
+            else
+            {
+                Debug.LogWarning("[RuntimeFBXLoaderBridge] ⚠ Avatar is NOT assigned! Humanoid animation will not work.");
+            }
+
+            Debug.Log($"[RuntimeFBXLoaderBridge] animatorController field is: {(animatorController != null ? animatorController.name : "NULL - NOT ASSIGNED IN INSPECTOR!")}");
 
             if (animatorController != null)
             {
                 animator.runtimeAnimatorController = animatorController;
-                Debug.Log($"[RuntimeFBXLoaderBridge] Set animator controller: {animatorController.name}");
+                Debug.Log($"[RuntimeFBXLoaderBridge] ✓ Set animator controller: {animatorController.name}");
+
+                // Animator設定後の確認
+                if (animator.runtimeAnimatorController == animatorController)
+                {
+                    Debug.Log($"[RuntimeFBXLoaderBridge] ✓ Animator controller successfully applied");
+                }
+                else
+                {
+                    Debug.LogError($"[RuntimeFBXLoaderBridge] ✗ Failed to apply animator controller!");
+                }
 
                 // 初期ステートの再生
                 if (!string.IsNullOrEmpty(initialStateName))
@@ -191,7 +350,7 @@ namespace AICam.FBXLoader
             }
             else
             {
-                Debug.LogWarning("[RuntimeFBXLoaderBridge] Animator controller not assigned");
+                Debug.LogWarning("[RuntimeFBXLoaderBridge] ⚠ Animator controller NOT assigned in Inspector! Please assign AnimatorController in RuntimeFBXLoaderBridge component.");
             }
         }
 

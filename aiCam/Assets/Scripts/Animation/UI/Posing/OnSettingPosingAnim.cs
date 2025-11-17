@@ -2,7 +2,9 @@ using UnityEngine;
 using DG.Tweening;
 using Cysharp.Threading.Tasks;
 
-public class OnSettingPosingAnim : IAnimation
+namespace AICam.Animation
+{
+    public class OnSettingPosingAnim : IAnimation
 {
     readonly RectTransform target;
     readonly float startY;
@@ -59,5 +61,6 @@ public class OnSettingPosingAnim : IAnimation
         {
             tween = null;
         }
+    }
     }
 }

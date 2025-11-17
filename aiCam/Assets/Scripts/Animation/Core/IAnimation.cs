@@ -1,9 +1,12 @@
 using Cysharp.Threading.Tasks;
 
-/// <summary>
-/// アニメーションのインターフェースクラス
-/// </summary>
-public interface IAnimation
+namespace AICam.Animation
 {
-    UniTask PlayAsync();
+    /// <summary>
+    /// アニメーションのインターフェースクラス
+    /// </summary>
+    public interface IAnimation
+    {
+        UniTask PlayAsync();
+    }
 }

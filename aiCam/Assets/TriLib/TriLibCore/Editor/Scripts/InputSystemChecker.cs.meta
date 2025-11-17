@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 79f3af1ab1f91a04cbccc4dab796fb62
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 157548
+  packageName: TriLib 2 - Model Loading Package
+  packageVersion: 2.5.7
+  assetPath: Assets/TriLib/TriLibCore/Editor/Scripts/InputSystemChecker.cs
+  uploadId: 812130

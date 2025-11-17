@@ -2,9 +2,11 @@ using UnityEngine;
 using DG.Tweening;
 using Cysharp.Threading.Tasks;
 
-public class OnSettingExpressionAnim : IAnimation
+namespace AICam.Animation
 {
-    readonly RectTransform target;
+    public class OnSettingExpressionAnim : IAnimation
+    {
+        readonly RectTransform target;
     readonly float startY;
     readonly float endY;
     readonly float duration;
@@ -59,5 +61,6 @@ public class OnSettingExpressionAnim : IAnimation
         {
             tween = null;
         }
+    }
     }
 }

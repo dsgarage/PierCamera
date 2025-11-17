@@ -1,0 +1,5 @@
+﻿2.5.7
+Changelog:
+-Fixed incompatibilities with Unity 6 Beta and added Unity 6-compatible managed plugins.
+-Fixed material mapper assignment based on the render pipeline.
+-Added a warning prompting users to update their input module when using the new Input System package.
