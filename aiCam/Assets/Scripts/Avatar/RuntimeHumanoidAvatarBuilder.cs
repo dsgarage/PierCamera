@@ -63,8 +63,16 @@ namespace AICam.AvatarBuilder
             // ⑤ T-ポーズ角度チェック
             CheckTPose(map, modelName);
 
-            // ⑥ Avatar 組み立て
-            return BuildHumanoidAvatar(root, map, modelName);
+            // ⑤.5 ボーン変形を保存してバインドポーズ（identity）にリセット
+            var savedTransforms = SaveAndResetBoneTransforms(root);
+
+            // ⑥ Avatar 組み立て（バインドポーズで実行）
+            var avatar = BuildHumanoidAvatar(root, map, modelName);
+
+            // ⑦ ボーン変形を復元
+            RestoreBoneTransforms(savedTransforms);
+
+            return avatar;
         }
 
         // ───────────────────────────────────────────────────────────
@@ -452,6 +460,66 @@ namespace AICam.AvatarBuilder
             }
             Rec(root.transform);
             return list.ToArray();
+        }
+
+        // ───────────────────────────────────────────────────────────
+        // ボーン変形の保存・リセット・復元
+        // ───────────────────────────────────────────────────────────
+        private class TransformData
+        {
+            public Transform transform;
+            public Vector3 localPosition;
+            public Quaternion localRotation;
+            public Vector3 localScale;
+        }
+
+        private static List<TransformData> SaveAndResetBoneTransforms(GameObject root)
+        {
+            var savedTransforms = new List<TransformData>();
+            var allTransforms = root.GetComponentsInChildren<Transform>();
+
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Saving and resetting {allTransforms.Length} bone transforms to bind pose");
+
+            foreach (var t in allTransforms)
+            {
+                // 現在の変形を保存
+                savedTransforms.Add(new TransformData
+                {
+                    transform = t,
+                    localPosition = t.localPosition,
+                    localRotation = t.localRotation,
+                    localScale = t.localScale
+                });
+
+                // rootは位置を保持、他のボーンはidentityにリセット
+                if (t != root.transform)
+                {
+                    t.localRotation = Quaternion.identity;
+                    // localPositionとlocalScaleは維持（骨格構造を保持）
+                }
+            }
+
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] All bones reset to bind pose");
+            return savedTransforms;
+        }
+
+        private static void RestoreBoneTransforms(List<TransformData> savedTransforms)
+        {
+            if (savedTransforms == null) return;
+
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Restoring {savedTransforms.Count} bone transforms");
+
+            foreach (var data in savedTransforms)
+            {
+                if (data.transform != null)
+                {
+                    data.transform.localPosition = data.localPosition;
+                    data.transform.localRotation = data.localRotation;
+                    data.transform.localScale = data.localScale;
+                }
+            }
+
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] All bone transforms restored");
         }
     }
 }
