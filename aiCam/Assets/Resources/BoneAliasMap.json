@@ -1,0 +1,74 @@
+{
+    "Hips": ["Hips", "hips", "pelvis", "Hip", "root", "Root"],
+    "Spine": ["Spine", "spine", "spine_01", "spine1", "Spine1", "Spine01"],
+    "Chest": ["Chest", "chest", "spine_02", "spine2", "Spine2", "Spine02", "upperchest", "UpperChest"],
+    "Neck": ["Neck", "neck", "Neck_01", "neck1"],
+    "Head": ["Head", "head", "Head_01", "head1"],
+    
+    "LeftShoulder": ["LeftShoulder", "Shoulder.L", "shoulder.l", "Shoulder_L", "shoulder_l", "Left shoulder", "leftshoulder"],
+    "RightShoulder": ["RightShoulder", "Shoulder.R", "shoulder.r", "Shoulder_R", "shoulder_r", "Right shoulder", "rightshoulder"],
+    
+    "LeftUpperArm": ["LeftUpperArm", "Upper_arm.L", "upper_arm.l", "Upper Arm.L", "UpperArm_L", "upperarm_l", "Left arm", "leftarm", "LeftArm", "arm.l", "Arm.L"],
+    "RightUpperArm": ["RightUpperArm", "Upper_arm.R", "upper_arm.r", "Upper Arm.R", "UpperArm_R", "upperarm_r", "Right arm", "rightarm", "RightArm", "arm.r", "Arm.R"],
+    
+    "LeftLowerArm": ["LeftLowerArm", "Lower_arm.L", "lower_arm.l", "Lower Arm.L", "LowerArm_L", "lowerarm_l", "Left elbow", "leftelbow", "LeftElbow", "forearm.l", "Forearm.L", "LeftForeArm"],
+    "RightLowerArm": ["RightLowerArm", "Lower_arm.R", "lower_arm.r", "Lower Arm.R", "LowerArm_R", "lowerarm_r", "Right elbow", "rightelbow", "RightElbow", "forearm.r", "Forearm.R", "RightForeArm"],
+    
+    "LeftHand": ["LeftHand", "Hand.L", "hand.l", "Hand_L", "hand_l", "Left wrist", "leftwrist", "LeftWrist"],
+    "RightHand": ["RightHand", "Hand.R", "hand.r", "Hand_R", "hand_r", "Right wrist", "rightwrist", "RightWrist"],
+    
+    "LeftUpperLeg": ["LeftUpperLeg", "Upper_leg.L", "upper_leg.l", "Upper Leg.L", "UpperLeg_L", "upperleg_l", "Left leg", "leftleg", "LeftLeg", "thigh.l", "Thigh.L", "LeftThigh", "leg.l", "Leg.L"],
+    "RightUpperLeg": ["RightUpperLeg", "Upper_leg.R", "upper_leg.r", "Upper Leg.R", "UpperLeg_R", "upperleg_r", "Right leg", "rightleg", "RightLeg", "thigh.r", "Thigh.R", "RightThigh", "leg.r", "Leg.R"],
+    
+    "LeftLowerLeg": ["LeftLowerLeg", "Lower_leg.L", "lower_leg.l", "Lower Leg.L", "LowerLeg_L", "lowerleg_l", "Left knee", "leftknee", "LeftKnee", "calf.l", "Calf.L", "shin.l", "Shin.L"],
+    "RightLowerLeg": ["RightLowerLeg", "Lower_leg.R", "lower_leg.r", "Lower Leg.R", "LowerLeg_R", "lowerleg_r", "Right knee", "rightknee", "RightKnee", "calf.r", "Calf.R", "shin.r", "Shin.R"],
+    
+    "LeftFoot": ["LeftFoot", "Foot.L", "foot.l", "Foot_L", "foot_l", "Left ankle", "leftankle", "LeftAnkle", "Foot.L.001"],
+    "RightFoot": ["RightFoot", "Foot.R", "foot.r", "Foot_R", "foot_r", "Right ankle", "rightankle", "RightAnkle", "Foot.R.001"],
+    
+    "LeftToes": ["LeftToes", "Toe.L", "toe.l", "Toes.L", "toes.l", "Foot.L.002", "Left toe", "lefttoe", "LeftToe"],
+    "RightToes": ["RightToes", "Toe.R", "toe.r", "Toes.R", "toes.r", "Foot.R.002", "Right toe", "righttoe", "RightToe"],
+    
+    "LeftEye": ["LeftEye", "lefteye", "eye.l", "Eye.L"],
+    "RightEye": ["RightEye", "righteye", "eye.r", "Eye.R"],
+    
+    "LeftThumbProximal": ["LeftThumbProximal", "Thumb Proximal.L", "thumb_proximal.l", "Proximal Thumb.L", "ThumbProximal_L", "Thumb_Proximal_L"],
+    "LeftThumbIntermediate": ["LeftThumbIntermediate", "Thumb Intermediate.L", "thumb_intermediate.l", "Intermediate Thumb.L", "ThumbIntermediate_L", "Thumb_Intermediate_L"],
+    "LeftThumbDistal": ["LeftThumbDistal", "Thumb Distal.L", "thumb_distal.l", "Distal Thumb.L", "ThumbDistal_L", "Thumb_Distal_L"],
+    
+    "LeftIndexProximal": ["LeftIndexProximal", "Index Proximal.L", "index_proximal.l", "Proximal Index.L", "IndexProximal_L", "Index_Proximal_L"],
+    "LeftIndexIntermediate": ["LeftIndexIntermediate", "Index Intermediate.L", "index_intermediate.l", "Intermediate Index.L", "IndexIntermediate_L", "Index_Intermediate_L"],
+    "LeftIndexDistal": ["LeftIndexDistal", "Index Distal.L", "index_distal.l", "Distal Index.L", "IndexDistal_L", "Index_Distal_L"],
+    
+    "LeftMiddleProximal": ["LeftMiddleProximal", "Middle Proximal.L", "middle_proximal.l", "Proximal Middle.L", "MiddleProximal_L", "Middle_Proximal_L"],
+    "LeftMiddleIntermediate": ["LeftMiddleIntermediate", "Middle Intermediate.L", "middle_intermediate.l", "Intermediate Middle.L", "MiddleIntermediate_L", "Middle_Intermediate_L"],
+    "LeftMiddleDistal": ["LeftMiddleDistal", "Middle Distal.L", "middle_distal.l", "Distal Middle.L", "MiddleDistal_L", "Middle_Distal_L"],
+    
+    "LeftRingProximal": ["LeftRingProximal", "Ring Proximal.L", "ring_proximal.l", "Proximal Ring.L", "RingProximal_L", "Ring_Proximal_L"],
+    "LeftRingIntermediate": ["LeftRingIntermediate", "Ring Intermediate.L", "ring_intermediate.l", "Intermediate Ring.L", "RingIntermediate_L", "Ring_Intermediate_L"],
+    "LeftRingDistal": ["LeftRingDistal", "Ring Distal.L", "ring_distal.l", "Distal Ring.L", "RingDistal_L", "Ring_Distal_L"],
+    
+    "LeftLittleProximal": ["LeftLittleProximal", "Little Proximal.L", "little_proximal.l", "Proximal Little.L", "LittleProximal_L", "Little_Proximal_L"],
+    "LeftLittleIntermediate": ["LeftLittleIntermediate", "Little Intermediate.L", "little_intermediate.l", "Intermediate Little.L", "LittleIntermediate_L", "Little_Intermediate_L"],
+    "LeftLittleDistal": ["LeftLittleDistal", "Little Distal.L", "little_distal.l", "Distal Little.L", "LittleDistal_L", "Little_Distal_L"],
+    
+    "RightThumbProximal": ["RightThumbProximal", "Thumb Proximal.R", "thumb_proximal.r", "Proximal Thumb.R", "ThumbProximal_R", "Thumb_Proximal_R"],
+    "RightThumbIntermediate": ["RightThumbIntermediate", "Thumb Intermediate.R", "thumb_intermediate.r", "Intermediate Thumb.R", "ThumbIntermediate_R", "Thumb_Intermediate_R"],
+    "RightThumbDistal": ["RightThumbDistal", "Thumb Distal.R", "thumb_distal.r", "Distal Thumb.R", "ThumbDistal_R", "Thumb_Distal_R"],
+    
+    "RightIndexProximal": ["RightIndexProximal", "Index Proximal.R", "index_proximal.r", "Proximal Index.R", "IndexProximal_R", "Index_Proximal_R"],
+    "RightIndexIntermediate": ["RightIndexIntermediate", "Index Intermediate.R", "index_intermediate.r", "Intermediate Index.R", "IndexIntermediate_R", "Index_Intermediate_R"],
+    "RightIndexDistal": ["RightIndexDistal", "Index Distal.R", "index_distal.r", "Distal Index.R", "IndexDistal_R", "Index_Distal_R"],
+    
+    "RightMiddleProximal": ["RightMiddleProximal", "Middle Proximal.R", "middle_proximal.r", "Proximal Middle.R", "MiddleProximal_R", "Middle_Proximal_R"],
+    "RightMiddleIntermediate": ["RightMiddleIntermediate", "Middle Intermediate.R", "middle_intermediate.r", "Intermediate Middle.R", "MiddleIntermediate_R", "Middle_Intermediate_R"],
+    "RightMiddleDistal": ["RightMiddleDistal", "Middle Distal.R", "middle_distal.r", "Distal Middle.R", "MiddleDistal_R", "Middle_Distal_R"],
+    
+    "RightRingProximal": ["RightRingProximal", "Ring Proximal.R", "ring_proximal.r", "Proximal Ring.R", "RingProximal_R", "Ring_Proximal_R"],
+    "RightRingIntermediate": ["RightRingIntermediate", "Ring Intermediate.R", "ring_intermediate.r", "Intermediate Ring.R", "RingIntermediate_R", "Ring_Intermediate_R"],
+    "RightRingDistal": ["RightRingDistal", "Ring Distal.R", "ring_distal.r", "Distal Ring.R", "RingDistal_R", "Ring_Distal_R"],
+    
+    "RightLittleProximal": ["RightLittleProximal", "Little Proximal.R", "little_proximal.r", "Proximal Little.R", "LittleProximal_R", "Little_Proximal_R"],
+    "RightLittleIntermediate": ["RightLittleIntermediate", "Little Intermediate.R", "little_intermediate.r", "Intermediate Little.R", "LittleIntermediate_R", "Little_Intermediate_R"],
+    "RightLittleDistal": ["RightLittleDistal", "Little Distal.R", "little_distal.r", "Distal Little.R", "LittleDistal_R", "Little_Distal_R"]
+}

@@ -2,6 +2,7 @@ using UnityEngine;
 using System;
 using Cysharp.Threading.Tasks;
 using AICam.VRM;
+using AICam.Avatar;
 using VRM;
 using UniGLTF;
 using TriLibCore;
@@ -27,9 +28,6 @@ namespace AICam.FBXLoader
         [Header("Animation")]
         [SerializeField] private RuntimeAnimatorController animatorController;
         [SerializeField] private string initialStateName = "Idle";
-
-        [Header("TriLib Settings")]
-        [SerializeField] private TriLibCore.Mappers.HumanoidAvatarMapper humanoidAvatarMapper;
 
         private RuntimeGltfInstance currentInstance;
         private GameObject currentModel;
@@ -176,20 +174,9 @@ namespace AICam.FBXLoader
 
                 onProgress?.Invoke(20f);
 
-                // TriLibのロードオプションを作成
+                // TriLibのロードオプションを作成（Avatar生成はOFFにする）
                 var assetLoaderOptions = AssetLoader.CreateDefaultLoaderOptions(false, true);
-                assetLoaderOptions.AnimationType = AnimationType.Humanoid;
-
-                // HumanoidAvatarMapperが設定されていれば使用
-                if (humanoidAvatarMapper != null)
-                {
-                    assetLoaderOptions.HumanoidAvatarMapper = humanoidAvatarMapper;
-                    Debug.Log("[RuntimeFBXLoaderBridge] Using HumanoidAvatarMapper");
-                }
-                else
-                {
-                    Debug.LogWarning("[RuntimeFBXLoaderBridge] HumanoidAvatarMapper not assigned - Avatar may not be created properly");
-                }
+                assetLoaderOptions.AnimationType = AnimationType.None; // 変更: AvatarBuilderで生成するのでNoneにする
 
                 bool loadComplete = false;
                 bool loadSuccess = false;
@@ -203,7 +190,7 @@ namespace AICam.FBXLoader
                     onLoad: (assetLoaderContext) =>
                     {
                         Debug.Log("[RuntimeFBXLoaderBridge] FBX meshes loaded");
-                        onProgress?.Invoke(70f);
+                        onProgress?.Invoke(50f);
                     },
                     onMaterialsLoad: (assetLoaderContext) =>
                     {
@@ -217,11 +204,36 @@ namespace AICam.FBXLoader
                             // モデルを配置
                             PlaceModel(currentModel);
 
-                            // アニメーションの設定
-                            SetupAnimator(currentModel);
+                            // RuntimeHumanoidAvatarBuilderでAvatar生成
+                            onProgress?.Invoke(70f);
+                            var avatarBuilder = new RuntimeHumanoidAvatarBuilder();
+                            UnityEngine.Avatar avatar = avatarBuilder.CreateHumanoidAvatarFromFBX(currentModel.name, currentModel);
 
-                            onProgress?.Invoke(100f);
-                            loadSuccess = true;
+                            if (avatar != null)
+                            {
+                                Debug.Log("[RuntimeFBXLoaderBridge] ✓ Avatar created successfully with RuntimeHumanoidAvatarBuilder");
+
+                                // Animatorに設定
+                                var animator = currentModel.GetComponent<Animator>();
+                                if (animator == null)
+                                {
+                                    animator = currentModel.AddComponent<Animator>();
+                                }
+                                animator.avatar = avatar;
+
+                                onProgress?.Invoke(90f);
+
+                                // アニメーションの設定
+                                SetupAnimator(currentModel);
+
+                                onProgress?.Invoke(100f);
+                                loadSuccess = true;
+                            }
+                            else
+                            {
+                                Debug.LogError("[RuntimeFBXLoaderBridge] ✗ Failed to create Avatar with RuntimeHumanoidAvatarBuilder");
+                                loadSuccess = false;
+                            }
                         }
                         else
                         {
@@ -233,7 +245,7 @@ namespace AICam.FBXLoader
                     },
                     onProgress: (assetLoaderContext, progress) =>
                     {
-                        currentProgress = 20f + (progress * 50f);
+                        currentProgress = 20f + (progress * 30f);
                         onProgress?.Invoke(currentProgress);
                     },
                     onError: (contextualizedError) =>
