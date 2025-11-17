@@ -19,14 +19,12 @@ namespace AICam.FBXLoader
         private FbxCoordProfile coordProfile;
         private bool shouldFlipTriangleWinding = false;
 
-        // Assimpノードオブジェクト→Transform のマップ（名前の重複に対応）
-        private Dictionary<Node, Transform> nodeToTransform = new Dictionary<Node, Transform>();
-
         // Assimp Scene
         private Scene currentScene;
 
         /// <summary>
-        /// FBXファイルからボーン階層のみをロードしてGameObjectツリーを構築（非同期）
+        /// FBXファイルからボーン階層をロードしてGameObjectツリーを構築（非同期）
+        /// v0.4.0以降: メッシュも階層構築時に即座に処理（辞書ルックアップ不使用）
         /// </summary>
         /// <param name="fbxPath">FBXファイルのパス</param>
         /// <param name="rootName">ルートGameObjectの名前</param>
@@ -87,14 +85,11 @@ namespace AICam.FBXLoader
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Should Flip Triangle Winding: {shouldFlipTriangleWinding}");
             UnityEngine.Debug.Log($"{LOG_PREFIX} === End Global Settings ===");
 
-            // ノードマップをクリア
-            nodeToTransform.Clear();
-
             // ルートGameObjectを作成
             string objName = string.IsNullOrEmpty(rootName) ? Path.GetFileNameWithoutExtension(fbxPath) : rootName;
             GameObject rootObject = new GameObject(objName);
 
-            // ノード階層をGameObject階層に変換（ボーンのみ）
+            // ノード階層をGameObject階層に変換（メッシュも即座に処理）
             await BuildBoneHierarchyAsync(scene.RootNode, rootObject.transform, scene);
 
             UnityEngine.Debug.Log($"{LOG_PREFIX} Bone hierarchy built successfully");
@@ -105,6 +100,7 @@ namespace AICam.FBXLoader
 
         /// <summary>
         /// Assimpノード階層をGameObject階層に再帰的に変換（非同期版）
+        /// メッシュを持つノードは即座に処理（辞書ルックアップを使用しない）
         /// </summary>
         private async UniTask BuildBoneHierarchyAsync(Node node, Transform parentTransform, Scene scene, int depth = 0)
         {
@@ -118,9 +114,16 @@ namespace AICam.FBXLoader
             // Transform情報を設定（Assimpの行列をUnityに変換）
             SetTransformFromAssimpMatrix(nodeObject.transform, node.Transform);
 
-            // Assimpノード→Transformマップに追加（メッシュロード時に使用）
-            // ノードオブジェクト自体をキーにすることで名前重複を解決
-            nodeToTransform[node] = nodeObject.transform;
+            // このノードがメッシュを持っている場合、即座に処理
+            if (node.MeshCount > 0)
+            {
+                string hierarchyPath = GetTransformPath(nodeObject.transform);
+                UnityEngine.Debug.Log($"{LOG_PREFIX} Processing mesh node: {node.Name} with {node.MeshCount} mesh(es)");
+                UnityEngine.Debug.Log($"{LOG_PREFIX}   → Attaching to GameObject: {hierarchyPath}");
+
+                await LoadMeshesForNodeAsync(node, nodeObject.transform);
+                await UniTask.Yield(); // メッシュ処理後にフレームを譲る
+            }
 
             // 一定の深さごとにフレームを譲る（UIフリーズ防止）
             if (depth % 10 == 0)
@@ -166,6 +169,26 @@ namespace AICam.FBXLoader
             {
                 LogHierarchy(child, depth + 1);
             }
+        }
+
+        /// <summary>
+        /// Transformの階層パスを取得（例: "kyoko/RootNode/Armature/Hair"）
+        /// </summary>
+        private string GetTransformPath(Transform transform)
+        {
+            if (transform == null)
+                return "";
+
+            string path = transform.name;
+            Transform current = transform.parent;
+
+            while (current != null)
+            {
+                path = current.name + "/" + path;
+                current = current.parent;
+            }
+
+            return path;
         }
 
         /// <summary>
@@ -361,7 +384,9 @@ namespace AICam.FBXLoader
         private Transform cachedRootBone;
 
         /// <summary>
-        /// Assimpシーンからメッシュデータをロードして、対応するノードにSkinnedMeshRendererを追加（非同期）
+        /// メッシュロード（後方互換性のため残す）
+        /// v0.4.0以降: メッシュは BuildBoneHierarchyAsync() 内でインライン処理されるため、
+        /// このメソッドは何もしない（rootBoneの更新のみ）
         /// </summary>
         /// <param name="rootObject">ルートGameObject</param>
         public async UniTask LoadMeshes(GameObject rootObject)
@@ -372,60 +397,16 @@ namespace AICam.FBXLoader
                 return;
             }
 
-            if (currentScene.MeshCount == 0)
-            {
-                UnityEngine.Debug.LogWarning($"{LOG_PREFIX} No meshes found in scene.");
-                return;
-            }
+            UnityEngine.Debug.Log($"{LOG_PREFIX} LoadMeshes() called - meshes already processed during hierarchy build");
 
-            UnityEngine.Debug.Log($"{LOG_PREFIX} === Loading Meshes ===");
-            UnityEngine.Debug.Log($"{LOG_PREFIX} Total meshes in scene: {currentScene.MeshCount}");
-
-            // STEP 5: rootBoneを決定（Hips）
+            // STEP 5: rootBoneを決定（将来のスキニング実装用）
             cachedRootBone = FindRootBone(rootObject.transform);
+            if (cachedRootBone != null)
+            {
+                UnityEngine.Debug.Log($"{LOG_PREFIX} Root bone found: {cachedRootBone.name}");
+            }
 
             await UniTask.Yield();
-
-            // シーンのノード階層を再帰的に探索してメッシュを持つノードを処理
-            await ProcessMeshNodesAsync(currentScene.RootNode, rootObject.transform);
-
-            UnityEngine.Debug.Log($"{LOG_PREFIX} === Mesh Loading Complete ===");
-        }
-
-
-        /// <summary>
-        /// ノード階層を再帰的に探索してメッシュを持つノードを処理（非同期版）
-        /// </summary>
-        private async UniTask ProcessMeshNodesAsync(Node node, Transform rootTransform)
-        {
-            if (node == null)
-                return;
-
-            // このノードがメッシュを持っている場合
-            if (node.MeshCount > 0)
-            {
-                // Assimpノードに対応するTransformを取得（ノードオブジェクトをキーに使用）
-                if (nodeToTransform.TryGetValue(node, out Transform nodeTransform))
-                {
-                    UnityEngine.Debug.Log($"{LOG_PREFIX} Processing mesh node: {node.Name} with {node.MeshCount} mesh(es)");
-
-                    // このノードに含まれる全メッシュをロード（サブメッシュとして）
-                    await LoadMeshesForNodeAsync(node, nodeTransform);
-
-                    // 各メッシュ処理後にフレームを譲る
-                    await UniTask.Yield();
-                }
-                else
-                {
-                    UnityEngine.Debug.LogWarning($"{LOG_PREFIX} Transform not found for mesh node: {node.Name}");
-                }
-            }
-
-            // 子ノードを再帰的に処理
-            for (int i = 0; i < node.ChildCount; i++)
-            {
-                await ProcessMeshNodesAsync(node.Children[i], rootTransform);
-            }
         }
 
         /// <summary>
