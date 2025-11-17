@@ -41,6 +41,53 @@ namespace AICam.DebugTools
             }
         }
 
+        private void Update()
+        {
+            // Game viewで骨格を描画（Debug.DrawLine使用）
+            if (!showBoneHierarchy)
+                return;
+
+            if (rootBone == null)
+                return;
+
+            // Humanoidボーンマップを構築
+            if (showHumanoidBones && animator != null && animator.avatar != null && animator.avatar.isHuman)
+            {
+                BuildHumanoidBoneMap();
+            }
+
+            // ボーン階層をDebug.DrawLineで描画
+            DrawBoneRuntimeRecursive(rootBone);
+        }
+
+        private void DrawBoneRuntimeRecursive(Transform bone)
+        {
+            if (bone == null)
+                return;
+
+            bool isHumanoidBone = humanoidBoneMap != null && humanoidBoneMap.ContainsValue(bone);
+            bool isRootBone = bone == rootBone;
+
+            // ボーンの色を決定
+            Color boneColor = boneLineColor;
+            if (isRootBone)
+                boneColor = rootBoneColor;
+            else if (isHumanoidBone && showHumanoidBones)
+                boneColor = humanoidBoneColor;
+
+            // 親への線を描画（Game view用）
+            if (bone.parent != null && showBoneHierarchy)
+            {
+                Debug.DrawLine(bone.position, bone.parent.position, boneColor);
+            }
+
+            // 子ボーンへ再帰
+            foreach (Transform child in bone)
+            {
+                DrawBoneRuntimeRecursive(child);
+            }
+        }
+
         private void OnDrawGizmos()
         {
             if (!showBoneHierarchy && !showHumanoidBones)
