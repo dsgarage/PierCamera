@@ -13,6 +13,10 @@ namespace AICam.FBXLoader
     {
         private const string LOG_PREFIX = "[RuntimeAssimpFBXLoader]";
 
+        // 座標系変換行列（FBXごとに自動検出）
+        private Matrix4x4 coordinateConversionMatrix = Matrix4x4.identity;
+        private FbxCoordProfile coordProfile;
+
         /// <summary>
         /// FBXファイルからボーン階層のみをロードしてGameObjectツリーを構築
         /// </summary>
@@ -43,6 +47,11 @@ namespace AICam.FBXLoader
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Meshes: {scene.MeshCount}");
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Materials: {scene.MaterialCount}");
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Animations: {scene.AnimationCount}");
+
+            // FBX座標系を自動検出
+            coordProfile = FbxCoordinateSystemDetector.ExtractFbxCoordProfile(scene);
+            coordinateConversionMatrix = FbxCoordinateSystemDetector.BuildConversionMatrix(coordProfile);
+            UnityEngine.Debug.Log($"{LOG_PREFIX} Using coordinate profile: {coordProfile}");
 
             // ルートGameObjectを作成
             string objName = string.IsNullOrEmpty(rootName) ? Path.GetFileNameWithoutExtension(fbxPath) : rootName;
@@ -85,7 +94,7 @@ namespace AICam.FBXLoader
         }
 
         /// <summary>
-        /// AssimpのMatrix4x4からUnityのTransformに変換
+        /// AssimpのMatrix4x4からUnityのTransformに変換（座標系変換適用）
         /// </summary>
         private void SetTransformFromAssimpMatrix(Transform transform, Assimp.Matrix4x4 assimpMatrix)
         {
@@ -95,30 +104,10 @@ namespace AICam.FBXLoader
             Assimp.Vector3D position;
             assimpMatrix.Decompose(out scale, out rotation, out position);
 
-            // UnityのTransformに設定
-            transform.localPosition = ConvertVector(position);
-            transform.localRotation = ConvertQuaternion(rotation);
-            transform.localScale = ConvertVector(scale);
-        }
-
-        /// <summary>
-        /// AssimpのVector3DをUnityのVector3に変換
-        /// </summary>
-        private UnityEngine.Vector3 ConvertVector(Assimp.Vector3D v)
-        {
-            // Assimpの座標系: 右手系 (X=右, Y=上, Z=前)
-            // Unityの座標系: 左手系 (X=右, Y=上, Z=前)
-            // → そのまま変換（座標系は一致）
-            return new UnityEngine.Vector3(v.X, v.Y, v.Z);
-        }
-
-        /// <summary>
-        /// AssimpのQuaternionをUnityのQuaternionに変換
-        /// </summary>
-        private UnityEngine.Quaternion ConvertQuaternion(Assimp.Quaternion q)
-        {
-            // Assimpの回転をそのまま使用（座標系変換なし）
-            return new UnityEngine.Quaternion(q.X, q.Y, q.Z, q.W);
+            // 座標系変換を適用してUnityのTransformに設定
+            transform.localPosition = FbxCoordinateSystemDetector.ConvertVector(position, coordinateConversionMatrix);
+            transform.localRotation = FbxCoordinateSystemDetector.ConvertQuaternion(rotation, coordinateConversionMatrix);
+            transform.localScale = new UnityEngine.Vector3(scale.X, scale.Y, scale.Z); // スケールは変換不要
         }
 
         /// <summary>
