@@ -184,14 +184,10 @@ namespace AICam.FBXLoader
                 // ===== BindPose破壊を防ぐための重要設定 =====
                 assetLoaderOptions.AnimationType = AnimationType.Humanoid; // Humanoidに設定してSkinnedMeshRendererを生成
 
-                // Mesh・Bone構造を保持（最優先）
-                assetLoaderOptions.EnsureMeshesAreReadable = true;  // Runtime Skin操作用
-                assetLoaderOptions.GenerateColliders = false;       // BindPoseに無関係な処理を無効化
-
-                // AssimpのPostProcessSteps設定（BindPose破壊を防ぐ）
-                // 注意：OptimizeGraph, OptimizeMeshes, PreTransformVertices は絶対に使用しない
-                // これらは階層構造やBone情報を変更し、BindPoseを破壊する
-                Debug.Log("[RuntimeFBXLoaderBridge] Configuring Assimp PostProcess steps for BindPose preservation");
+                // 注意：CreateDefaultLoaderOptions()のデフォルト設定を信頼
+                // OptimizeGraph, OptimizeMeshes, PreTransformVertices などの
+                // BindPose破壊オプションが含まれていないことを前提とする
+                Debug.Log("[RuntimeFBXLoaderBridge] Using TriLib default loader options for BindPose preservation");
 
                 // HumanoidAvatarMapperを設定
                 if (humanoidAvatarMapper != null)
