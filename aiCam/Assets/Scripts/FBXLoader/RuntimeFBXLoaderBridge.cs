@@ -174,6 +174,9 @@ namespace AICam.FBXLoader
         {
             try
             {
+                // ログキャプチャ開始
+                FBXImportLogger.StartCapture();
+
                 Debug.Log($"[RuntimeFBXLoaderBridge] Starting FBX load: {browser.SelectedPath}");
 
                 onProgress?.Invoke(20f);
@@ -359,12 +362,20 @@ namespace AICam.FBXLoader
                 }
 
                 Debug.Log($"[RuntimeFBXLoaderBridge] FBX load completed. Success: {loadSuccess}");
+
+                // ログとスクリーンショットを保存
+                FBXImportLogger.StopCaptureAndSave(takeScreenshot: true);
+
                 onComplete?.Invoke(loadSuccess);
             }
             catch (Exception e)
             {
                 Debug.LogError($"[RuntimeFBXLoaderBridge] FBX load failed: {e.Message}");
                 Debug.LogException(e);
+
+                // エラー時もログを保存
+                FBXImportLogger.StopCaptureAndSave(takeScreenshot: false);
+
                 onComplete?.Invoke(false);
             }
         }
