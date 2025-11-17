@@ -603,6 +603,9 @@ namespace AICam.FBXLoader
             // バウンディングボックスを再計算
             unityMesh.RecalculateBounds();
 
+            // STEP 3: BlendShapeを追加（SMR.sharedMeshをセットする前に必須）
+            await AddBlendShapesToMesh(node, unityMesh);
+
             // 【デバッグ版】MeshFilter + MeshRenderer（スキニング無し・静的メッシュ）
             UnityEngine.Debug.Log($"{LOG_PREFIX} === Creating Static Mesh (MeshFilter + MeshRenderer) ===");
 
@@ -625,6 +628,110 @@ namespace AICam.FBXLoader
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Normals: {(unityMesh.normals != null && unityMesh.normals.Length > 0 ? "Yes" : "No")} ({unityMesh.normals?.Length ?? 0})");
             UnityEngine.Debug.Log($"{LOG_PREFIX}   UVs: {(unityMesh.uv != null && unityMesh.uv.Length > 0 ? "Yes" : "No")} ({unityMesh.uv?.Length ?? 0})");
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Material: {material.name} (Shader: {material.shader.name})");
+        }
+
+        /// <summary>
+        /// STEP 3: Assimp AnimMesh から BlendShape を Unity Mesh に追加
+        /// </summary>
+        private async UniTask AddBlendShapesToMesh(Node node, UnityEngine.Mesh mesh)
+        {
+            if (node.MeshCount == 0)
+                return;
+
+            int totalBlendShapes = 0;
+
+            // このノードの全メッシュを処理
+            for (int meshIdx = 0; meshIdx < node.MeshCount; meshIdx++)
+            {
+                int assimpMeshIndex = node.MeshIndices[meshIdx];
+                Assimp.Mesh assimpMesh = currentScene.Meshes[assimpMeshIndex];
+
+                // AnimMesh（BlendShape）がない場合はスキップ
+                if (!assimpMesh.HasMeshAnimationAttachments || assimpMesh.MeshAnimationAttachmentCount == 0)
+                    continue;
+
+                UnityEngine.Debug.Log($"{LOG_PREFIX} === Processing BlendShapes for mesh: {assimpMesh.Name} ===");
+                UnityEngine.Debug.Log($"{LOG_PREFIX}   AnimMesh count: {assimpMesh.MeshAnimationAttachmentCount}");
+
+                // 各 AnimMesh（BlendShape）を処理
+                for (int animIdx = 0; animIdx < assimpMesh.MeshAnimationAttachmentCount; animIdx++)
+                {
+                    Assimp.MeshAnimationAttachment animMesh = assimpMesh.MeshAnimationAttachments[animIdx];
+
+                    // BlendShape名を取得（AnimMeshに名前がない場合はインデックスを使用）
+                    string blendShapeName = string.IsNullOrEmpty(animMesh.Name)
+                        ? $"BlendShape_{animIdx}"
+                        : animMesh.Name;
+
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}   BlendShape: {blendShapeName}");
+
+                    // デルタ頂点配列を作成
+                    UnityEngine.Vector3[] deltaVertices = new UnityEngine.Vector3[mesh.vertexCount];
+                    UnityEngine.Vector3[] deltaNormals = new UnityEngine.Vector3[mesh.vertexCount];
+                    UnityEngine.Vector3[] deltaTangents = new UnityEngine.Vector3[mesh.vertexCount];
+
+                    // AnimMeshの頂点データを変換
+                    if (animMesh.HasVertices)
+                    {
+                        for (int i = 0; i < animMesh.VertexCount && i < mesh.vertexCount; i++)
+                        {
+                            // ベース頂点との差分を計算
+                            Assimp.Vector3D baseVertex = assimpMesh.Vertices[i];
+                            Assimp.Vector3D animVertex = animMesh.Vertices[i];
+                            Assimp.Vector3D delta = animVertex - baseVertex;
+
+                            // 座標系変換を適用
+                            deltaVertices[i] = FbxCoordinateSystemDetector.ConvertVector(delta, coordinateConversionMatrix);
+                        }
+                    }
+
+                    // 法線デルタを変換
+                    if (animMesh.HasNormals)
+                    {
+                        for (int i = 0; i < animMesh.VertexCount && i < mesh.vertexCount; i++)
+                        {
+                            Assimp.Vector3D baseNormal = assimpMesh.Normals[i];
+                            Assimp.Vector3D animNormal = animMesh.Normals[i];
+                            Assimp.Vector3D delta = animNormal - baseNormal;
+
+                            // 座標系変換を適用して正規化
+                            deltaNormals[i] = FbxCoordinateSystemDetector.ConvertVector(delta, coordinateConversionMatrix).normalized;
+                        }
+                    }
+
+                    // Tangentデルタを変換（AssimpにTangentがある場合）
+                    if (animMesh.HasTangentBasis && assimpMesh.HasTangentBasis)
+                    {
+                        for (int i = 0; i < animMesh.VertexCount && i < mesh.vertexCount; i++)
+                        {
+                            Assimp.Vector3D baseTangent = assimpMesh.Tangents[i];
+                            Assimp.Vector3D animTangent = animMesh.Tangents[i];
+                            Assimp.Vector3D delta = animTangent - baseTangent;
+
+                            // 座標系変換を適用
+                            deltaTangents[i] = FbxCoordinateSystemDetector.ConvertVector(delta, coordinateConversionMatrix);
+                        }
+                    }
+
+                    // BlendShapeフレームを追加（weight = 100）
+                    mesh.AddBlendShapeFrame(blendShapeName, 100f, deltaVertices, deltaNormals, deltaTangents);
+                    totalBlendShapes++;
+
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}     ✓ Added BlendShape: {blendShapeName} (vertices: {animMesh.VertexCount})");
+                }
+
+                // 各メッシュ処理後にフレームを譲る
+                await UniTask.Yield();
+            }
+
+            if (totalBlendShapes > 0)
+            {
+                UnityEngine.Debug.Log($"{LOG_PREFIX} ✓ Total BlendShapes added: {totalBlendShapes}");
+            }
+            else
+            {
+                UnityEngine.Debug.Log($"{LOG_PREFIX} No BlendShapes found in this mesh");
+            }
         }
 
         /// <summary>
