@@ -168,28 +168,14 @@
     color: rgb(102, 102, 102);
 }
 
-.btn.secondary {
-    background-color: rgb(108, 117, 125);
-}
-.btn.secondary:hover {
-    background-color: rgb(130, 138, 145);
-}
-.btn.secondary:active {
-    background-color: rgb(90, 98, 104);
-}
-.btn.secondary:disabled {
-    background-color: rgb(68, 68, 68);
-    color: rgb(102, 102, 102);
-}
-
 .btn.danger {
     background-color: rgb(220, 53, 69);
 }
 .btn.danger:hover {
-    background-color: rgb(235, 73, 89);
+    background-color: rgb(240, 73, 89);
 }
 .btn.danger:active {
-    background-color: rgb(187, 45, 59);
+    background-color: rgb(200, 33, 49);
 }
 .btn.danger:disabled {
     background-color: rgb(68, 68, 68);

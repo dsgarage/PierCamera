@@ -28,7 +28,6 @@ namespace AICam.FBXLoader
 
         private RuntimeGltfInstance currentInstance;
         private GameObject currentModel;
-        private RuntimeMaterialManager materialManager;
 
         void Awake()
         {
@@ -41,9 +40,6 @@ namespace AICam.FBXLoader
             {
                 browser = FindFirstObjectByType<FileBrowserController>();
             }
-
-            // RuntimeMaterialManagerを初期化
-            materialManager = new RuntimeMaterialManager();
         }
 
         /// <summary>
@@ -65,159 +61,79 @@ namespace AICam.FBXLoader
                 return;
             }
 
-            // ファイルの存在確認
-            if (!System.IO.File.Exists(browser.SelectedPath))
-            {
-                Debug.LogError($"[RuntimeFBXLoaderBridge] File not found: {browser.SelectedPath}");
-                onComplete?.Invoke(false);
-                return;
-            }
-
-            // 既存のモデルを削除
-            ClearCurrentModel();
-
-            // ファイル拡張子で判定
-            string extension = System.IO.Path.GetExtension(browser.SelectedPath).ToLower();
-            Debug.Log($"[RuntimeFBXLoaderBridge] Loading file: {browser.SelectedPath}, Extension: {extension}");
+            Debug.Log($"[RuntimeFBXLoaderBridge] Starting VRM load: {browser.SelectedPath}");
 
             try
             {
-                if (extension == ".vrm")
+                // 既存のモデルを削除
+                ClearCurrentModel();
+
+                // 進捗レポート
+                onProgress?.Invoke(10f);
+
+                // ファイルの存在確認
+                if (!System.IO.File.Exists(browser.SelectedPath))
                 {
-                    await LoadVRMAsync(onProgress, onComplete);
-                }
-                else if (extension == ".fbx")
-                {
-                    await LoadFBXAsync(onProgress, onComplete);
-                }
-                else
-                {
-                    Debug.LogError($"[RuntimeFBXLoaderBridge] Unsupported file format: {extension}");
+                    Debug.LogError($"[RuntimeFBXLoaderBridge] File not found: {browser.SelectedPath}");
                     onComplete?.Invoke(false);
+                    return;
                 }
+
+                onProgress?.Invoke(20f);
+
+                // ファイル読み込み
+                byte[] bytes = await System.IO.File.ReadAllBytesAsync(browser.SelectedPath);
+                Debug.Log($"[RuntimeFBXLoaderBridge] Read {bytes.Length} bytes from file");
+
+                onProgress?.Invoke(40f);
+
+                // VRMをパース
+                currentInstance = await VrmUtility.LoadBytesAsync(
+                    path: System.IO.Path.GetFileName(browser.SelectedPath),
+                    bytes: bytes,
+                    awaitCaller: new RuntimeOnlyAwaitCaller(),
+                    materialGeneratorCallback: null,
+                    metaCallback: null,
+                    textureDeserializer: null,
+                    loadAnimation: false,
+                    springboneRuntime: null
+                );
+
+                if (currentInstance == null)
+                {
+                    Debug.LogError("[RuntimeFBXLoaderBridge] Failed to load VRM");
+                    onComplete?.Invoke(false);
+                    return;
+                }
+
+                onProgress?.Invoke(70f);
+
+                Debug.Log("[RuntimeFBXLoaderBridge] VRM instance created successfully");
+
+                // メッシュの表示設定
+                currentInstance.EnableUpdateWhenOffscreen();
+                currentInstance.ShowMeshes();
+
+                currentModel = currentInstance.Root;
+                Debug.Log($"[RuntimeFBXLoaderBridge] Avatar root: {currentModel.name}");
+
+                // モデルを配置
+                PlaceModel(currentModel);
+
+                // アニメーションの設定
+                SetupAnimator(currentModel);
+
+                onProgress?.Invoke(100f);
+
+                Debug.Log("[RuntimeFBXLoaderBridge] VRM load completed successfully");
+                onComplete?.Invoke(true);
             }
             catch (Exception e)
             {
-                Debug.LogError($"[RuntimeFBXLoaderBridge] Load failed: {e.Message}");
+                Debug.LogError($"[RuntimeFBXLoaderBridge] VRM load failed: {e.Message}");
                 Debug.LogException(e);
                 onComplete?.Invoke(false);
             }
-        }
-
-        private async UniTask LoadVRMAsync(Action<float> onProgress, Action<bool> onComplete)
-        {
-            Debug.Log($"[RuntimeFBXLoaderBridge] Starting VRM load: {browser.SelectedPath}");
-
-            onProgress?.Invoke(10f);
-
-            // ファイル読み込み
-            byte[] bytes = await System.IO.File.ReadAllBytesAsync(browser.SelectedPath);
-            Debug.Log($"[RuntimeFBXLoaderBridge] Read {bytes.Length} bytes from file");
-
-            onProgress?.Invoke(30f);
-
-            // VRMをパース
-            currentInstance = await VrmUtility.LoadBytesAsync(
-                path: System.IO.Path.GetFileName(browser.SelectedPath),
-                bytes: bytes,
-                awaitCaller: new RuntimeOnlyAwaitCaller(),
-                materialGeneratorCallback: null,
-                metaCallback: null,
-                textureDeserializer: null,
-                loadAnimation: false,
-                springboneRuntime: null
-            );
-
-            if (currentInstance == null)
-            {
-                Debug.LogError("[RuntimeFBXLoaderBridge] Failed to load VRM");
-                onComplete?.Invoke(false);
-                return;
-            }
-
-            onProgress?.Invoke(70f);
-
-            Debug.Log("[RuntimeFBXLoaderBridge] VRM instance created successfully");
-
-            // メッシュの表示設定
-            currentInstance.EnableUpdateWhenOffscreen();
-            currentInstance.ShowMeshes();
-
-            currentModel = currentInstance.Root;
-            Debug.Log($"[RuntimeFBXLoaderBridge] Avatar root: {currentModel.name}");
-
-            // モデルを配置
-            PlaceModel(currentModel);
-
-            // アニメーションの設定
-            SetupAnimator(currentModel);
-
-            onProgress?.Invoke(100f);
-
-            Debug.Log("[RuntimeFBXLoaderBridge] VRM load completed successfully");
-            onComplete?.Invoke(true);
-        }
-
-        private async UniTask LoadFBXAsync(Action<float> onProgress, Action<bool> onComplete)
-        {
-            Debug.Log($"[RuntimeFBXLoaderBridge] Starting FBX load: {browser.SelectedPath}");
-
-            onProgress?.Invoke(10f);
-
-            // RuntimeFBXModelBuilderを使用してFBXをロード
-            RuntimeFBXModelBuilder fbxLoader = new RuntimeFBXModelBuilder();
-            currentModel = await fbxLoader.LoadFBX(browser.SelectedPath);
-
-            if (currentModel == null)
-            {
-                Debug.LogError("[RuntimeFBXLoaderBridge] Failed to load FBX");
-                onComplete?.Invoke(false);
-                return;
-            }
-
-            Debug.Log($"[RuntimeFBXLoaderBridge] FBX loaded successfully: {currentModel.name}");
-            onProgress?.Invoke(40f);
-
-            // マテリアルを適用
-            var meshNodeToMaterialNames = fbxLoader.GetMeshNodeToMaterialNames();
-            string extractedPath = browser.SelectedPath;
-            await materialManager.AssignMaterials(currentModel, extractedPath, meshNodeToMaterialNames);
-            Debug.Log("[RuntimeFBXLoaderBridge] Materials assigned");
-            onProgress?.Invoke(60f);
-
-            // Humanoid Avatar を生成
-            RuntimeHumanoidAvatarBuilder avatarBuilder = new RuntimeHumanoidAvatarBuilder();
-            Avatar avatar = avatarBuilder.CreateHumanoidAvatarFromFBX(currentModel.name, currentModel);
-
-            if (avatar != null && avatar.isValid && avatar.isHuman)
-            {
-                Debug.Log("[RuntimeFBXLoaderBridge] Humanoid Avatar created successfully");
-
-                // Animatorを設定
-                var animator = currentModel.GetComponent<Animator>();
-                if (animator == null)
-                {
-                    animator = currentModel.AddComponent<Animator>();
-                }
-                animator.avatar = avatar;
-            }
-            else
-            {
-                Debug.LogWarning("[RuntimeFBXLoaderBridge] Failed to create Humanoid Avatar, using generic setup");
-            }
-
-            onProgress?.Invoke(70f);
-
-            // モデルを配置
-            PlaceModel(currentModel);
-
-            // アニメーションの設定
-            SetupAnimator(currentModel);
-
-            onProgress?.Invoke(100f);
-
-            Debug.Log("[RuntimeFBXLoaderBridge] FBX load completed successfully");
-            onComplete?.Invoke(true);
         }
 
         /// <summary>

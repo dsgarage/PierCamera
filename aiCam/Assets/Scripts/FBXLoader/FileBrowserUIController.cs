@@ -10,10 +10,8 @@ namespace AICam.FBXLoader
     {
         [SerializeField] private UIDocument uiDocument;
 
-        private Button btnOpen, btnLoad, btnExtract;
-        private Button btnDeleteAvatar, btnCancelPopup;
+        private Button btnOpen, btnLoad;
         private VisualElement progressPanel;
-        private VisualElement popupOverlay;
         private TextField logField;
         private ProgressBar progressBar;
         private Label loadingLabel;
@@ -21,14 +19,7 @@ namespace AICam.FBXLoader
         private FileBrowserController fileBrowser;
         private RuntimeFBXLoaderBridge loaderBridge;
 
-        // アバターのロード状態
-        private bool isAvatarLoaded = false;
-
-        // 長押し検出用（選択ボタン）
-        private float openPointerDownTime;
-        private bool isOpenPointerDown;
-
-        private const float LONG_PRESS_DURATION = 0.8f;
+        private bool isModelLoaded = false;
 
         // FileBrowserUIController.cs（末尾の方に追記）
         private void OnEnable()
@@ -48,6 +39,8 @@ namespace AICam.FBXLoader
         
         void Awake()
         {
+            Debug.Log("[FileBrowserUIController] Awake called");
+
             if (uiDocument == null)
             {
                 uiDocument = GetComponent<UIDocument>();
@@ -58,226 +51,45 @@ namespace AICam.FBXLoader
             // UI要素を取得
             btnOpen = root.Q<Button>("BtnOpen");
             btnLoad = root.Q<Button>("BtnLoad");
-            btnExtract = root.Q<Button>("BtnExtract");
-            btnDeleteAvatar = root.Q<Button>("BtnDeleteAvatar");
-            btnCancelPopup = root.Q<Button>("BtnCancelPopup");
             progressPanel = root.Q<VisualElement>("ProgressPanel");
-            popupOverlay = root.Q<VisualElement>("PopupOverlay");
             loadingLabel = root.Q<Label>("LoadingLabel");
             progressBar = root.Q<ProgressBar>("ProgressBar");
             logField = root.Q<TextField>("LogField");
+
+            Debug.Log($"[FileBrowserUIController] UI Elements - btnOpen: {btnOpen != null}, btnLoad: {btnLoad != null}, progressPanel: {progressPanel != null}");
 
             // 他のコンポーネントを検索
             fileBrowser = FindFirstObjectByType<FileBrowserController>();
             loaderBridge = FindFirstObjectByType<RuntimeFBXLoaderBridge>();
 
+            Debug.Log($"[FileBrowserUIController] Components - fileBrowser: {fileBrowser != null}, loaderBridge: {loaderBridge != null}");
+
             // ボタンイベント登録
             btnOpen.clicked += OnOpenClicked;
             btnLoad.clicked += OnLoadOrDeleteClicked;
-            btnExtract.clicked += OnExtractClicked;
-            btnDeleteAvatar.clicked += OnDeleteAvatarClicked;
-            btnCancelPopup.clicked += OnCancelPopupClicked;
-
-            // 長押しイベント登録（選択ボタン）
-            btnOpen.RegisterCallback<PointerDownEvent>(OnOpenPointerDown);
-            btnOpen.RegisterCallback<PointerUpEvent>(OnOpenPointerUp);
 
             // 初期状態
             progressPanel.style.display = DisplayStyle.None;
             UpdateStatus("待機中...");
-            btnLoad.SetEnabled(false);
-            btnExtract.SetEnabled(false);
+            UpdateLoadButton(false);
 
             AppendLog("システム初期化完了");
-        }
-
-        void Update()
-        {
-            // 長押し検出（選択ボタン）
-            if (isOpenPointerDown && Time.time - openPointerDownTime >= LONG_PRESS_DURATION)
-            {
-                isOpenPointerDown = false;
-                OnOpenLongPress();
-            }
-        }
-
-        void OnOpenPointerDown(PointerDownEvent evt)
-        {
-            openPointerDownTime = Time.time;
-            isOpenPointerDown = true;
-        }
-
-        void OnOpenPointerUp(PointerUpEvent evt)
-        {
-            isOpenPointerDown = false;
-        }
-
-        void OnOpenLongPress()
-        {
-            AppendLog("長押し検出 - 解凍済みフォルダから選択");
-            OpenExtractedFolder();
-        }
-
-        void UpdateLoadButtonState()
-        {
-            if (isAvatarLoaded)
-            {
-                // アバターがロード済み → 削除ボタンに変更
-                btnLoad.text = "削除";
-                btnLoad.style.backgroundColor = new StyleColor(new Color(220f/255f, 53f/255f, 69f/255f)); // 赤色
-                btnLoad.SetEnabled(true);
-            }
-            else
-            {
-                // アバター未ロード → ロードボタン
-                btnLoad.text = "ロード";
-                btnLoad.style.backgroundColor = new StyleColor(new Color(58f/255f, 165f/255f, 93f/255f)); // 緑色
-                // ファイルが選択されている場合のみ有効化
-                // この処理はOnFileSelectedで行う
-            }
-        }
-
-        void OnLoadOrDeleteClicked()
-        {
-            if (isAvatarLoaded)
-            {
-                // アバターがロード済み → 削除ポップアップを表示
-                AppendLog("アバター削除メニューを表示");
-                ShowDeletePopup();
-            }
-            else
-            {
-                // アバター未ロード → ロード処理
-                OnLoadClicked();
-            }
-        }
-
-        void ShowDeletePopup()
-        {
-            if (popupOverlay != null)
-            {
-                popupOverlay.style.display = DisplayStyle.Flex;
-            }
-        }
-
-        void HideDeletePopup()
-        {
-            if (popupOverlay != null)
-            {
-                popupOverlay.style.display = DisplayStyle.None;
-            }
-        }
-
-        void OnDeleteAvatarClicked()
-        {
-            AppendLog("アバターを削除中...");
-            HideDeletePopup();
-
-            if (loaderBridge != null)
-            {
-                loaderBridge.ClearCurrentModel();
-                AppendLog("アバターを削除しました");
-                UpdateStatus("待機中...");
-
-                // 状態を更新
-                isAvatarLoaded = false;
-                UpdateLoadButtonState();
-            }
-            else
-            {
-                AppendLog("エラー: RuntimeFBXLoaderBridgeが見つかりません");
-            }
-        }
-
-        void OnCancelPopupClicked()
-        {
-            AppendLog("削除をキャンセルしました");
-            HideDeletePopup();
-        }
-
-        void OpenExtractedFolder()
-        {
-            if (fileBrowser == null) return;
-
-            // 解凍済みフォルダのベースパスを取得
-#if UNITY_IOS && !UNITY_EDITOR
-            string basePath = Application.persistentDataPath;
-#else
-            string userProfile = System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile);
-            string basePath = System.IO.Path.Combine(userProfile, "Downloads");
-#endif
-
-            // ExtractedFBXとExtractedUnityPackageの両方をチェック
-            string extractedFBX = System.IO.Path.Combine(basePath, "ExtractedFBX");
-            string extractedUnityPackage = System.IO.Path.Combine(basePath, "ExtractedUnityPackage");
-
-            string targetFolder = null;
-
-            // 最近変更されたフォルダを優先
-            if (System.IO.Directory.Exists(extractedFBX) && System.IO.Directory.Exists(extractedUnityPackage))
-            {
-                var fbxTime = System.IO.Directory.GetLastWriteTime(extractedFBX);
-                var pkgTime = System.IO.Directory.GetLastWriteTime(extractedUnityPackage);
-                targetFolder = fbxTime > pkgTime ? extractedFBX : extractedUnityPackage;
-            }
-            else if (System.IO.Directory.Exists(extractedFBX))
-            {
-                targetFolder = extractedFBX;
-            }
-            else if (System.IO.Directory.Exists(extractedUnityPackage))
-            {
-                targetFolder = extractedUnityPackage;
-            }
-
-            if (targetFolder != null)
-            {
-                AppendLog($"解凍済みフォルダを開く: {targetFolder}");
-                OpenFilePickerInFolder(targetFolder);
-            }
-            else
-            {
-                AppendLog("解凍済みフォルダが見つかりません");
-                UpdateStatus("解凍済みフォルダなし");
-            }
-        }
-
-        void OpenFilePickerInFolder(string folderPath)
-        {
-#if UNITY_EDITOR
-            // Unity Editorでの動作：指定フォルダから開く
-            string path = UnityEditor.EditorUtility.OpenFilePanel("Select VRM or FBX from Extracted Folder", folderPath, "vrm,fbx");
-
-            if (!string.IsNullOrEmpty(path))
-            {
-                // 選択されたファイルをFileBrowserControllerに設定
-                System.Reflection.FieldInfo selectedPathField = typeof(FileBrowserController).GetField("SelectedPath",
-                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-                selectedPathField?.SetValue(fileBrowser, path);
-
-                OnFileSelected(true, path);
-            }
-            else
-            {
-                AppendLog("選択をキャンセル");
-            }
-#else
-            // モバイルでは通常のファイルピッカーを使用
-            // （特定フォルダから開く機能はNativeFilePickerではサポートされていない）
-            AppendLog("モバイルでは通常のファイル選択を使用してください");
-            OnOpenClicked();
-#endif
+            Debug.Log("[FileBrowserUIController] Initialization complete");
         }
 
         void OnOpenClicked()
         {
+            Debug.Log("[FileBrowserUIController] OnOpenClicked called");
             AppendLog("ファイルピッカーを起動");
 
             if (fileBrowser != null)
             {
+                Debug.Log("[FileBrowserUIController] Calling fileBrowser.OpenFilePicker with OnFileSelected callback");
                 fileBrowser.OpenFilePicker(OnFileSelected);
             }
             else
             {
+                Debug.LogError("[FileBrowserUIController] FileBrowserController is null!");
                 AppendLog("エラー: FileBrowserControllerが見つかりません");
                 UpdateStatus("エラー");
             }
@@ -285,49 +97,55 @@ namespace AICam.FBXLoader
 
         void OnFileSelected(bool success, string path)
         {
+            Debug.Log($"[FileBrowserUIController] OnFileSelected called - success: {success}, path: {path}");
+
             if (success)
             {
+                // 既存のモデルがあれば削除
+                if (isModelLoaded)
+                {
+                    Debug.Log("[FileBrowserUIController] Clearing existing model before loading new file");
+                    AppendLog("既存のモデルを削除中...");
+                    ClearCurrentModel();
+                }
+
                 AppendLog($"選択: {System.IO.Path.GetFileName(path)}");
 
-                string lowerPath = path.ToLower();
-
-                // ZIP/UnityPackageファイルの場合は解凍ボタンを有効化
-                bool needsExtraction = lowerPath.EndsWith(".zip") || lowerPath.EndsWith(".unitypackage");
+                // ZIPファイルの場合は自動的に解凍
+                bool isZip = path.ToLower().EndsWith(".zip");
 
                 // VRM/FBXファイルの場合はロードボタンを有効化
-                bool isModelFile = lowerPath.EndsWith(".vrm") || lowerPath.EndsWith(".fbx");
+                bool isModelFile = path.ToLower().EndsWith(".vrm") || path.ToLower().EndsWith(".fbx");
 
-                if (needsExtraction)
+                Debug.Log($"[FileBrowserUIController] File type - isZip: {isZip}, isModelFile: {isModelFile}");
+
+                if (isZip)
                 {
-                    string fileType = lowerPath.EndsWith(".zip") ? "ZIP" : "UnityPackage";
-                    UpdateStatus($"{fileType}ファイル選択済み - 解凍してください");
-                    AppendLog($"{fileType}ファイルを検出。解凍ボタンを押してください");
-                    btnExtract.SetEnabled(true);
-                    btnLoad.SetEnabled(false);
+                    Debug.Log("[FileBrowserUIController] ZIP file detected, starting auto extract");
+                    UpdateStatus("ZIPファイル検出 - 自動解凍中...");
+                    AppendLog("ZIPファイルを検出。自動的に解凍します");
+                    AutoExtract();
                 }
                 else if (isModelFile)
                 {
+                    Debug.Log("[FileBrowserUIController] Model file detected, enabling Load button");
                     UpdateStatus("ファイル選択済み");
-                    btnLoad.SetEnabled(true);
-                    btnExtract.SetEnabled(false);
+                    UpdateLoadButton(true);
                 }
             }
             else
             {
+                Debug.Log("[FileBrowserUIController] File selection cancelled");
                 AppendLog("選択をキャンセル");
                 UpdateStatus("待機中...");
-                btnLoad.SetEnabled(false);
-                btnExtract.SetEnabled(false);
+                UpdateLoadButton(false);
             }
         }
 
-        void OnExtractClicked()
+        void AutoExtract()
         {
-            AppendLog("パッケージを解凍中...");
-            UpdateStatus("解凍中...");
             btnOpen.SetEnabled(false);
-            btnLoad.SetEnabled(false);
-            btnExtract.SetEnabled(false);
+            UpdateLoadButton(false);
 
             if (fileBrowser != null)
             {
@@ -347,34 +165,47 @@ namespace AICam.FBXLoader
             if (success && !string.IsNullOrEmpty(extractedFilePath))
             {
                 AppendLog($"解凍完了: {System.IO.Path.GetFileName(extractedFilePath)}");
-                btnLoad.SetEnabled(true);
-                btnExtract.SetEnabled(false);
+                UpdateLoadButton(true);
                 UpdateStatus("解凍完了 - ロード可能");
             }
             else
             {
                 AppendLog("解凍失敗");
-                btnExtract.SetEnabled(true);
                 UpdateStatus("解凍失敗");
             }
         }
 
-        void OnLoadClicked()
+        void OnLoadOrDeleteClicked()
         {
-            AppendLog("モデルをロード中...");
-            UpdateStatus("ロード中...", showProgress: true);
-            btnOpen.SetEnabled(false);
-            btnLoad.SetEnabled(false);
-            btnExtract.SetEnabled(false);
-
-            if (loaderBridge != null)
+            if (isModelLoaded)
             {
-                loaderBridge.StartRuntimeLoad(OnProgress, OnComplete);
+                // 削除モード
+                Debug.Log("[FileBrowserUIController] Delete button clicked");
+                AppendLog("モデルを削除中...");
+                ClearCurrentModel();
+                UpdateStatus("待機中...");
+                AppendLog("モデルを削除しました");
             }
             else
             {
-                AppendLog("エラー: RuntimeFBXLoaderBridgeが見つかりません");
-                OnComplete(false);
+                // ロードモード
+                Debug.Log("[FileBrowserUIController] Load button clicked");
+                AppendLog("モデルをロード中...");
+                UpdateStatus("ロード中...", showProgress: true);
+                btnOpen.SetEnabled(false);
+                UpdateLoadButton(false);
+
+                if (loaderBridge != null)
+                {
+                    Debug.Log("[FileBrowserUIController] Calling loaderBridge.StartRuntimeLoad");
+                    loaderBridge.StartRuntimeLoad(OnProgress, OnComplete);
+                }
+                else
+                {
+                    Debug.LogError("[FileBrowserUIController] RuntimeFBXLoaderBridge is null!");
+                    AppendLog("エラー: RuntimeFBXLoaderBridgeが見つかりません");
+                    OnComplete(false);
+                }
             }
         }
 
@@ -388,26 +219,20 @@ namespace AICam.FBXLoader
         {
             UpdateStatus("待機中...", showProgress: false);
             btnOpen.SetEnabled(true);
-            btnExtract.SetEnabled(false);
 
             if (success)
             {
                 AppendLog("モデルのロードに成功");
                 UpdateStatus("ロード完了");
-
-                // 状態を更新
-                isAvatarLoaded = true;
-                UpdateLoadButtonState();
+                isModelLoaded = true;
+                UpdateLoadButton(true, isDeleteMode: true);
             }
             else
             {
                 AppendLog("ロード失敗");
                 UpdateStatus("ロード失敗");
-
-                // ロード失敗時は元の状態に戻す
-                btnLoad.SetEnabled(false);
-                isAvatarLoaded = false;
-                UpdateLoadButtonState();
+                isModelLoaded = false;
+                UpdateLoadButton(false);
             }
         }
 
@@ -459,6 +284,49 @@ namespace AICam.FBXLoader
             {
                 progressPanel.style.display = DisplayStyle.None;
                 progressBar.value = 0;
+            }
+        }
+
+        /// <summary>
+        /// ロード/削除ボタンの状態を更新
+        /// </summary>
+        private void UpdateLoadButton(bool enabled, bool isDeleteMode = false)
+        {
+            if (isDeleteMode)
+            {
+                btnLoad.text = "削除";
+                btnLoad.SetEnabled(true);
+                btnLoad.RemoveFromClassList("success");
+                btnLoad.AddToClassList("danger");
+                // 赤色に変更
+                btnLoad.style.backgroundColor = new UnityEngine.UIElements.StyleColor(new UnityEngine.Color(0.863f, 0.208f, 0.271f)); // rgb(220, 53, 69)
+            }
+            else
+            {
+                btnLoad.text = "ロード開始";
+                btnLoad.SetEnabled(enabled);
+                btnLoad.RemoveFromClassList("danger");
+                btnLoad.AddToClassList("success");
+                // 緑色に戻す
+                btnLoad.style.backgroundColor = new UnityEngine.UIElements.StyleColor(new UnityEngine.Color(0.227f, 0.647f, 0.365f)); // rgb(58, 165, 93)
+            }
+        }
+
+        /// <summary>
+        /// 現在のモデルをクリア
+        /// </summary>
+        private void ClearCurrentModel()
+        {
+            if (loaderBridge != null)
+            {
+                Debug.Log("[FileBrowserUIController] Clearing current model via loaderBridge");
+                loaderBridge.ClearCurrentModel();
+                isModelLoaded = false;
+                UpdateLoadButton(false);
+            }
+            else
+            {
+                Debug.LogWarning("[FileBrowserUIController] Cannot clear model - loaderBridge is null");
             }
         }
     }
