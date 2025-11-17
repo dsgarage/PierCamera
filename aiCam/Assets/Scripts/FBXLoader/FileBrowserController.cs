@@ -24,6 +24,7 @@ namespace AICam.FBXLoader
         {
             onFileSelectedCallback = onComplete;
 
+            Debug.Log($"[FileBrowserController] OpenFilePicker called, callback is {(onComplete != null ? "NOT NULL" : "NULL")}");
             Debug.Log("[FileBrowserController] Opening file picker...");
 
 #if UNITY_EDITOR
@@ -96,11 +97,14 @@ namespace AICam.FBXLoader
                     {
                         SelectedPath = modelFile;
                         Debug.Log($"[FileBrowserController] Found model file: {modelFile}");
+                        Debug.Log($"[FileBrowserController] Invoking callback (ZIP path), callback is {(onFileSelectedCallback != null ? "NOT NULL" : "NULL")}");
                         onFileSelectedCallback?.Invoke(true, SelectedPath);
+                        Debug.Log("[FileBrowserController] Callback invocation completed (ZIP path)");
                     }
                     else
                     {
                         Debug.LogError("[FileBrowserController] No VRM/FBX file found in ZIP");
+                        Debug.Log($"[FileBrowserController] Invoking callback with failure, callback is {(onFileSelectedCallback != null ? "NOT NULL" : "NULL")}");
                         onFileSelectedCallback?.Invoke(false, null);
                     }
                 }
@@ -112,7 +116,9 @@ namespace AICam.FBXLoader
                     ExtractedFolderPath = null;
 
                     Debug.Log($"[FileBrowserController] Model file selected: {SelectedPath}");
+                    Debug.Log($"[FileBrowserController] Invoking callback, callback is {(onFileSelectedCallback != null ? "NOT NULL" : "NULL")}");
                     onFileSelectedCallback?.Invoke(true, SelectedPath);
+                    Debug.Log("[FileBrowserController] Callback invocation completed");
                 }
                 else
                 {

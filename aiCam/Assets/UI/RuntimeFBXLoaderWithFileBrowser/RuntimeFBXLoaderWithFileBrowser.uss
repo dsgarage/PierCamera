@@ -167,3 +167,17 @@
     background-color: rgb(68, 68, 68);
     color: rgb(102, 102, 102);
 }
+
+.btn.danger {
+    background-color: rgb(220, 53, 69);
+}
+.btn.danger:hover {
+    background-color: rgb(240, 73, 89);
+}
+.btn.danger:active {
+    background-color: rgb(200, 33, 49);
+}
+.btn.danger:disabled {
+    background-color: rgb(68, 68, 68);
+    color: rgb(102, 102, 102);
+}
