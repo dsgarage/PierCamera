@@ -66,16 +66,16 @@ namespace AICam.FBXLoader
                 }
 
                 // メタデータが取得できない場合、ボーン構造から推測
-                Debug.LogWarning($"{LOG_PREFIX} No metadata available. Analyzing scene structure...");
+                Debug.LogWarning($"<color=red>{LOG_PREFIX} No metadata available. Analyzing scene structure...</color>");
                 profile = AnalyzeSceneStructure(scene);
 
-                Debug.Log($"{LOG_PREFIX} Detected from structure analysis:");
-                Debug.Log($"{LOG_PREFIX}   Profile: {profile.profileName}");
+                Debug.LogWarning($"<color=red>{LOG_PREFIX} Detected from structure analysis:</color>");
+                Debug.LogWarning($"<color=red>{LOG_PREFIX}   Profile: {profile.profileName}</color>");
             }
             catch (System.Exception e)
             {
-                Debug.LogWarning($"{LOG_PREFIX} Failed to detect coordinate system: {e.Message}");
-                Debug.LogWarning($"{LOG_PREFIX} Using default Y-up profile.");
+                Debug.LogWarning($"<color=red>{LOG_PREFIX} Failed to detect coordinate system: {e.Message}</color>");
+                Debug.LogWarning($"<color=red>{LOG_PREFIX} Using default Y-up profile.</color>");
                 profile = CreateDefaultYUpProfile();
             }
 
