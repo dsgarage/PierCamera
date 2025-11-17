@@ -1,0 +1,1088 @@
+=== FBX Import Log Session: FBX_Import_20251117_212742 ===
+Started: 2025-11-17 21:27:42
+
+[RuntimeFBXLoaderBridge] Starting Assimp FBX load: /Users/daisuketsukada/Downloads/ExtractedUnityPackage/Kyoko_20251112_090405/Kyoko/FBX/kyoko.fbx
+[RuntimeAssimpFBXLoader] Loading FBX: /Users/daisuketsukada/Downloads/ExtractedUnityPackage/Kyoko_20251112_090405/Kyoko/FBX/kyoko.fbx
+[RuntimeAssimpFBXLoader] Scene loaded successfully
+[RuntimeAssimpFBXLoader]   Meshes: 23
+[RuntimeAssimpFBXLoader]   Materials: 11
+[RuntimeAssimpFBXLoader]   Animations: 0
+[RuntimeAssimpFBXLoader] === FBX Global Settings ===
+[FbxCoordDetector] Analyzing scene structure for coordinate system detection...
+[FbxCoordDetector] === FBX Profile Detection Start ===
+[FbxCoordDetector] RootNode Assimp Matrix (raw):
+[FbxCoordDetector]   [1.000, 0.000, 0.000, 0.000]
+[FbxCoordDetector]   [0.000, 1.000, 0.000, 0.000]
+[FbxCoordDetector]   [0.000, 0.000, 1.000, 0.000]
+[FbxCoordDetector]   [0.000, 0.000, 0.000, 1.000]
+[FbxCoordDetector] RootNode rotation (extracted from matrix): (0.0, 0.0, 0.0)
+[FbxCoordDetector] → No specific pattern detected, using UnityStyle default
+[FbxCoordDetector] Detected Profile: UnityStyle
+[FbxCoordDetector] Coordinate system:
+[FbxCoordDetector]   Up: (0.00, 1.00, 0.00), Front: (0.00, 0.00, 1.00), Right: (1.00, 0.00, 0.00)
+[FbxCoordDetector] === FBX Profile Detection End ===
+[FbxCoordDetector] Using coordinate profile: Unity Standard (Y-up, Z forward)
+[FbxCoordDetector] Building conversion matrix for profile: Unity Standard (Y-up, Z forward) (UnityStyle)
+[FbxCoordDetector] Using Unity standard (no conversion)
+[FbxCoordDetector] Conversion matrix:
+[FbxCoordDetector]   Row 0: (1.00, 0.00, 0.00, 0.00)
+[FbxCoordDetector]   Row 1: (0.00, 1.00, 0.00, 0.00)
+[FbxCoordDetector]   Row 2: (0.00, 0.00, 1.00, 0.00)
+[RuntimeAssimpFBXLoader] Detected Coordinate System:
+[RuntimeAssimpFBXLoader]   Profile: Unity Standard (Y-up, Z forward)
+[RuntimeAssimpFBXLoader]   Up Axis: (0.00, 1.00, 0.00)
+[RuntimeAssimpFBXLoader]   Front Axis: (0.00, 0.00, 1.00)
+[RuntimeAssimpFBXLoader]   Right Axis: (1.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]   Handedness: Right-handed
+[RuntimeAssimpFBXLoader] Conversion to Unity (Left-handed, Y-up, Z-forward):
+[RuntimeAssimpFBXLoader]   Matrix Row 0: (1.00, 0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]   Matrix Row 1: (0.00, 1.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]   Matrix Row 2: (0.00, 0.00, 1.00, 0.00)
+[RuntimeAssimpFBXLoader] === End Global Settings ===
+[RuntimeAssimpFBXLoader]   Node: RootNode
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Armature
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (270.02, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Hips
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, -0.06, 0.70)
+[RuntimeAssimpFBXLoader]     LocalRotation: (89.98, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Spine
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.02, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (10.19, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Chest
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.11, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (339.45, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Neck
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.15, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (22.75, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Head
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.04, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (347.60, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: LeftEye
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.03, 0.04, 0.02)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: LeftEye_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.05, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: RightEye
+[RuntimeAssimpFBXLoader]     LocalPosition: (-0.03, 0.04, 0.02)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: RightEye_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.05, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Hair
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.16, -0.03)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Hair1
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, -0.06, 0.11)
+[RuntimeAssimpFBXLoader]     LocalRotation: (352.45, 178.79, 162.35)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Hair1_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.04, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: ear1_L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.05, 0.02, 0.02)
+[RuntimeAssimpFBXLoader]     LocalRotation: (4.59, 270.26, 344.57)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: ear2_L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.04, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (359.42, 179.88, 359.51)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: ear2_L_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.04, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: ear1_R
+[RuntimeAssimpFBXLoader]     LocalPosition: (-0.05, 0.02, 0.02)
+[RuntimeAssimpFBXLoader]     LocalRotation: (4.59, 89.74, 15.43)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: ear2_R
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.04, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (359.42, 180.12, 0.49)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: ear2_R_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.04, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Hair_L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.08, -0.13, 0.06)
+[RuntimeAssimpFBXLoader]     LocalRotation: (330.88, 271.56, 193.31)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Hair_L_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.06, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Hair_R
+[RuntimeAssimpFBXLoader]     LocalPosition: (-0.08, -0.13, 0.06)
+[RuntimeAssimpFBXLoader]     LocalRotation: (330.88, 88.44, 166.69)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Hair_R_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.06, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Hair2
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, -0.11, -0.09)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 180.00, 180.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Hair2_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.07, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Hair2_L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.11, -0.11, -0.04)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 90.00, 180.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Hair2_L_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.06, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Hair2_R
+[RuntimeAssimpFBXLoader]     LocalPosition: (-0.11, -0.11, -0.04)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 270.00, 180.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Hair2_R_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.06, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: tie_head
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.09, -0.08, -0.08)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 90.00, 180.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: tie_head.001
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.05, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 270.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: tie_head.002
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.05, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: tie_head.002_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.06, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Shoulder.L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.06, 0.12, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (275.67, 0.00, 270.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Upper Arm.L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.02, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 6.07, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Lower Arm.L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.18, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 358.62, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Hand.L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.18, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Proximal Little.L
+[RuntimeAssimpFBXLoader]     LocalPosition: (-0.02, 0.06, -0.01)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Intermediate Little.L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.02, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Distal Little.L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.01, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Distal Little.L_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.01, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Proximal Ring.L
+[RuntimeAssimpFBXLoader]     LocalPosition: (-0.01, 0.06, -0.01)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Intermediate Ring.L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.03, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Distal Ring.L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.02, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Distal Ring.L_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.01, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Proximal Middle.L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.01, 0.06, -0.01)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Intermediate Middle.L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.03, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Distal Middle.L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.02, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Distal Middle.L_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.02, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Proximal Index.L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.02, 0.06, -0.01)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Intermediate Index.L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.03, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Distal Index.L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.02, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Distal Index.L_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.01, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Proximal Thumb.L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.03, 0.02, -0.02)
+[RuntimeAssimpFBXLoader]     LocalRotation: (328.17, 350.45, 334.10)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Intermediate Thumb.L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.01, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (7.70, 357.07, 359.84)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Distal Thumb.L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.02, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (359.61, 1.23, 355.97)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Distal Thumb.L_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.02, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Shoulder.R
+[RuntimeAssimpFBXLoader]     LocalPosition: (-0.06, 0.12, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (275.67, 0.00, 90.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Upper Arm.R
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.02, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 353.93, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Lower Arm.R
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.18, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 1.38, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Hand.R
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.18, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Proximal Little.R
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.02, 0.06, -0.01)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Intermediate Little.R
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.02, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Distal Little.R
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.01, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Distal Little.R_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.01, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Proximal Ring.R
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.01, 0.06, -0.01)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Intermediate Ring.R
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.03, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Distal Ring.R
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.02, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Distal Ring.R_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.01, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Proximal Middle.R
+[RuntimeAssimpFBXLoader]     LocalPosition: (-0.01, 0.06, -0.01)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Intermediate Middle.R
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.03, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Distal Middle.R
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.02, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Distal Middle.R_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.02, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Proximal Index.R
+[RuntimeAssimpFBXLoader]     LocalPosition: (-0.02, 0.06, -0.01)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Intermediate Index.R
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.03, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Distal Index.R
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.02, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Distal Index.R_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.01, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Proximal Thumb.R
+[RuntimeAssimpFBXLoader]     LocalPosition: (-0.03, 0.02, -0.02)
+[RuntimeAssimpFBXLoader]     LocalRotation: (328.17, 9.55, 25.90)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Intermediate Thumb.R
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.01, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (7.70, 2.93, 0.16)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Distal Thumb.R
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.02, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (359.61, 358.77, 4.03)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Distal Thumb.R_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.02, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: tie
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.00, 0.08)
+[RuntimeAssimpFBXLoader]     LocalRotation: (8.22, 0.00, 180.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: tie.001
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.06, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (359.51, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: tie.002
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.07, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.38, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: tie.002_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.07, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Chest_L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.04, 0.04, 0.02)
+[RuntimeAssimpFBXLoader]     LocalRotation: (281.66, 332.31, 207.20)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Chest_L_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.11, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Chest_R
+[RuntimeAssimpFBXLoader]     LocalPosition: (-0.04, 0.04, 0.02)
+[RuntimeAssimpFBXLoader]     LocalRotation: (281.66, 27.69, 152.80)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Chest_R_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.11, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Chest.001
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, -0.01, 0.11)
+[RuntimeAssimpFBXLoader]     LocalRotation: (2.79, 0.00, 180.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Chest.001_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.09, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Upper Leg.L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.05, -0.09, -0.01)
+[RuntimeAssimpFBXLoader]     LocalRotation: (1.75, 180.05, 180.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Lower Leg.L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.26, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (11.53, 0.06, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Foot.L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.27, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (292.44, 359.72, 0.25)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Toes.L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.12, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (29.26, 207.35, 14.13)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Toes.L_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.04, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Upper Leg.R
+[RuntimeAssimpFBXLoader]     LocalPosition: (-0.05, -0.09, -0.01)
+[RuntimeAssimpFBXLoader]     LocalRotation: (1.75, 179.95, 180.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Lower Leg.R
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.26, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (11.53, 359.94, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Foot.R
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.27, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (292.44, 0.28, 359.75)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Toes.R
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.12, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (29.26, 152.65, 345.87)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Toes.R_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.04, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Coat
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.05, -0.05)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 180.00, 180.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: coat_L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.16, 0.16, -0.03)
+[RuntimeAssimpFBXLoader]     LocalRotation: (16.82, 90.45, 5.61)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: coat2_L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.09, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (359.89, 359.95, 359.91)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: coat3_L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.10, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.47, 359.90, 0.84)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: coat4_L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.10, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (359.06, 359.91, 359.26)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: coat4_L_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.10, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: coat_R
+[RuntimeAssimpFBXLoader]     LocalPosition: (-0.16, 0.16, -0.03)
+[RuntimeAssimpFBXLoader]     LocalRotation: (16.82, 269.55, 354.39)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: coat2_R
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.09, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (359.89, 0.05, 0.09)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: coat3_R
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.10, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.47, 0.10, 359.16)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: coat4_R
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.10, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (359.06, 0.09, 0.74)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: coat4_R_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.10, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: coat5_L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.05, 0.16, 0.09)
+[RuntimeAssimpFBXLoader]     LocalRotation: (8.19, 89.30, 19.06)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: coat6_L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.09, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (359.45, 359.77, 0.44)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: coat7_L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.09, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.76, 0.11, 359.38)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: coat8_L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.09, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (359.72, 359.89, 359.30)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: coat8_L_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.09, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: coat5_R
+[RuntimeAssimpFBXLoader]     LocalPosition: (-0.05, 0.16, 0.09)
+[RuntimeAssimpFBXLoader]     LocalRotation: (8.19, 270.70, 340.94)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: coat6_R
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.09, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (359.45, 0.23, 359.56)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: coat7_R
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.09, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.76, 359.89, 0.62)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: coat8_R
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.09, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (359.72, 0.11, 0.70)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: coat8_R_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.09, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: tail
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.08, 0.10)
+[RuntimeAssimpFBXLoader]     LocalRotation: (53.84, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: tail2
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.12, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (359.91, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: tail3
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.12, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (10.89, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: tail4
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.14, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (359.98, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: tail4_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.14, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Hips_L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.05, -0.06, -0.03)
+[RuntimeAssimpFBXLoader]     LocalRotation: (304.12, 270.00, 90.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Hips_L_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.05, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Hips_R
+[RuntimeAssimpFBXLoader]     LocalPosition: (-0.05, -0.06, -0.03)
+[RuntimeAssimpFBXLoader]     LocalRotation: (304.12, 90.00, 270.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Hips_R_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.05, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: ribbon.L
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.12, -0.07, 0.01)
+[RuntimeAssimpFBXLoader]     LocalRotation: (348.87, 90.00, 180.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: ribbon.L_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.04, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: ribbon.R
+[RuntimeAssimpFBXLoader]     LocalPosition: (-0.12, -0.07, 0.01)
+[RuntimeAssimpFBXLoader]     LocalRotation: (348.87, 270.00, 180.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: ribbon.R_end
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.04, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Underwear
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (270.02, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Tail
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (270.02, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Socks
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (270.02, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Shoes
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (270.02, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Outer
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (270.02, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Inner
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (270.02, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Hat
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (270.02, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Hair
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (270.02, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Ear
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (270.02, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Body
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (270.02, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Karada_new
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (270.02, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Swimwear
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (270.02, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Loungewear_saneko
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (270.02, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Loungewear_kyoko_Underwear
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (270.02, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Loungewear_kyoko
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (270.02, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader]   Node: Nail
+[RuntimeAssimpFBXLoader]     LocalPosition: (0.00, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalRotation: (270.02, 0.00, 0.00)
+[RuntimeAssimpFBXLoader]     LocalScale: (1.00, 1.00, 1.00)
+[RuntimeAssimpFBXLoader] Bone hierarchy built successfully
+[RuntimeAssimpFBXLoader] ├─ kyoko Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]   ├─ RootNode Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]     ├─ Armature Rot(270.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]       ├─ Hips Rot(90.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]         ├─ Spine Rot(10.2, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]           ├─ Chest Rot(339.5, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]             ├─ Neck Rot(22.8, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]               ├─ Head Rot(347.6, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                 ├─ LeftEye Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                   ├─ LeftEye_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                 ├─ RightEye Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                   ├─ RightEye_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                 ├─ Hair Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                   ├─ Hair1 Rot(352.4, 178.8, 162.3)
+[RuntimeAssimpFBXLoader]                     ├─ Hair1_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                   ├─ ear1_L Rot(4.6, 270.3, 344.6)
+[RuntimeAssimpFBXLoader]                     ├─ ear2_L Rot(359.4, 179.9, 359.5)
+[RuntimeAssimpFBXLoader]                       ├─ ear2_L_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                   ├─ ear1_R Rot(4.6, 89.7, 15.4)
+[RuntimeAssimpFBXLoader]                     ├─ ear2_R Rot(359.4, 180.1, 0.5)
+[RuntimeAssimpFBXLoader]                       ├─ ear2_R_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                   ├─ Hair_L Rot(330.9, 271.6, 193.3)
+[RuntimeAssimpFBXLoader]                     ├─ Hair_L_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                   ├─ Hair_R Rot(330.9, 88.4, 166.7)
+[RuntimeAssimpFBXLoader]                     ├─ Hair_R_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                   ├─ Hair2 Rot(0.0, 180.0, 180.0)
+[RuntimeAssimpFBXLoader]                     ├─ Hair2_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                   ├─ Hair2_L Rot(0.0, 90.0, 180.0)
+[RuntimeAssimpFBXLoader]                     ├─ Hair2_L_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                   ├─ Hair2_R Rot(0.0, 270.0, 180.0)
+[RuntimeAssimpFBXLoader]                     ├─ Hair2_R_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                   ├─ tie_head Rot(0.0, 90.0, 180.0)
+[RuntimeAssimpFBXLoader]                     ├─ tie_head.001 Rot(0.0, 270.0, 0.0)
+[RuntimeAssimpFBXLoader]                       ├─ tie_head.002 Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                         ├─ tie_head.002_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]             ├─ Shoulder.L Rot(275.7, 0.0, 270.0)
+[RuntimeAssimpFBXLoader]               ├─ Upper Arm.L Rot(0.0, 6.1, 0.0)
+[RuntimeAssimpFBXLoader]                 ├─ Lower Arm.L Rot(0.0, 358.6, 0.0)
+[RuntimeAssimpFBXLoader]                   ├─ Hand.L Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                     ├─ Proximal Little.L Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                       ├─ Intermediate Little.L Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                         ├─ Distal Little.L Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                           ├─ Distal Little.L_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                     ├─ Proximal Ring.L Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                       ├─ Intermediate Ring.L Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                         ├─ Distal Ring.L Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                           ├─ Distal Ring.L_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                     ├─ Proximal Middle.L Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                       ├─ Intermediate Middle.L Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                         ├─ Distal Middle.L Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                           ├─ Distal Middle.L_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                     ├─ Proximal Index.L Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                       ├─ Intermediate Index.L Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                         ├─ Distal Index.L Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                           ├─ Distal Index.L_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                     ├─ Proximal Thumb.L Rot(328.2, 350.5, 334.1)
+[RuntimeAssimpFBXLoader]                       ├─ Intermediate Thumb.L Rot(7.7, 357.1, 359.8)
+[RuntimeAssimpFBXLoader]                         ├─ Distal Thumb.L Rot(359.6, 1.2, 356.0)
+[RuntimeAssimpFBXLoader]                           ├─ Distal Thumb.L_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]             ├─ Shoulder.R Rot(275.7, 0.0, 90.0)
+[RuntimeAssimpFBXLoader]               ├─ Upper Arm.R Rot(0.0, 353.9, 0.0)
+[RuntimeAssimpFBXLoader]                 ├─ Lower Arm.R Rot(0.0, 1.4, 0.0)
+[RuntimeAssimpFBXLoader]                   ├─ Hand.R Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                     ├─ Proximal Little.R Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                       ├─ Intermediate Little.R Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                         ├─ Distal Little.R Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                           ├─ Distal Little.R_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                     ├─ Proximal Ring.R Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                       ├─ Intermediate Ring.R Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                         ├─ Distal Ring.R Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                           ├─ Distal Ring.R_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                     ├─ Proximal Middle.R Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                       ├─ Intermediate Middle.R Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                         ├─ Distal Middle.R Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                           ├─ Distal Middle.R_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                     ├─ Proximal Index.R Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                       ├─ Intermediate Index.R Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                         ├─ Distal Index.R Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                           ├─ Distal Index.R_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                     ├─ Proximal Thumb.R Rot(328.2, 9.5, 25.9)
+[RuntimeAssimpFBXLoader]                       ├─ Intermediate Thumb.R Rot(7.7, 2.9, 0.2)
+[RuntimeAssimpFBXLoader]                         ├─ Distal Thumb.R Rot(359.6, 358.8, 4.0)
+[RuntimeAssimpFBXLoader]                           ├─ Distal Thumb.R_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]             ├─ tie Rot(8.2, 0.0, 180.0)
+[RuntimeAssimpFBXLoader]               ├─ tie.001 Rot(359.5, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                 ├─ tie.002 Rot(0.4, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                   ├─ tie.002_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]             ├─ Chest_L Rot(281.7, 332.3, 207.2)
+[RuntimeAssimpFBXLoader]               ├─ Chest_L_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]             ├─ Chest_R Rot(281.7, 27.7, 152.8)
+[RuntimeAssimpFBXLoader]               ├─ Chest_R_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]             ├─ Chest.001 Rot(2.8, 0.0, 180.0)
+[RuntimeAssimpFBXLoader]               ├─ Chest.001_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]         ├─ Upper Leg.L Rot(1.7, 180.1, 180.0)
+[RuntimeAssimpFBXLoader]           ├─ Lower Leg.L Rot(11.5, 0.1, 0.0)
+[RuntimeAssimpFBXLoader]             ├─ Foot.L Rot(292.4, 359.7, 0.2)
+[RuntimeAssimpFBXLoader]               ├─ Toes.L Rot(29.3, 207.4, 14.1)
+[RuntimeAssimpFBXLoader]                 ├─ Toes.L_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]         ├─ Upper Leg.R Rot(1.7, 179.9, 180.0)
+[RuntimeAssimpFBXLoader]           ├─ Lower Leg.R Rot(11.5, 359.9, 0.0)
+[RuntimeAssimpFBXLoader]             ├─ Foot.R Rot(292.4, 0.3, 359.8)
+[RuntimeAssimpFBXLoader]               ├─ Toes.R Rot(29.3, 152.6, 345.9)
+[RuntimeAssimpFBXLoader]                 ├─ Toes.R_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]         ├─ Coat Rot(0.0, 180.0, 180.0)
+[RuntimeAssimpFBXLoader]           ├─ coat_L Rot(16.8, 90.4, 5.6)
+[RuntimeAssimpFBXLoader]             ├─ coat2_L Rot(359.9, 360.0, 359.9)
+[RuntimeAssimpFBXLoader]               ├─ coat3_L Rot(0.5, 359.9, 0.8)
+[RuntimeAssimpFBXLoader]                 ├─ coat4_L Rot(359.1, 359.9, 359.3)
+[RuntimeAssimpFBXLoader]                   ├─ coat4_L_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]           ├─ coat_R Rot(16.8, 269.6, 354.4)
+[RuntimeAssimpFBXLoader]             ├─ coat2_R Rot(359.9, 0.0, 0.1)
+[RuntimeAssimpFBXLoader]               ├─ coat3_R Rot(0.5, 0.1, 359.2)
+[RuntimeAssimpFBXLoader]                 ├─ coat4_R Rot(359.1, 0.1, 0.7)
+[RuntimeAssimpFBXLoader]                   ├─ coat4_R_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]           ├─ coat5_L Rot(8.2, 89.3, 19.1)
+[RuntimeAssimpFBXLoader]             ├─ coat6_L Rot(359.4, 359.8, 0.4)
+[RuntimeAssimpFBXLoader]               ├─ coat7_L Rot(0.8, 0.1, 359.4)
+[RuntimeAssimpFBXLoader]                 ├─ coat8_L Rot(359.7, 359.9, 359.3)
+[RuntimeAssimpFBXLoader]                   ├─ coat8_L_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]           ├─ coat5_R Rot(8.2, 270.7, 340.9)
+[RuntimeAssimpFBXLoader]             ├─ coat6_R Rot(359.4, 0.2, 359.6)
+[RuntimeAssimpFBXLoader]               ├─ coat7_R Rot(0.8, 359.9, 0.6)
+[RuntimeAssimpFBXLoader]                 ├─ coat8_R Rot(359.7, 0.1, 0.7)
+[RuntimeAssimpFBXLoader]                   ├─ coat8_R_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]           ├─ tail Rot(53.8, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]             ├─ tail2 Rot(359.9, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]               ├─ tail3 Rot(10.9, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                 ├─ tail4 Rot(360.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]                   ├─ tail4_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]         ├─ Hips_L Rot(304.1, 270.0, 90.0)
+[RuntimeAssimpFBXLoader]           ├─ Hips_L_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]         ├─ Hips_R Rot(304.1, 90.0, 270.0)
+[RuntimeAssimpFBXLoader]           ├─ Hips_R_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]         ├─ ribbon.L Rot(348.9, 90.0, 180.0)
+[RuntimeAssimpFBXLoader]           ├─ ribbon.L_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]         ├─ ribbon.R Rot(348.9, 270.0, 180.0)
+[RuntimeAssimpFBXLoader]           ├─ ribbon.R_end Rot(0.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]     ├─ Underwear Rot(270.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]     ├─ Tail Rot(270.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]     ├─ Socks Rot(270.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]     ├─ Shoes Rot(270.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]     ├─ Outer Rot(270.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]     ├─ Inner Rot(270.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]     ├─ Hat Rot(270.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]     ├─ Hair Rot(270.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]     ├─ Ear Rot(270.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]     ├─ Body Rot(270.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]     ├─ Karada_new Rot(270.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]     ├─ Swimwear Rot(270.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]     ├─ Loungewear_saneko Rot(270.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]     ├─ Loungewear_kyoko_Underwear Rot(270.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]     ├─ Loungewear_kyoko Rot(270.0, 0.0, 0.0)
+[RuntimeAssimpFBXLoader]     ├─ Nail Rot(270.0, 0.0, 0.0)
+[RuntimeFBXLoaderBridge] Successfully loaded skeleton: kyoko
+[RuntimeFBXLoaderBridge] Model placed at World Position: (0.00, 0.00, 0.00)
+[RuntimeFBXLoaderBridge] Model Rotation: (0.00, 180.00, 0.00)
+[RuntimeFBXLoaderBridge] Model Scale: (1.00, 1.00, 1.00)
+[RuntimeFBXLoaderBridge] Parent: RuntimeManager
+[RuntimeFBXLoaderBridge] Found 0 renderers
+[RuntimeFBXLoaderBridge] BoneDebugVisualizer attached
+[RuntimeAssimpFBXLoader] Humanoid bone mapping completed: 21 bones mapped
+[RuntimeAssimpFBXLoader]   Hips                      → Hips
+[RuntimeAssimpFBXLoader]   Spine                     → Spine
+[RuntimeAssimpFBXLoader]   Chest                     → Chest
+[RuntimeAssimpFBXLoader]   Neck                      → Neck
+[RuntimeAssimpFBXLoader]   Head                      → Head
+[RuntimeAssimpFBXLoader]   LeftShoulder              → Shoulder.L
+[RuntimeAssimpFBXLoader]   LeftUpperArm              → Upper Arm.L
+[RuntimeAssimpFBXLoader]   LeftLowerArm              → Lower Arm.L
+[RuntimeAssimpFBXLoader]   LeftHand                  → Hand.L
+[RuntimeAssimpFBXLoader]   RightShoulder             → Shoulder.R
+[RuntimeAssimpFBXLoader]   RightUpperArm             → Upper Arm.R
+[RuntimeAssimpFBXLoader]   RightLowerArm             → Lower Arm.R
+[RuntimeAssimpFBXLoader]   RightHand                 → Hand.R
+[RuntimeAssimpFBXLoader]   LeftUpperLeg              → Upper Leg.L
+[RuntimeAssimpFBXLoader]   LeftLowerLeg              → Lower Leg.L
+[RuntimeAssimpFBXLoader]   LeftFoot                  → Foot.L
+[RuntimeAssimpFBXLoader]   LeftToes                  → Toes.L
+[RuntimeAssimpFBXLoader]   RightUpperLeg             → Upper Leg.R
+[RuntimeAssimpFBXLoader]   RightLowerLeg             → Lower Leg.R
+[RuntimeAssimpFBXLoader]   RightFoot                 → Foot.R
+[RuntimeAssimpFBXLoader]   RightToes                 → Toes.R
+[RuntimeFBXLoaderBridge] Humanoid bones mapped: 21
+[RuntimeFBXLoaderBridge] Using RuntimeHumanoidAvatarBuilder
+[RuntimeHumanoidAvatarBuilder] === Bone Mapping Start for 'kyoko' ===
+[RuntimeHumanoidAvatarBuilder] Total transforms found: 153
+[RuntimeHumanoidAvatarBuilder] Bone mapping completed. Mapped 53 bones:
+[RuntimeHumanoidAvatarBuilder] === Bone Mapping End ===
+[RuntimeHumanoidAvatarBuilder] === Armature Construction Results ===
+[RuntimeHumanoidAvatarBuilder] Model: kyoko
+[RuntimeHumanoidAvatarBuilder] Mapped bones: 53/55
+[RuntimeHumanoidAvatarBuilder] Required bones (15):
+[RuntimeHumanoidAvatarBuilder]   ✓ Hips                 → Hips
+[RuntimeHumanoidAvatarBuilder]   ✓ LeftUpperLeg         → Upper Leg.L
+[RuntimeHumanoidAvatarBuilder]   ✓ RightUpperLeg        → Upper Leg.R
+[RuntimeHumanoidAvatarBuilder]   ✓ LeftLowerLeg         → Lower Leg.L
+[RuntimeHumanoidAvatarBuilder]   ✓ RightLowerLeg        → Lower Leg.R
+[RuntimeHumanoidAvatarBuilder]   ✓ LeftFoot             → Foot.L
+[RuntimeHumanoidAvatarBuilder]   ✓ RightFoot            → Foot.R
+[RuntimeHumanoidAvatarBuilder]   ✓ Spine                → Spine
+[RuntimeHumanoidAvatarBuilder]   ✓ Head                 → Head
+[RuntimeHumanoidAvatarBuilder]   ✓ LeftUpperArm         → Upper Arm.L
+[RuntimeHumanoidAvatarBuilder]   ✓ RightUpperArm        → Upper Arm.R
+[RuntimeHumanoidAvatarBuilder]   ✓ LeftLowerArm         → Lower Arm.L
+[RuntimeHumanoidAvatarBuilder]   ✓ RightLowerArm        → Lower Arm.R
+[RuntimeHumanoidAvatarBuilder]   ✓ LeftHand             → Hand.L
+[RuntimeHumanoidAvatarBuilder]   ✓ RightHand            → Hand.R
+[RuntimeHumanoidAvatarBuilder] Optional bones mapped (38):
+[RuntimeHumanoidAvatarBuilder]   + Chest                → Chest
+[RuntimeHumanoidAvatarBuilder]   + Neck                 → Neck
+[RuntimeHumanoidAvatarBuilder]   + LeftShoulder         → Shoulder.L
+[RuntimeHumanoidAvatarBuilder]   + RightShoulder        → Shoulder.R
+[RuntimeHumanoidAvatarBuilder]   + LeftToes             → Toes.L
+[RuntimeHumanoidAvatarBuilder]   + RightToes            → Toes.R
+[RuntimeHumanoidAvatarBuilder]   + LeftEye              → LeftEye
+[RuntimeHumanoidAvatarBuilder]   + RightEye             → RightEye
+[RuntimeHumanoidAvatarBuilder]   + LeftThumbProximal    → Proximal Thumb.L
+[RuntimeHumanoidAvatarBuilder]   + LeftThumbIntermediate → Intermediate Thumb.L
+[RuntimeHumanoidAvatarBuilder]   + LeftThumbDistal      → Distal Thumb.L
+[RuntimeHumanoidAvatarBuilder]   + LeftIndexProximal    → Proximal Index.L
+[RuntimeHumanoidAvatarBuilder]   + LeftIndexIntermediate → Intermediate Index.L
+[RuntimeHumanoidAvatarBuilder]   + LeftIndexDistal      → Distal Index.L
+[RuntimeHumanoidAvatarBuilder]   + LeftMiddleProximal   → Proximal Middle.L
+[RuntimeHumanoidAvatarBuilder]   + LeftMiddleIntermediate → Intermediate Middle.L
+[RuntimeHumanoidAvatarBuilder]   + LeftMiddleDistal     → Distal Middle.L
+[RuntimeHumanoidAvatarBuilder]   + LeftRingProximal     → Proximal Ring.L
+[RuntimeHumanoidAvatarBuilder]   + LeftRingIntermediate → Intermediate Ring.L
+[RuntimeHumanoidAvatarBuilder]   + LeftRingDistal       → Distal Ring.L
+[RuntimeHumanoidAvatarBuilder]   + LeftLittleProximal   → Proximal Little.L
+[RuntimeHumanoidAvatarBuilder]   + LeftLittleIntermediate → Intermediate Little.L
+[RuntimeHumanoidAvatarBuilder]   + LeftLittleDistal     → Distal Little.L
+[RuntimeHumanoidAvatarBuilder]   + RightThumbProximal   → Proximal Thumb.R
+[RuntimeHumanoidAvatarBuilder]   + RightThumbIntermediate → Intermediate Thumb.R
+[RuntimeHumanoidAvatarBuilder]   + RightThumbDistal     → Distal Thumb.R
+[RuntimeHumanoidAvatarBuilder]   + RightIndexProximal   → Proximal Index.R
+[RuntimeHumanoidAvatarBuilder]   + RightIndexIntermediate → Intermediate Index.R
+[RuntimeHumanoidAvatarBuilder]   + RightIndexDistal     → Distal Index.R
+[RuntimeHumanoidAvatarBuilder]   + RightMiddleProximal  → Proximal Middle.R
+[RuntimeHumanoidAvatarBuilder]   + RightMiddleIntermediate → Intermediate Middle.R
+[RuntimeHumanoidAvatarBuilder]   + RightMiddleDistal    → Distal Middle.R
+[RuntimeHumanoidAvatarBuilder]   + RightRingProximal    → Proximal Ring.R
+[RuntimeHumanoidAvatarBuilder]   + RightRingIntermediate → Intermediate Ring.R
+[RuntimeHumanoidAvatarBuilder]   + RightRingDistal      → Distal Ring.R
+[RuntimeHumanoidAvatarBuilder]   + RightLittleProximal  → Proximal Little.R
+[RuntimeHumanoidAvatarBuilder]   + RightLittleIntermediate → Intermediate Little.R
+[RuntimeHumanoidAvatarBuilder]   + RightLittleDistal    → Distal Little.R
+[RuntimeHumanoidAvatarBuilder] === End Armature Construction ===
+[RuntimeHumanoidAvatarBuilder] === Left/Right Correction Start ===
+[RuntimeHumanoidAvatarBuilder] Hips transform: Hips
+[RuntimeHumanoidAvatarBuilder] Checking UpperLeg:
+[RuntimeHumanoidAvatarBuilder]   Left(LeftUpperLeg): 'upper leg.l' at local X=0.049, isLeft=False
+[RuntimeHumanoidAvatarBuilder]   Right(RightUpperLeg): 'upper leg.r' at local X=-0.049, isLeft=True
+[RuntimeHumanoidAvatarBuilder]   Has L/R in name: True
+[WARN] [RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names are correct, but positions are reversed due to 180° rotation. Trusting bone names.
+[RuntimeHumanoidAvatarBuilder]   => Trusting bone names, no swap
+[RuntimeHumanoidAvatarBuilder] Checking LowerLeg:
+[RuntimeHumanoidAvatarBuilder]   Left(LeftLowerLeg): 'lower leg.l' at local X=0.049, isLeft=False
+[RuntimeHumanoidAvatarBuilder]   Right(RightLowerLeg): 'lower leg.r' at local X=-0.049, isLeft=True
+[RuntimeHumanoidAvatarBuilder]   Has L/R in name: True
+[WARN] [RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names are correct, but positions are reversed due to 180° rotation. Trusting bone names.
+[RuntimeHumanoidAvatarBuilder]   => Trusting bone names, no swap
+[RuntimeHumanoidAvatarBuilder] Checking Foot:
+[RuntimeHumanoidAvatarBuilder]   Left(LeftFoot): 'foot.l' at local X=0.049, isLeft=False
+[RuntimeHumanoidAvatarBuilder]   Right(RightFoot): 'foot.r' at local X=-0.049, isLeft=True
+[RuntimeHumanoidAvatarBuilder]   Has L/R in name: True
+[WARN] [RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names are correct, but positions are reversed due to 180° rotation. Trusting bone names.
+[RuntimeHumanoidAvatarBuilder]   => Trusting bone names, no swap
+[RuntimeHumanoidAvatarBuilder] Checking Shoulder:
+[RuntimeHumanoidAvatarBuilder]   Left(LeftShoulder): 'shoulder.l' at local X=0.059, isLeft=False
+[RuntimeHumanoidAvatarBuilder]   Right(RightShoulder): 'shoulder.r' at local X=-0.059, isLeft=True
+[RuntimeHumanoidAvatarBuilder]   Has L/R in name: True
+[WARN] [RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names are correct, but positions are reversed due to 180° rotation. Trusting bone names.
+[RuntimeHumanoidAvatarBuilder]   => Trusting bone names, no swap
+[RuntimeHumanoidAvatarBuilder] Checking UpperArm:
+[RuntimeHumanoidAvatarBuilder]   Left(LeftUpperArm): 'upper arm.l' at local X=0.075, isLeft=False
+[RuntimeHumanoidAvatarBuilder]   Right(RightUpperArm): 'upper arm.r' at local X=-0.075, isLeft=True
+[RuntimeHumanoidAvatarBuilder]   Has L/R in name: True
+[WARN] [RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names are correct, but positions are reversed due to 180° rotation. Trusting bone names.
+[RuntimeHumanoidAvatarBuilder]   => Trusting bone names, no swap
+[RuntimeHumanoidAvatarBuilder] Checking LowerArm:
+[RuntimeHumanoidAvatarBuilder]   Left(LeftLowerArm): 'lower arm.l' at local X=0.255, isLeft=False
+[RuntimeHumanoidAvatarBuilder]   Right(RightLowerArm): 'lower arm.r' at local X=-0.255, isLeft=True
+[RuntimeHumanoidAvatarBuilder]   Has L/R in name: True
+[WARN] [RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names are correct, but positions are reversed due to 180° rotation. Trusting bone names.
+[RuntimeHumanoidAvatarBuilder]   => Trusting bone names, no swap
+[RuntimeHumanoidAvatarBuilder] Checking Hand:
+[RuntimeHumanoidAvatarBuilder]   Left(LeftHand): 'hand.l' at local X=0.436, isLeft=False
+[RuntimeHumanoidAvatarBuilder]   Right(RightHand): 'hand.r' at local X=-0.436, isLeft=True
+[RuntimeHumanoidAvatarBuilder]   Has L/R in name: True
+[WARN] [RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names are correct, but positions are reversed due to 180° rotation. Trusting bone names.
+[RuntimeHumanoidAvatarBuilder]   => Trusting bone names, no swap
+[RuntimeHumanoidAvatarBuilder] Checking Toes:
+[RuntimeHumanoidAvatarBuilder]   Left(LeftToes): 'toes.l' at local X=0.049, isLeft=False
+[RuntimeHumanoidAvatarBuilder]   Right(RightToes): 'toes.r' at local X=-0.049, isLeft=True
+[RuntimeHumanoidAvatarBuilder]   Has L/R in name: True
+[WARN] [RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names are correct, but positions are reversed due to 180° rotation. Trusting bone names.
+[RuntimeHumanoidAvatarBuilder]   => Trusting bone names, no swap
+[RuntimeHumanoidAvatarBuilder] Checking Eye:
+[RuntimeHumanoidAvatarBuilder]   Left(LeftEye): 'lefteye' at local X=0.034, isLeft=False
+[RuntimeHumanoidAvatarBuilder]   Right(RightEye): 'righteye' at local X=-0.034, isLeft=True
+[RuntimeHumanoidAvatarBuilder]   Has L/R in name: True
+[WARN] [RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names are correct, but positions are reversed due to 180° rotation. Trusting bone names.
+[RuntimeHumanoidAvatarBuilder]   => Trusting bone names, no swap
+[RuntimeHumanoidAvatarBuilder] Checking ThumbProximal:
+[RuntimeHumanoidAvatarBuilder]   Left(LeftThumbProximal): 'proximal thumb.l' at local X=0.460, isLeft=False
+[RuntimeHumanoidAvatarBuilder]   Right(RightThumbProximal): 'proximal thumb.r' at local X=-0.460, isLeft=True
+[RuntimeHumanoidAvatarBuilder]   Has L/R in name: True
+[WARN] [RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names are correct, but positions are reversed due to 180° rotation. Trusting bone names.
+[RuntimeHumanoidAvatarBuilder]   => Trusting bone names, no swap
+[RuntimeHumanoidAvatarBuilder] Checking ThumbIntermediate:
+[RuntimeHumanoidAvatarBuilder]   Left(LeftThumbIntermediate): 'intermediate thumb.l' at local X=0.469, isLeft=False
+[RuntimeHumanoidAvatarBuilder]   Right(RightThumbIntermediate): 'intermediate thumb.r' at local X=-0.469, isLeft=True
+[RuntimeHumanoidAvatarBuilder]   Has L/R in name: True
+[WARN] [RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names are correct, but positions are reversed due to 180° rotation. Trusting bone names.
+[RuntimeHumanoidAvatarBuilder]   => Trusting bone names, no swap
+[RuntimeHumanoidAvatarBuilder] Checking ThumbDistal:
+[RuntimeHumanoidAvatarBuilder]   Left(LeftThumbDistal): 'distal thumb.l' at local X=0.489, isLeft=False
+[RuntimeHumanoidAvatarBuilder]   Right(RightThumbDistal): 'distal thumb.r' at local X=-0.489, isLeft=True
+[RuntimeHumanoidAvatarBuilder]   Has L/R in name: True
+[WARN] [RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names are correct, but positions are reversed due to 180° rotation. Trusting bone names.
+[RuntimeHumanoidAvatarBuilder]   => Trusting bone names, no swap
+[RuntimeHumanoidAvatarBuilder] Checking IndexProximal:
+[RuntimeHumanoidAvatarBuilder]   Left(LeftIndexProximal): 'proximal index.l' at local X=0.497, isLeft=False
+[RuntimeHumanoidAvatarBuilder]   Right(RightIndexProximal): 'proximal index.r' at local X=-0.497, isLeft=True
+[RuntimeHumanoidAvatarBuilder]   Has L/R in name: True
+[WARN] [RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names are correct, but positions are reversed due to 180° rotation. Trusting bone names.
+[RuntimeHumanoidAvatarBuilder]   => Trusting bone names, no swap
+[RuntimeHumanoidAvatarBuilder] Checking IndexIntermediate:
+[RuntimeHumanoidAvatarBuilder]   Left(LeftIndexIntermediate): 'intermediate index.l' at local X=0.525, isLeft=False
+[RuntimeHumanoidAvatarBuilder]   Right(RightIndexIntermediate): 'intermediate index.r' at local X=-0.525, isLeft=True
+[RuntimeHumanoidAvatarBuilder]   Has L/R in name: True
+[WARN] [RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names are correct, but positions are reversed due to 180° rotation. Trusting bone names.
+[RuntimeHumanoidAvatarBuilder]   => Trusting bone names, no swap
+[RuntimeHumanoidAvatarBuilder] Checking IndexDistal:
+[RuntimeHumanoidAvatarBuilder]   Left(LeftIndexDistal): 'distal index.l' at local X=0.543, isLeft=False
+[RuntimeHumanoidAvatarBuilder]   Right(RightIndexDistal): 'distal index.r' at local X=-0.543, isLeft=True
+[RuntimeHumanoidAvatarBuilder]   Has L/R in name: True
+[WARN] [RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names are correct, but positions are reversed due to 180° rotation. Trusting bone names.
+[RuntimeHumanoidAvatarBuilder]   => Trusting bone names, no swap
+[RuntimeHumanoidAvatarBuilder] Checking MiddleProximal:
+[RuntimeHumanoidAvatarBuilder]   Left(LeftMiddleProximal): 'proximal middle.l' at local X=0.499, isLeft=False
+[RuntimeHumanoidAvatarBuilder]   Right(RightMiddleProximal): 'proximal middle.r' at local X=-0.499, isLeft=True
+[RuntimeHumanoidAvatarBuilder]   Has L/R in name: True
+[WARN] [RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names are correct, but positions are reversed due to 180° rotation. Trusting bone names.
+[RuntimeHumanoidAvatarBuilder]   => Trusting bone names, no swap
+[RuntimeHumanoidAvatarBuilder] Checking MiddleIntermediate:
+[RuntimeHumanoidAvatarBuilder]   Left(LeftMiddleIntermediate): 'intermediate middle.l' at local X=0.532, isLeft=False
+[RuntimeHumanoidAvatarBuilder]   Right(RightMiddleIntermediate): 'intermediate middle.r' at local X=-0.532, isLeft=True
+[RuntimeHumanoidAvatarBuilder]   Has L/R in name: True
+[WARN] [RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names are correct, but positions are reversed due to 180° rotation. Trusting bone names.
+[RuntimeHumanoidAvatarBuilder]   => Trusting bone names, no swap
+[RuntimeHumanoidAvatarBuilder] Checking MiddleDistal:
+[RuntimeHumanoidAvatarBuilder]   Left(LeftMiddleDistal): 'distal middle.l' at local X=0.550, isLeft=False
+[RuntimeHumanoidAvatarBuilder]   Right(RightMiddleDistal): 'distal middle.r' at local X=-0.550, isLeft=True
+[RuntimeHumanoidAvatarBuilder]   Has L/R in name: True
+[WARN] [RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names are correct, but positions are reversed due to 180° rotation. Trusting bone names.
+[RuntimeHumanoidAvatarBuilder]   => Trusting bone names, no swap
+[RuntimeHumanoidAvatarBuilder] Checking RingProximal:
+[RuntimeHumanoidAvatarBuilder]   Left(LeftRingProximal): 'proximal ring.l' at local X=0.498, isLeft=False
+[RuntimeHumanoidAvatarBuilder]   Right(RightRingProximal): 'proximal ring.r' at local X=-0.498, isLeft=True
+[RuntimeHumanoidAvatarBuilder]   Has L/R in name: True
+[WARN] [RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names are correct, but positions are reversed due to 180° rotation. Trusting bone names.
+[RuntimeHumanoidAvatarBuilder]   => Trusting bone names, no swap
+[RuntimeHumanoidAvatarBuilder] Checking RingIntermediate:
+[RuntimeHumanoidAvatarBuilder]   Left(LeftRingIntermediate): 'intermediate ring.l' at local X=0.529, isLeft=False
+[RuntimeHumanoidAvatarBuilder]   Right(RightRingIntermediate): 'intermediate ring.r' at local X=-0.529, isLeft=True
+[RuntimeHumanoidAvatarBuilder]   Has L/R in name: True
+[WARN] [RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names are correct, but positions are reversed due to 180° rotation. Trusting bone names.
+[RuntimeHumanoidAvatarBuilder]   => Trusting bone names, no swap
+[RuntimeHumanoidAvatarBuilder] Checking RingDistal:
+[RuntimeHumanoidAvatarBuilder]   Left(LeftRingDistal): 'distal ring.l' at local X=0.547, isLeft=False
+[RuntimeHumanoidAvatarBuilder]   Right(RightRingDistal): 'distal ring.r' at local X=-0.547, isLeft=True
+[RuntimeHumanoidAvatarBuilder]   Has L/R in name: True
+[WARN] [RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names are correct, but positions are reversed due to 180° rotation. Trusting bone names.
+[RuntimeHumanoidAvatarBuilder]   => Trusting bone names, no swap
+[RuntimeHumanoidAvatarBuilder] Checking LittleProximal:
+[RuntimeHumanoidAvatarBuilder]   Left(LeftLittleProximal): 'proximal little.l' at local X=0.495, isLeft=False
+[RuntimeHumanoidAvatarBuilder]   Right(RightLittleProximal): 'proximal little.r' at local X=-0.495, isLeft=True
+[RuntimeHumanoidAvatarBuilder]   Has L/R in name: True
+[WARN] [RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names are correct, but positions are reversed due to 180° rotation. Trusting bone names.
+[RuntimeHumanoidAvatarBuilder]   => Trusting bone names, no swap
+[RuntimeHumanoidAvatarBuilder] Checking LittleIntermediate:
+[RuntimeHumanoidAvatarBuilder]   Left(LeftLittleIntermediate): 'intermediate little.l' at local X=0.517, isLeft=False
+[RuntimeHumanoidAvatarBuilder]   Right(RightLittleIntermediate): 'intermediate little.r' at local X=-0.517, isLeft=True
+[RuntimeHumanoidAvatarBuilder]   Has L/R in name: True
+[WARN] [RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names are correct, but positions are reversed due to 180° rotation. Trusting bone names.
+[RuntimeHumanoidAvatarBuilder]   => Trusting bone names, no swap
+[RuntimeHumanoidAvatarBuilder] Checking LittleDistal:
+[RuntimeHumanoidAvatarBuilder]   Left(LeftLittleDistal): 'distal little.l' at local X=0.532, isLeft=False
+[RuntimeHumanoidAvatarBuilder]   Right(RightLittleDistal): 'distal little.r' at local X=-0.532, isLeft=True
+[RuntimeHumanoidAvatarBuilder]   Has L/R in name: True
+[WARN] [RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names are correct, but positions are reversed due to 180° rotation. Trusting bone names.
+[RuntimeHumanoidAvatarBuilder]   => Trusting bone names, no swap
+[RuntimeHumanoidAvatarBuilder] Left/Right correction: 0 pairs swapped
+[RuntimeHumanoidAvatarBuilder] === Left/Right Correction End ===
+[RuntimeHumanoidAvatarBuilder] === Coordinate System Diagnostic ===
+[RuntimeHumanoidAvatarBuilder] [kyoko] Analyzing skeleton coordinate system...
+[RuntimeHumanoidAvatarBuilder]   Hips localRotation: (0.70711, 0.00000, 0.00000, 0.70711)
+[RuntimeHumanoidAvatarBuilder]   Hips Euler angles: (89.98, 0.00, 0.00)
+[RuntimeHumanoidAvatarBuilder]   Hips→Spine direction: (0.000, 1.000, 0.000)
+[RuntimeHumanoidAvatarBuilder]   ✓ Hips→Spine = +Y (standard T-pose/A-pose orientation)
+[RuntimeHumanoidAvatarBuilder]   Key bone rotations:
+[RuntimeHumanoidAvatarBuilder]     Hips: Euler(90.0, 0.0, 0.0)
+[RuntimeHumanoidAvatarBuilder]     Spine: Euler(10.2, 0.0, 0.0)
+[RuntimeHumanoidAvatarBuilder]     LeftUpperArm: Euler(0.0, 6.1, 0.0)
+[RuntimeHumanoidAvatarBuilder]     RightUpperArm: Euler(0.0, 353.9, 0.0)
+[RuntimeHumanoidAvatarBuilder]     LeftUpperLeg: Euler(1.7, 180.1, 180.0)
+[RuntimeHumanoidAvatarBuilder]     RightUpperLeg: Euler(1.7, 179.9, 180.0)
+[RuntimeHumanoidAvatarBuilder] === End Diagnostic ===
+[WARN] [kyoko] L-Arm off T-Pose by 17.3°
+[WARN] [kyoko] R-Arm off T-Pose by 17.3°
+[WARN] [kyoko] L-Leg off T-Pose by 28.2°
+[WARN] [kyoko] R-Leg off T-Pose by 28.2°
+[RuntimeHumanoidAvatarBuilder] Generated 153 SkeletonBones (pure Transform copy, no corrections)
+[RuntimeHumanoidAvatarBuilder] === HumanDescription Details ===
+[RuntimeHumanoidAvatarBuilder] Total Bones: 53, Skeleton: 153
+[RuntimeHumanoidAvatarBuilder] ArmTwist: U=0.5, L=0.5
+[RuntimeHumanoidAvatarBuilder] LegTwist: U=0.5, L=0.5
+[RuntimeHumanoidAvatarBuilder] Stretch: Arm=0.05, Leg=0.05
+[RuntimeHumanoidAvatarBuilder] HumanBone[] mapping (53 bones):
+[RuntimeHumanoidAvatarBuilder] SkeletonBone[] sample (first 10):
+[RuntimeHumanoidAvatarBuilder] === End HumanDescription Details ===
+[RuntimeHumanoidAvatarBuilder] Successfully built Avatar for kyoko. IsValid: True, IsHuman: True
+[RuntimeHumanoidAvatarBuilder] === SkinnedMeshRenderer & BindPose Validation ===
+[RuntimeHumanoidAvatarBuilder] Found 0 SkinnedMeshRenderer(s)
+[RuntimeHumanoidAvatarBuilder] === End SkinnedMeshRenderer Validation ===
+[RuntimeFBXLoaderBridge] ✓ Avatar created. IsValid: True, IsHuman: True
+[RuntimeFBXLoaderBridge] SetupAnimator called for model: kyoko
+[RuntimeFBXLoaderBridge] Found existing Animator component. Current controller: null
+[RuntimeFBXLoaderBridge] Avatar is assigned: , IsValid: True, IsHuman: True
+[RuntimeFBXLoaderBridge] animatorController field is: UnityChanLocomotions
+[RuntimeFBXLoaderBridge] ✓ Set animator controller: UnityChanLocomotions
+[RuntimeFBXLoaderBridge] ✓ Animator controller successfully applied
+[RuntimeFBXLoaderBridge] Playing initial state: Idle
+[RuntimeFBXLoaderBridge] Assimp FBX load completed. Success: True
+
+Ended: 2025-11-17 21:27:42
+=== End of Log ===

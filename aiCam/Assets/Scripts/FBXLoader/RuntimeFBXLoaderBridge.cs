@@ -198,15 +198,10 @@ namespace AICam.FBXLoader
                 PlaceModel(currentModel);
                 onProgress?.Invoke(40f);
 
-                // メッシュをロード（頂点、UV、三角形のみ）
+                // メッシュをロード（SkinnedMeshRenderer with bones/bindposes）
                 Debug.Log("[RuntimeFBXLoaderBridge] Loading meshes...");
                 loader.LoadMeshes(currentModel);
                 onProgress?.Invoke(50f);
-
-                // STEP 8: 座標変換をroot全体に適用
-                Debug.Log("[RuntimeFBXLoaderBridge] Applying coordinate conversion to root...");
-                loader.ApplyCoordinateConversionToRoot(currentModel);
-                onProgress?.Invoke(55f);
 
                 // デバッグビジュアライザーをアタッチ
                 var visualizer = currentModel.AddComponent<AICam.DebugTools.BoneDebugVisualizer>();

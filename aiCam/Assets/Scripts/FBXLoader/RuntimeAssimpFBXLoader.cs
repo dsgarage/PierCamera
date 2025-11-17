@@ -120,11 +120,6 @@ namespace AICam.FBXLoader
                 nodeNameToTransform[node.Name] = nodeObject.transform;
             }
 
-            UnityEngine.Debug.Log($"{LOG_PREFIX}   Node: {node.Name}");
-            UnityEngine.Debug.Log($"{LOG_PREFIX}     LocalPosition: {nodeObject.transform.localPosition}");
-            UnityEngine.Debug.Log($"{LOG_PREFIX}     LocalRotation: {nodeObject.transform.localRotation.eulerAngles}");
-            UnityEngine.Debug.Log($"{LOG_PREFIX}     LocalScale: {nodeObject.transform.localScale}");
-
             // 子ノードを再帰的に処理
             for (int i = 0; i < node.ChildCount; i++)
             {
@@ -133,8 +128,8 @@ namespace AICam.FBXLoader
         }
 
         /// <summary>
-        /// AssimpのMatrix4x4からUnityのTransformに変換（1:1コピー、座標系変換なし）
-        /// STEP 2: Transform階層をAssimpから1:1で再現する（座標変換はSTEP 8でrootに適用）
+        /// AssimpのMatrix4x4からUnityのTransformに変換（座標系変換適用）
+        /// v0.3.2の成功ロジック: Transform階層に座標変換を適用してAポーズを維持
         /// </summary>
         private void SetTransformFromAssimpMatrix(Transform transform, Assimp.Matrix4x4 assimpMatrix)
         {
@@ -144,9 +139,9 @@ namespace AICam.FBXLoader
             Assimp.Vector3D position;
             assimpMatrix.Decompose(out scale, out rotation, out position);
 
-            // Assimpのデータをそのままコピー（座標系変換は行わない）
-            transform.localPosition = new UnityEngine.Vector3(position.X, position.Y, position.Z);
-            transform.localRotation = new UnityEngine.Quaternion(rotation.X, rotation.Y, rotation.Z, rotation.W);
+            // 座標系変換を適用してUnityのTransformに設定（v0.3.2と同じ）
+            transform.localPosition = FbxCoordinateSystemDetector.ConvertVector(position, coordinateConversionMatrix);
+            transform.localRotation = FbxCoordinateSystemDetector.ConvertQuaternion(rotation, coordinateConversionMatrix);
             transform.localScale = new UnityEngine.Vector3(scale.X, scale.Y, scale.Z);
         }
 
@@ -266,7 +261,7 @@ namespace AICam.FBXLoader
             Transform hips = FindTransformByName(root, "hips");
             if (hips != null)
             {
-                UnityEngine.Debug.Log($"{LOG_PREFIX} [STEP 5] rootBone found: {hips.name} (Hips)");
+                UnityEngine.Debug.Log($"{LOG_PREFIX} rootBone: {hips.name}");
                 return hips;
             }
 
@@ -274,7 +269,7 @@ namespace AICam.FBXLoader
             Transform pelvis = FindTransformByName(root, "pelvis");
             if (pelvis != null)
             {
-                UnityEngine.Debug.Log($"{LOG_PREFIX} [STEP 5] rootBone found: {pelvis.name} (Pelvis)");
+                UnityEngine.Debug.Log($"{LOG_PREFIX} rootBone: {pelvis.name}");
                 return pelvis;
             }
 
@@ -351,9 +346,6 @@ namespace AICam.FBXLoader
                 bindposes[i] = bones[i].worldToLocalMatrix * rootBone.localToWorldMatrix;
             }
 
-            UnityEngine.Debug.Log($"{LOG_PREFIX} [STEP 6] Calculated {bindposes.Length} bindposes from Unity Transforms");
-            UnityEngine.Debug.Log($"{LOG_PREFIX} [STEP 6] rootBone: {rootBone.name} at world pos {rootBone.position}");
-
             return bindposes;
         }
 
@@ -390,45 +382,6 @@ namespace AICam.FBXLoader
             UnityEngine.Debug.Log($"{LOG_PREFIX} === Mesh Loading Complete ===");
         }
 
-        /// <summary>
-        /// STEP 8: 座標変換をroot全体に適用する
-        /// </summary>
-        /// <param name="rootObject">ルートGameObject</param>
-        public void ApplyCoordinateConversionToRoot(GameObject rootObject)
-        {
-            if (rootObject == null)
-            {
-                UnityEngine.Debug.LogError($"{LOG_PREFIX} [STEP 8] rootObject is null");
-                return;
-            }
-
-            UnityEngine.Debug.Log($"{LOG_PREFIX} [STEP 8] === Applying Coordinate Conversion to Root ===");
-            UnityEngine.Debug.Log($"{LOG_PREFIX} [STEP 8] Profile: {coordProfile.profileName}");
-
-            // 座標変換行列に基づいてrootにスケールを適用
-            // 例: Blender (Right-handed, Z-up) → Unity (Left-handed, Y-up)の場合、Scale(-1, 1, -1)など
-
-            // 行列式が負の場合は左右反転が必要
-            float determinant = coordinateConversionMatrix.determinant;
-
-            if (determinant < 0f)
-            {
-                // 左右反転が必要な座標系（例: Mixamo）
-                rootObject.transform.localScale = new UnityEngine.Vector3(-1f, 1f, 1f);
-                UnityEngine.Debug.Log($"{LOG_PREFIX} [STEP 8] Applied scale: (-1, 1, 1) for determinant {determinant}");
-            }
-            else
-            {
-                // 反転不要な座標系（例: Blender/VRM）
-                // Blenderの場合はY=180°回転が必要だが、これはすでにノード階層に含まれている
-                UnityEngine.Debug.Log($"{LOG_PREFIX} [STEP 8] No scale needed, determinant {determinant}");
-            }
-
-            UnityEngine.Debug.Log($"{LOG_PREFIX} [STEP 8] Root transform applied");
-            UnityEngine.Debug.Log($"{LOG_PREFIX} [STEP 8]   Position: {rootObject.transform.position}");
-            UnityEngine.Debug.Log($"{LOG_PREFIX} [STEP 8]   Rotation: {rootObject.transform.rotation.eulerAngles}");
-            UnityEngine.Debug.Log($"{LOG_PREFIX} [STEP 8]   Scale: {rootObject.transform.localScale}");
-        }
 
         /// <summary>
         /// ノード階層を再帰的に探索してメッシュを持つノードを処理
@@ -480,30 +433,24 @@ namespace AICam.FBXLoader
                 int assimpMeshIndex = node.MeshIndices[meshIndex];
                 Assimp.Mesh assimpMesh = currentScene.Meshes[assimpMeshIndex];
 
-                UnityEngine.Debug.Log($"{LOG_PREFIX}   Loading mesh [{meshIndex}]: {assimpMesh.Name}");
-                UnityEngine.Debug.Log($"{LOG_PREFIX}     Vertices: {assimpMesh.VertexCount}");
-                UnityEngine.Debug.Log($"{LOG_PREFIX}     Faces: {assimpMesh.FaceCount}");
-                UnityEngine.Debug.Log($"{LOG_PREFIX}     UVChannels: {assimpMesh.TextureCoordinateChannelCount}");
-                UnityEngine.Debug.Log($"{LOG_PREFIX}     HasNormals: {assimpMesh.HasNormals}");
-
-                // 頂点データをロード（STEP 4: 座標系変換なし、そのままコピー）
+                // 頂点データをロード（v0.3.2: 座標系変換を適用）
                 for (int i = 0; i < assimpMesh.VertexCount; i++)
                 {
                     Assimp.Vector3D vertex = assimpMesh.Vertices[i];
-                    // Assimpのデータをそのまま使用（座標変換はSTEP 8でrootに適用）
-                    UnityEngine.Vector3 unityVertex = new UnityEngine.Vector3(vertex.X, vertex.Y, vertex.Z);
+                    // Transform階層と同じ座標変換を適用（基準を一致させる）
+                    UnityEngine.Vector3 unityVertex = FbxCoordinateSystemDetector.ConvertVector(vertex, coordinateConversionMatrix);
                     combinedVertices.Add(unityVertex);
                 }
 
-                // 法線データをロード（STEP 4: 座標系変換なし、そのままコピー）
+                // 法線データをロード（v0.3.2: 座標系変換を適用）
                 if (assimpMesh.HasNormals)
                 {
                     hasNormals = true;
                     for (int i = 0; i < assimpMesh.VertexCount; i++)
                     {
                         Assimp.Vector3D normal = assimpMesh.Normals[i];
-                        // Assimpの法線をそのまま使用（正規化のみ）
-                        UnityEngine.Vector3 unityNormal = new UnityEngine.Vector3(normal.X, normal.Y, normal.Z);
+                        // 法線も座標系変換を適用して正規化
+                        UnityEngine.Vector3 unityNormal = FbxCoordinateSystemDetector.ConvertVector(normal, coordinateConversionMatrix);
                         combinedNormals.Add(unityNormal.normalized);
                     }
                 }
@@ -579,21 +526,16 @@ namespace AICam.FBXLoader
             if (hasNormals)
             {
                 unityMesh.normals = combinedNormals.ToArray();
-                UnityEngine.Debug.Log($"{LOG_PREFIX}     Normals loaded from FBX and converted");
             }
             else
             {
                 unityMesh.RecalculateNormals();
-                UnityEngine.Debug.Log($"{LOG_PREFIX}     Normals recalculated (not in FBX)");
             }
 
             // バウンディングボックスを再計算
             unityMesh.RecalculateBounds();
 
-            UnityEngine.Debug.Log($"{LOG_PREFIX}   Created Unity Mesh: {unityMesh.name}");
-            UnityEngine.Debug.Log($"{LOG_PREFIX}     Total Vertices: {unityMesh.vertexCount}");
-            UnityEngine.Debug.Log($"{LOG_PREFIX}     Total Triangles: {unityMesh.triangles.Length / 3}");
-            UnityEngine.Debug.Log($"{LOG_PREFIX}     Triangle Winding Flipped: {shouldFlipTriangleWinding}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Mesh: {unityMesh.name} (V:{unityMesh.vertexCount}, T:{unityMesh.triangles.Length / 3})");
 
             // STEP 7: SkinnedMeshRendererの完全セットアップ（bones[], rootBone, bindposes）
             SkinnedMeshRenderer renderer = nodeTransform.gameObject.AddComponent<SkinnedMeshRenderer>();
@@ -607,9 +549,6 @@ namespace AICam.FBXLoader
 
                 if (assimpMesh.HasBones)
                 {
-                    UnityEngine.Debug.Log($"{LOG_PREFIX} [STEP 7] Setting up bones for mesh: {assimpMesh.Name}");
-                    UnityEngine.Debug.Log($"{LOG_PREFIX} [STEP 7]   Bone count: {assimpMesh.BoneCount}");
-
                     // ボーン名からTransformへのマッピング
                     List<Transform> boneTransforms = new List<Transform>();
                     for (int i = 0; i < assimpMesh.BoneCount; i++)
@@ -635,14 +574,7 @@ namespace AICam.FBXLoader
                     renderer.rootBone = cachedRootBone;
                     unityMesh.bindposes = bindposes;
 
-                    UnityEngine.Debug.Log($"{LOG_PREFIX} [STEP 7] ✓ SkinnedMeshRenderer setup complete");
-                    UnityEngine.Debug.Log($"{LOG_PREFIX} [STEP 7]   bones.Length: {bones.Length}");
-                    UnityEngine.Debug.Log($"{LOG_PREFIX} [STEP 7]   rootBone: {cachedRootBone.name}");
-                    UnityEngine.Debug.Log($"{LOG_PREFIX} [STEP 7]   bindposes.Length: {bindposes.Length}");
-                }
-                else
-                {
-                    UnityEngine.Debug.LogWarning($"{LOG_PREFIX} [STEP 7] Mesh has no bones, creating basic renderer");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}   SMR: {bones.Length} bones, rootBone={cachedRootBone.name}");
                 }
             }
 
