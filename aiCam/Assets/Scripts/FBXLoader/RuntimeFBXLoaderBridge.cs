@@ -29,6 +29,10 @@ namespace AICam.FBXLoader
         [SerializeField] private RuntimeAnimatorController animatorController;
         [SerializeField] private string initialStateName = "Idle";
 
+        [Header("Avatar Generation")]
+        [SerializeField] private bool useRuntimeHumanoidAvatarBuilder = false;
+        [SerializeField] private TriLibCore.Mappers.HumanoidAvatarMapper humanoidAvatarMapper;
+
         private RuntimeGltfInstance currentInstance;
         private GameObject currentModel;
 
@@ -178,6 +182,17 @@ namespace AICam.FBXLoader
                 var assetLoaderOptions = AssetLoader.CreateDefaultLoaderOptions(false, true);
                 assetLoaderOptions.AnimationType = AnimationType.Humanoid; // Humanoidに設定してSkinnedMeshRendererを生成
 
+                // HumanoidAvatarMapperを設定
+                if (humanoidAvatarMapper != null)
+                {
+                    assetLoaderOptions.HumanoidAvatarMapper = humanoidAvatarMapper;
+                    Debug.Log($"[RuntimeFBXLoaderBridge] Using HumanoidAvatarMapper: {humanoidAvatarMapper.name}");
+                }
+                else
+                {
+                    Debug.LogWarning("[RuntimeFBXLoaderBridge] No HumanoidAvatarMapper assigned. Using TriLib defaults.");
+                }
+
                 bool loadComplete = false;
                 bool loadSuccess = false;
                 float currentProgress = 20f;
@@ -223,31 +238,39 @@ namespace AICam.FBXLoader
                                 Debug.LogWarning("[RuntimeFBXLoaderBridge] No Animator component found!");
                             }
 
-                            // RuntimeHumanoidAvatarBuilderでAvatar再生成
+                            // Avatar生成方法の選択
                             onProgress?.Invoke(70f);
-                            var avatarBuilder = new RuntimeHumanoidAvatarBuilder();
-                            UnityEngine.Avatar newAvatar = avatarBuilder.CreateHumanoidAvatarFromFBX(currentModel.name, currentModel);
+                            UnityEngine.Avatar newAvatar = null;
 
-                            if (newAvatar != null)
+                            if (useRuntimeHumanoidAvatarBuilder)
                             {
-                                Debug.Log("[RuntimeFBXLoaderBridge] ✓ Avatar created successfully with RuntimeHumanoidAvatarBuilder");
+                                Debug.Log("[RuntimeFBXLoaderBridge] Using RuntimeHumanoidAvatarBuilder for Avatar generation");
+                                var avatarBuilder = new RuntimeHumanoidAvatarBuilder();
+                                newAvatar = avatarBuilder.CreateHumanoidAvatarFromFBX(currentModel.name, currentModel);
+                            }
+                            else
+                            {
+                                Debug.Log("[RuntimeFBXLoaderBridge] Using TriLib-generated Avatar");
+                                newAvatar = animator?.avatar;
+                            }
 
-                                // TriLibが生成したAvatarを破棄して、新しいAvatarに置き換える
-                                if (animator != null && animator.avatar != null)
+                            if (newAvatar != null && newAvatar.isValid && newAvatar.isHuman)
+                            {
+                                string avatarSource = useRuntimeHumanoidAvatarBuilder ? "RuntimeHumanoidAvatarBuilder" : "TriLib";
+                                Debug.Log($"[RuntimeFBXLoaderBridge] ✓ Avatar ready from {avatarSource}. IsValid: {newAvatar.isValid}, IsHuman: {newAvatar.isHuman}");
+
+                                // Animatorに設定
+                                if (animator == null)
                                 {
-                                    var oldAvatar = animator.avatar;
-                                    Debug.Log($"[RuntimeFBXLoaderBridge] Replacing TriLib Avatar '{oldAvatar.name}' with RuntimeHumanoidAvatarBuilder Avatar");
-                                    animator.avatar = newAvatar;
-                                    // 古いAvatarは破棄しない（TriLibが管理しているため）
+                                    animator = currentModel.AddComponent<Animator>();
                                 }
-                                else
+
+                                if (useRuntimeHumanoidAvatarBuilder && animator.avatar != null && animator.avatar != newAvatar)
                                 {
-                                    if (animator == null)
-                                    {
-                                        animator = currentModel.AddComponent<Animator>();
-                                    }
-                                    animator.avatar = newAvatar;
+                                    Debug.Log($"[RuntimeFBXLoaderBridge] Replacing TriLib Avatar with RuntimeHumanoidAvatarBuilder Avatar");
                                 }
+
+                                animator.avatar = newAvatar;
 
                                 onProgress?.Invoke(90f);
 
