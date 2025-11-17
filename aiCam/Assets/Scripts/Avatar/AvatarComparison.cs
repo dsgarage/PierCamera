@@ -260,9 +260,12 @@ namespace dsgarage.Avatar
             var editorSpine = editorAnimator.GetBoneTransform(HumanBodyBones.Spine);
             var runtimeSpine = runtimeGeneratedAnimator.GetBoneTransform(HumanBodyBones.Spine);
 
+            // editorUpをスコープ外で定義（CheckArmTPose/CheckLegTPoseで使用）
+            Vector3 editorUp = Vector3.up; // デフォルト値
+
             if (editorSpine != null && runtimeSpine != null)
             {
-                Vector3 editorUp = (editorSpine.position - editorHips.position).normalized;
+                editorUp = (editorSpine.position - editorHips.position).normalized;
                 Vector3 runtimeUp = (runtimeSpine.position - runtimeHips.position).normalized;
 
                 report.AppendLine("Spine Direction (from Hips):");
