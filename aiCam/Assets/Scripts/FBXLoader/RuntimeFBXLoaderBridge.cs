@@ -32,6 +32,7 @@ namespace AICam.FBXLoader
         [Header("Avatar Generation")]
         [SerializeField] private bool useRuntimeHumanoidAvatarBuilder = false;
         [SerializeField] private TriLibCore.Mappers.HumanoidAvatarMapper humanoidAvatarMapper;
+        [SerializeField] private AvatarBuilder.AvatarTemplate avatarTemplate;
 
         private RuntimeGltfInstance currentInstance;
         private GameObject currentModel;
@@ -270,9 +271,21 @@ namespace AICam.FBXLoader
 
                             if (useRuntimeHumanoidAvatarBuilder)
                             {
-                                Debug.Log("[RuntimeFBXLoaderBridge] Using RuntimeHumanoidAvatarBuilder for Avatar generation");
                                 var avatarBuilder = new RuntimeHumanoidAvatarBuilder();
-                                newAvatar = avatarBuilder.CreateHumanoidAvatarFromFBX(currentModel.name, currentModel);
+
+                                if (avatarTemplate != null)
+                                {
+                                    Debug.Log($"[RuntimeFBXLoaderBridge] Using AvatarTemplate: {avatarTemplate.name}");
+                                    newAvatar = avatarBuilder.CreateHumanoidAvatarFromTemplate(
+                                        currentModel.name,
+                                        currentModel,
+                                        avatarTemplate);
+                                }
+                                else
+                                {
+                                    Debug.Log("[RuntimeFBXLoaderBridge] Using RuntimeHumanoidAvatarBuilder (no template)");
+                                    newAvatar = avatarBuilder.CreateHumanoidAvatarFromFBX(currentModel.name, currentModel);
+                                }
                             }
                             else
                             {
@@ -364,7 +377,17 @@ namespace AICam.FBXLoader
                 Debug.Log($"[RuntimeFBXLoaderBridge] FBX load completed. Success: {loadSuccess}");
 
                 // ログとスクリーンショットを保存
-                FBXImportLogger.StopCaptureAndSave(takeScreenshot: true);
+                if (loadSuccess && currentModel != null)
+                {
+                    // 6方向の複合スクリーンショットを撮影
+                    FBXImportLogger.CaptureMultiAngleScreenshot(currentModel);
+                    // 通常のスクリーンショットも保存
+                    FBXImportLogger.StopCaptureAndSave(takeScreenshot: true);
+                }
+                else
+                {
+                    FBXImportLogger.StopCaptureAndSave(takeScreenshot: false);
+                }
 
                 onComplete?.Invoke(loadSuccess);
             }

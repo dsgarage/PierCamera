@@ -42,6 +42,7 @@ namespace AICam.AvatarBuilder
         {
             // ① ボーンマッピング
             Dictionary<HumanBodyBones, Transform> map = ResolveBoneMapping(root);
+            LogBoneMappingResults(map, modelName);
 
             // ② 必須 15 ボーン検証
             if (!ValidateRequiredBones(map, modelName))
@@ -60,13 +61,66 @@ namespace AICam.AvatarBuilder
                 return null;
             }
 
-            // ⑤ T-ポーズ角度チェック
+            // ⑤ 座標系診断と自動検出
+            DetectAndLogCoordinateSystem(map, modelName);
+
+            // ⑥ T-ポーズ角度チェック
             CheckTPose(map, modelName);
 
-            // ⑥ Avatar 組み立て
-            // NOTE: ボーンをリセットせず、TriLibがロードした状態のまま使用
-            //       SkinnedMeshRenderer.bindposesに正しいバインドポーズ情報が含まれている
+            // ⑦ Avatar 組み立て
             return BuildHumanoidAvatar(root, map, modelName);
+        }
+
+        /// <summary>
+        /// AvatarTemplateを使用してAvatar生成（最高精度）
+        /// Editor-importedしたFBXと同じAvatar定義を使用
+        /// </summary>
+        public UnityEngine.Avatar CreateHumanoidAvatarFromTemplate(
+            string modelName,
+            GameObject root,
+            AvatarTemplate template)
+        {
+            if (template == null)
+            {
+                Debug.LogError($"[RuntimeHumanoidAvatarBuilder] AvatarTemplate is null. Falling back to default method.");
+                return CreateHumanoidAvatarFromFBX(modelName, root);
+            }
+
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Using AvatarTemplate: {template.name}");
+            Debug.Log($"  Source FBX: {template.sourceFBXName}");
+            Debug.Log($"  Extracted: {template.extractedDate}");
+
+            // ① ボーンマッピング検証
+            if (!template.ValidateBoneMapping(root.transform))
+            {
+                Debug.LogError($"[RuntimeHumanoidAvatarBuilder] Template bone mapping validation failed. " +
+                              $"Runtime skeleton might have different bone names than template.");
+                Debug.LogWarning($"  Falling back to default bone detection...");
+                return CreateHumanoidAvatarFromFBX(modelName, root);
+            }
+
+            // ② HumanDescriptionをテンプレートから構築
+            HumanDescription humanDesc = template.BuildHumanDescription(root.transform);
+
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Built HumanDescription from template:");
+            Debug.Log($"  HumanBones: {humanDesc.human.Length}");
+            Debug.Log($"  SkeletonBones: {humanDesc.skeleton.Length}");
+            Debug.Log($"  Parameters: armTwist={humanDesc.upperArmTwist}, legTwist={humanDesc.upperLegTwist}");
+
+            // ③ Avatar生成
+            UnityEngine.Avatar avatar = UnityEngine.AvatarBuilder.BuildHumanAvatar(root, humanDesc);
+
+            if (!avatar.isValid || !avatar.isHuman)
+            {
+                Debug.LogError($"[RuntimeHumanoidAvatarBuilder] Template-based Avatar build FAILED");
+                Debug.LogError($"  IsValid: {avatar.isValid}, IsHuman: {avatar.isHuman}");
+                return null;
+            }
+
+            Debug.Log($"<color=green>[RuntimeHumanoidAvatarBuilder] ✓ Successfully built Avatar from template</color>");
+            Debug.Log($"  IsValid: {avatar.isValid}, IsHuman: {avatar.isHuman}");
+
+            return avatar;
         }
 
         // ───────────────────────────────────────────────────────────
@@ -230,38 +284,37 @@ namespace AICam.AvatarBuilder
                 var rb = rightDict[key];
                 if (!map.ContainsKey(lb) || !map.ContainsKey(rb)) continue;
 
-                // 名前に "Left/Right" が含まれれば信頼し Swap しない
+                // ボーン名の確認（参考情報として記録）
                 string ln = map[lb].name.ToLower();
                 string rn = map[rb].name.ToLower();
-
                 bool hasLeftRightInName = (ln.Contains("left") || ln.EndsWith(".l") || ln.EndsWith("_l")) &&
                                          (rn.Contains("right")|| rn.EndsWith(".r")|| rn.EndsWith("_r"));
 
+                // 実際の位置をチェック（必ず実行）
                 Vector3 lPosLocal = hips.InverseTransformPoint(map[lb].position);
                 Vector3 rPosLocal = hips.InverseTransformPoint(map[rb].position);
                 bool lIsLeft = lPosLocal.x < 0f;
                 bool rIsLeft = rPosLocal.x < 0f;
 
                 Debug.Log($"[RuntimeHumanoidAvatarBuilder] Checking {key}:");
-                Debug.Log($"  Left({lb}): '{ln}' at local X={lPosLocal.x:F3}, isLeft={lIsLeft}");
-                Debug.Log($"  Right({rb}): '{rn}' at local X={rPosLocal.x:F3}, isLeft={rIsLeft}");
-                Debug.Log($"  Has L/R in name: {hasLeftRightInName}");
+                Debug.Log($"[RuntimeHumanoidAvatarBuilder]   Left({lb}): '{ln}' at local X={lPosLocal.x:F3}, isLeft={lIsLeft}");
+                Debug.Log($"[RuntimeHumanoidAvatarBuilder]   Right({rb}): '{rn}' at local X={rPosLocal.x:F3}, isLeft={rIsLeft}");
+                Debug.Log($"[RuntimeHumanoidAvatarBuilder]   Has L/R in name: {hasLeftRightInName}");
 
-                if (hasLeftRightInName)
-                {
-                    Debug.Log($"  => Trusting bone names, no swap");
-                    continue;
-                }
-
+                // 位置が逆転している場合はスワップ（名前に関わらず）
                 if (!lIsLeft && rIsLeft)
                 {
-                    Debug.Log($"  => SWAPPING bones (position-based correction)");
+                    if (hasLeftRightInName)
+                    {
+                        Debug.LogWarning($"[RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names suggest correct mapping, but positions are reversed!");
+                    }
+                    Debug.Log($"[RuntimeHumanoidAvatarBuilder]   => SWAPPING bones (position-based correction)");
                     (map[lb], map[rb]) = (map[rb], map[lb]);
                     swapCount++;
                 }
                 else
                 {
-                    Debug.Log($"  => No swap needed");
+                    Debug.Log($"[RuntimeHumanoidAvatarBuilder]   => No swap needed (positions correct)");
                 }
             }
 
@@ -324,7 +377,152 @@ namespace AICam.AvatarBuilder
         }
 
         // ───────────────────────────────────────────────────────────
-        // ⑥ Avatar 組み立て
+        // ⑤ 座標系診断
+        // ───────────────────────────────────────────────────────────
+        /// <summary>
+        /// TriLibがロードしたスケルトンの座標系を診断
+        /// Y-up (FBX) vs Z-up (Unity Humanoid) を自動検出
+        /// </summary>
+        private static void DetectAndLogCoordinateSystem(Dictionary<HumanBodyBones, Transform> map, string model)
+        {
+            if (!map.TryGetValue(HumanBodyBones.Hips, out var hips))
+            {
+                Debug.LogWarning($"[RuntimeHumanoidAvatarBuilder] [{model}] Hips not found, skipping coordinate system detection");
+                return;
+            }
+
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] === Coordinate System Diagnostic ===");
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] [{model}] Analyzing skeleton coordinate system...");
+
+            // Hipsの回転を確認
+            Quaternion hipsRot = hips.localRotation;
+            Vector3 hipsEuler = hips.localEulerAngles;
+
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder]   Hips localRotation: {hipsRot}");
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder]   Hips Euler angles: ({hipsEuler.x:F2}, {hipsEuler.y:F2}, {hipsEuler.z:F2})");
+
+            // 上方向ベクトルを確認
+            if (map.TryGetValue(HumanBodyBones.Spine, out var spine))
+            {
+                Vector3 hipsToSpine = (spine.position - hips.position).normalized;
+                Debug.Log($"[RuntimeHumanoidAvatarBuilder]   Hips→Spine direction: ({hipsToSpine.x:F3}, {hipsToSpine.y:F3}, {hipsToSpine.z:F3})");
+
+                // Y-up検出: Spine direction の Y成分が大きい
+                if (Mathf.Abs(hipsToSpine.y) > 0.9f)
+                {
+                    Debug.LogWarning($"[RuntimeHumanoidAvatarBuilder]   ⚠️ Detected Y-up coordinate system!");
+                    Debug.LogWarning($"[RuntimeHumanoidAvatarBuilder]      Unity Humanoid expects Z-up. This may cause twisted bones.");
+                }
+                // Z-up検出: Spine direction の Z成分が大きい
+                else if (Mathf.Abs(hipsToSpine.z) > 0.9f)
+                {
+                    Debug.Log($"[RuntimeHumanoidAvatarBuilder]   ✓ Detected Z-up coordinate system (Unity standard)");
+                }
+                else
+                {
+                    Debug.LogWarning($"[RuntimeHumanoidAvatarBuilder]   ⚠️ Unusual up-axis direction detected");
+                }
+            }
+
+            // 主要ボーンの回転を出力
+            var bonesToCheck = new[]
+            {
+                HumanBodyBones.Hips,
+                HumanBodyBones.Spine,
+                HumanBodyBones.LeftUpperArm,
+                HumanBodyBones.RightUpperArm,
+                HumanBodyBones.LeftUpperLeg,
+                HumanBodyBones.RightUpperLeg
+            };
+
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder]   Key bone rotations:");
+            foreach (var boneType in bonesToCheck)
+            {
+                if (map.TryGetValue(boneType, out var bone))
+                {
+                    Vector3 euler = bone.localEulerAngles;
+                    Debug.Log($"[RuntimeHumanoidAvatarBuilder]     {boneType}: Euler({euler.x:F1}, {euler.y:F1}, {euler.z:F1})");
+                }
+            }
+
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] === End Diagnostic ===");
+        }
+
+        // ───────────────────────────────────────────────────────────
+        // ボーンマッピング結果をログ出力
+        // ───────────────────────────────────────────────────────────
+        private static void LogBoneMappingResults(Dictionary<HumanBodyBones, Transform> map, string modelName)
+        {
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] === Armature Construction Results ===");
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Model: {modelName}");
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Mapped bones: {map.Count}/{HumanTrait.BoneCount}");
+
+            // 必須ボーンのマッピング状態
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Required bones (15):");
+            for (int i = 0; i < HumanTrait.BoneCount; i++)
+            {
+                if (!HumanTrait.RequiredBone(i)) continue;
+                var bone = (HumanBodyBones)i;
+                if (map.TryGetValue(bone, out var transform))
+                {
+                    Debug.Log($"[RuntimeHumanoidAvatarBuilder]   ✓ {bone,-20} → {transform.name}");
+                }
+                else
+                {
+                    Debug.LogError($"[RuntimeHumanoidAvatarBuilder]   ✗ {bone,-20} → MISSING");
+                }
+            }
+
+            // オプショナルボーンのマッピング状態
+            var optionalMapped = new List<HumanBodyBones>();
+            for (int i = 0; i < HumanTrait.BoneCount; i++)
+            {
+                if (HumanTrait.RequiredBone(i)) continue;
+                var bone = (HumanBodyBones)i;
+                if (map.ContainsKey(bone))
+                {
+                    optionalMapped.Add(bone);
+                }
+            }
+
+            if (optionalMapped.Count > 0)
+            {
+                Debug.Log($"[RuntimeHumanoidAvatarBuilder] Optional bones mapped ({optionalMapped.Count}):");
+                foreach (var bone in optionalMapped)
+                {
+                    Debug.Log($"[RuntimeHumanoidAvatarBuilder]   + {bone,-20} → {map[bone].name}");
+                }
+            }
+            else
+            {
+                Debug.Log($"[RuntimeHumanoidAvatarBuilder] Optional bones: None mapped");
+            }
+
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] === End Armature Construction ===");
+        }
+
+        // ───────────────────────────────────────────────────────────
+        // ⑥ ルートGameObjectの座標系変換 (UNUSED)
+        // ───────────────────────────────────────────────────────────
+        /// <summary>
+        /// ルートGameObject全体を回転して座標系を変換
+        /// Hips単体ではなくルート全体を回転することで、骨格内部の相対関係を保つ
+        /// </summary>
+        private static void ApplyRootCoordinateConversion(GameObject root)
+        {
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] === Root Coordinate System Conversion ===");
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Root before: localRot={root.transform.localRotation} (Euler: {root.transform.localEulerAngles})");
+
+            // ルートGameObjectをX軸90°回転してY-up→Z-up変換
+            // これにより骨格全体が回転し、内部の相対関係は保たれる
+            root.transform.localRotation = Quaternion.Euler(90f, 0f, 0f) * root.transform.localRotation;
+
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Root after:  localRot={root.transform.localRotation} (Euler: {root.transform.localEulerAngles})");
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] === Root Coordinate System Conversion Complete ===");
+        }
+
+        // ───────────────────────────────────────────────────────────
+        // ⑦ Avatar 組み立て
         // ───────────────────────────────────────────────────────────
         private static UnityEngine.Avatar BuildHumanoidAvatar(GameObject root,
                                                   Dictionary<HumanBodyBones, Transform> map,
@@ -383,7 +581,8 @@ namespace AICam.AvatarBuilder
         private static void ValidateAndFixSkinnedMeshRenderers(GameObject root, Dictionary<HumanBodyBones, Transform> map)
         {
             var skinnedMeshRenderers = root.GetComponentsInChildren<SkinnedMeshRenderer>();
-            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Validating {skinnedMeshRenderers.Length} SkinnedMeshRenderer(s)");
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] === SkinnedMeshRenderer & BindPose Validation ===");
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Found {skinnedMeshRenderers.Length} SkinnedMeshRenderer(s)");
 
             if (!map.TryGetValue(HumanBodyBones.Hips, out var hips))
             {
@@ -391,20 +590,67 @@ namespace AICam.AvatarBuilder
                 return;
             }
 
+            int smrIndex = 0;
             foreach (var smr in skinnedMeshRenderers)
             {
+                smrIndex++;
+                Debug.Log($"[RuntimeHumanoidAvatarBuilder] SMR #{smrIndex}: {smr.name}");
+
+                // ボーン情報
+                if (smr.bones != null && smr.bones.Length > 0)
+                {
+                    Debug.Log($"[RuntimeHumanoidAvatarBuilder]   Bones: {smr.bones.Length}");
+                    // 最初の5ボーンをサンプル表示
+                    int sampleCount = Mathf.Min(5, smr.bones.Length);
+                    for (int i = 0; i < sampleCount; i++)
+                    {
+                        if (smr.bones[i] != null)
+                            Debug.Log($"[RuntimeHumanoidAvatarBuilder]     [{i}] {smr.bones[i].name}");
+                    }
+                    if (smr.bones.Length > 5)
+                        Debug.Log($"[RuntimeHumanoidAvatarBuilder]     ... and {smr.bones.Length - 5} more bones");
+                }
+                else
+                {
+                    Debug.LogWarning($"[RuntimeHumanoidAvatarBuilder]   No bones assigned!");
+                }
+
+                // BindPose情報
+                if (smr.sharedMesh != null && smr.sharedMesh.bindposes != null)
+                {
+                    Debug.Log($"[RuntimeHumanoidAvatarBuilder]   BindPoses: {smr.sharedMesh.bindposes.Length}");
+
+                    // 最初のBindPoseをサンプル表示
+                    if (smr.sharedMesh.bindposes.Length > 0)
+                    {
+                        var bp0 = smr.sharedMesh.bindposes[0];
+                        Debug.Log($"[RuntimeHumanoidAvatarBuilder]   BindPose[0] sample:");
+                        Debug.Log($"[RuntimeHumanoidAvatarBuilder]     Position: {bp0.GetColumn(3)}");
+                        Debug.Log($"[RuntimeHumanoidAvatarBuilder]     Rotation: {bp0.rotation.eulerAngles}");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"[RuntimeHumanoidAvatarBuilder]   No BindPoses found!");
+                }
+
+                // RootBone情報
+                Debug.Log($"[RuntimeHumanoidAvatarBuilder]   RootBone: {(smr.rootBone != null ? smr.rootBone.name : "null")}");
+
                 // RootBoneをHipsに設定
                 if (smr.rootBone == null || smr.rootBone != hips)
                 {
-                    Debug.Log($"[RuntimeHumanoidAvatarBuilder] Setting rootBone to Hips for {smr.name}");
+                    Debug.Log($"[RuntimeHumanoidAvatarBuilder]   → Setting rootBone to Hips");
                     smr.rootBone = hips;
                 }
 
                 // NOTE: BindPoseの再計算は行わない
                 // TriLibが生成したBindPoseは、FBXの元のバインドポーズを保持しているため、
                 // 再計算すると現在のボーン変形を記録してしまい、モデルが大きく歪む
-                Debug.Log($"[RuntimeHumanoidAvatarBuilder] Preserving original BindPoses for {smr.name}");
+                Debug.Log($"[RuntimeHumanoidAvatarBuilder]   → Preserving original BindPoses (TriLib generated)");
             }
+
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] === End SkinnedMeshRenderer Validation ===");
         }
 
         private static void RebuildBindPoses(SkinnedMeshRenderer smr, Transform rootBone)
@@ -457,12 +703,16 @@ namespace AICam.AvatarBuilder
         /// </summary>
         private static Quaternion FixJointOrientation(Quaternion rawRotation, HumanBodyBones boneType)
         {
+            Debug.Log($"[FixJointOrientation] Called with boneType: {boneType}");
             switch (boneType)
             {
                 // Hips: Unity Humanoid標準の座標系変換 (Y-up → Z-up)
                 // Editor インポート時と同じ 90° X-axis 回転を適用
                 case HumanBodyBones.Hips:
-                    return Quaternion.Euler(90f, 0f, 0f);
+                    Debug.Log($"[FixJointOrientation] {boneType} - HIT HIPS CASE! Returning Euler(90, 0, 0)");
+                    var hipsRot = Quaternion.Euler(90f, 0f, 0f);
+                    Debug.Log($"[FixJointOrientation] {boneType} - quaternion value: {hipsRot} (Euler: {hipsRot.eulerAngles})");
+                    return hipsRot;
 
                 // 腕系: Forward(+Z), Up(-Y)
                 case HumanBodyBones.LeftUpperArm:
@@ -506,6 +756,7 @@ namespace AICam.AvatarBuilder
 
                 // その他: 補正なし（元の回転を維持）
                 default:
+                    Debug.Log($"[FixJointOrientation] Hit DEFAULT case for {boneType}");
                     return rawRotation;
             }
         }
@@ -515,6 +766,14 @@ namespace AICam.AvatarBuilder
         // ───────────────────────────────────────────────────────────
         private static SkeletonBone[] GenerateSkeletonBones(GameObject root, Dictionary<HumanBodyBones, Transform> boneMap)
         {
+            // ───────────────────────────────────────────────────────────
+            // ■ Hipsのみ座標系補正、他はlocalRotationそのまま
+            //   - Y-up座標系: Hipsが Euler(90,0,0) で回転している
+            //   - Z-up座標系: Hipsは Quaternion.identity に近い値であるべき
+            //   - Hipsの90°X回転を打ち消すことでZ-up相当にする
+            //   - 他のボーンは親に対する相対回転なのでそのまま
+            // ───────────────────────────────────────────────────────────
+
             // boneMapの逆引き用
             var transformToBone = new Dictionary<Transform, HumanBodyBones>();
             foreach (var kvp in boneMap)
@@ -527,41 +786,31 @@ namespace AICam.AvatarBuilder
             {
                 Quaternion finalRotation = t.localRotation;
 
-                // Humanoidボーンの場合は Joint Orientation 補正を適用
-                if (transformToBone.TryGetValue(t, out var humanBone))
+                // Hipsボーンの場合のみ座標系補正
+                if (transformToBone.TryGetValue(t, out var humanBone) && humanBone == HumanBodyBones.Hips)
                 {
-                    Quaternion rawRotation = t.localRotation;
-                    Quaternion correctedRotation = FixJointOrientation(rawRotation, humanBone);
+                    // Y-up → Z-up 変換: 90°X回転を打ち消す
+                    // 元: Euler(90, 0, 0) → 目標: Euler(0, 0, 0)
+                    Quaternion yUpToZUpCorrection = Quaternion.Euler(-90f, 0f, 0f);
+                    finalRotation = t.localRotation * yUpToZUpCorrection;
 
-                    float angleDiff = Quaternion.Angle(rawRotation, correctedRotation);
-
-                    Debug.Log($"[SkeletonBone] {humanBone} ({t.name}):");
-                    Debug.Log($"  RawLocalRot: {rawRotation} (Euler: {rawRotation.eulerAngles})");
-                    Debug.Log($"  CorrectedRot: {correctedRotation} (Euler: {correctedRotation.eulerAngles})");
-                    Debug.Log($"  Correction Angle: {angleDiff:F2}°");
-
-                    // 補正後の回転を使用
-                    finalRotation = correctedRotation;
-
-                    // 親の情報もログ
-                    if (t.parent != null)
-                    {
-                        Debug.Log($"  Parent: {t.parent.name} (Rot: {t.parent.localRotation})");
-                    }
+                    Debug.Log($"[RuntimeHumanoidAvatarBuilder] Hips rotation correction:");
+                    Debug.Log($"  Original: {t.localRotation.eulerAngles}");
+                    Debug.Log($"  Corrected: {finalRotation.eulerAngles}");
                 }
 
                 list.Add(new SkeletonBone
                 {
                     name     = t.name,
                     position = t.localPosition,
-                    rotation = finalRotation,  // Joint Orientation補正済み
-                    scale    = Vector3.one     // 常に1に正規化
+                    rotation = finalRotation,
+                    scale    = Vector3.one
                 });
                 foreach (Transform c in t) Rec(c);
             }
             Rec(root.transform);
 
-            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Generated {list.Count} SkeletonBones (with Joint Orientation corrections)");
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Generated {list.Count} SkeletonBones (Hips corrected for Z-up)");
             return list.ToArray();
         }
     }

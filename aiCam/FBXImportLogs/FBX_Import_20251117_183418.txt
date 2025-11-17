@@ -1,0 +1,402 @@
+=== FBX Import Log Session: FBX_Import_20251117_183418 ===
+Started: 2025-11-17 18:34:18
+
+[RuntimeFBXLoaderBridge] Starting FBX load: /Users/daisuketsukada/Downloads/ExtractedUnityPackage/Kyoko_20251112_090405/Kyoko/FBX/kyoko.fbx
+[RuntimeFBXLoaderBridge] Using TriLib default loader options
+[RuntimeFBXLoaderBridge] BindPose preservation: Avoiding OptimizeGraph, OptimizeMeshes, PreTransformVertices
+[WARN] [RuntimeFBXLoaderBridge] No HumanoidAvatarMapper assigned. Using TriLib defaults.
+[RuntimeFBXLoaderBridge] FBX meshes loaded
+[RuntimeFBXLoaderBridge] FBX materials loaded
+[RuntimeFBXLoaderBridge] FBX root: kyoko
+[RuntimeFBXLoaderBridge] Model placed at World Position: (0.00, 0.00, 0.00)
+[RuntimeFBXLoaderBridge] Model Rotation: (0.00, 180.00, 0.00)
+[RuntimeFBXLoaderBridge] Model Scale: (1.00, 1.00, 1.00)
+[RuntimeFBXLoaderBridge] Parent: RuntimeManager
+[RuntimeFBXLoaderBridge] Found 16 renderers
+[RuntimeFBXLoaderBridge] Renderer: Body, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Ear, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Hair, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Hat, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Inner, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Karada_new, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Loungewear_kyoko, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Loungewear_kyoko_Underwear, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Loungewear_saneko, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Nail, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Outer, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Shoes, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Socks, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Swimwear, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Tail, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Underwear, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] TriLib generated Animator. Avatar: null
+[RuntimeFBXLoaderBridge] Found 16 SkinnedMeshRenderer(s)
+[RuntimeFBXLoaderBridge]   - SMR: Body, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Ear, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Hair, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Hat, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Inner, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Karada_new, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Loungewear_kyoko, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Loungewear_kyoko_Underwear, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Loungewear_saneko, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Nail, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Outer, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Shoes, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Socks, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Swimwear, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Tail, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Underwear, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge] Using RuntimeHumanoidAvatarBuilder (no template)
+[RuntimeHumanoidAvatarBuilder] === Bone Mapping Start for 'kyoko' ===
+[RuntimeHumanoidAvatarBuilder] Total transforms found: 152
+[RuntimeHumanoidAvatarBuilder] Bone mapping completed. Mapped 53 bones:
+[RuntimeHumanoidAvatarBuilder] === Bone Mapping End ===
+[RuntimeHumanoidAvatarBuilder] === Armature Construction Results ===
+[RuntimeHumanoidAvatarBuilder] Model: kyoko
+[RuntimeHumanoidAvatarBuilder] Mapped bones: 53/55
+[RuntimeHumanoidAvatarBuilder] Required bones (15):
+[RuntimeHumanoidAvatarBuilder]   ✓ Hips                 → Hips
+[RuntimeHumanoidAvatarBuilder]   ✓ LeftUpperLeg         → Upper Leg.L
+[RuntimeHumanoidAvatarBuilder]   ✓ RightUpperLeg        → Upper Leg.R
+[RuntimeHumanoidAvatarBuilder]   ✓ LeftLowerLeg         → Lower Leg.L
+[RuntimeHumanoidAvatarBuilder]   ✓ RightLowerLeg        → Lower Leg.R
+[RuntimeHumanoidAvatarBuilder]   ✓ LeftFoot             → Foot.L
+[RuntimeHumanoidAvatarBuilder]   ✓ RightFoot            → Foot.R
+[RuntimeHumanoidAvatarBuilder]   ✓ Spine                → Spine
+[RuntimeHumanoidAvatarBuilder]   ✓ Head                 → Head
+[RuntimeHumanoidAvatarBuilder]   ✓ LeftUpperArm         → Upper Arm.L
+[RuntimeHumanoidAvatarBuilder]   ✓ RightUpperArm        → Upper Arm.R
+[RuntimeHumanoidAvatarBuilder]   ✓ LeftLowerArm         → Lower Arm.L
+[RuntimeHumanoidAvatarBuilder]   ✓ RightLowerArm        → Lower Arm.R
+[RuntimeHumanoidAvatarBuilder]   ✓ LeftHand             → Hand.L
+[RuntimeHumanoidAvatarBuilder]   ✓ RightHand            → Hand.R
+[RuntimeHumanoidAvatarBuilder] Optional bones mapped (38):
+[RuntimeHumanoidAvatarBuilder]   + Chest                → Chest
+[RuntimeHumanoidAvatarBuilder]   + Neck                 → Neck
+[RuntimeHumanoidAvatarBuilder]   + LeftShoulder         → Shoulder.L
+[RuntimeHumanoidAvatarBuilder]   + RightShoulder        → Shoulder.R
+[RuntimeHumanoidAvatarBuilder]   + LeftToes             → Toes.L
+[RuntimeHumanoidAvatarBuilder]   + RightToes            → Toes.R
+[RuntimeHumanoidAvatarBuilder]   + LeftEye              → LeftEye
+[RuntimeHumanoidAvatarBuilder]   + RightEye             → RightEye
+[RuntimeHumanoidAvatarBuilder]   + LeftThumbProximal    → Proximal Thumb.L
+[RuntimeHumanoidAvatarBuilder]   + LeftThumbIntermediate → Intermediate Thumb.L
+[RuntimeHumanoidAvatarBuilder]   + LeftThumbDistal      → Distal Thumb.L
+[RuntimeHumanoidAvatarBuilder]   + LeftIndexProximal    → Proximal Index.L
+[RuntimeHumanoidAvatarBuilder]   + LeftIndexIntermediate → Intermediate Index.L
+[RuntimeHumanoidAvatarBuilder]   + LeftIndexDistal      → Distal Index.L
+[RuntimeHumanoidAvatarBuilder]   + LeftMiddleProximal   → Proximal Middle.L
+[RuntimeHumanoidAvatarBuilder]   + LeftMiddleIntermediate → Intermediate Middle.L
+[RuntimeHumanoidAvatarBuilder]   + LeftMiddleDistal     → Distal Middle.L
+[RuntimeHumanoidAvatarBuilder]   + LeftRingProximal     → Proximal Ring.L
+[RuntimeHumanoidAvatarBuilder]   + LeftRingIntermediate → Intermediate Ring.L
+[RuntimeHumanoidAvatarBuilder]   + LeftRingDistal       → Distal Ring.L
+[RuntimeHumanoidAvatarBuilder]   + LeftLittleProximal   → Proximal Little.L
+[RuntimeHumanoidAvatarBuilder]   + LeftLittleIntermediate → Intermediate Little.L
+[RuntimeHumanoidAvatarBuilder]   + LeftLittleDistal     → Distal Little.L
+[RuntimeHumanoidAvatarBuilder]   + RightThumbProximal   → Proximal Thumb.R
+[RuntimeHumanoidAvatarBuilder]   + RightThumbIntermediate → Intermediate Thumb.R
+[RuntimeHumanoidAvatarBuilder]   + RightThumbDistal     → Distal Thumb.R
+[RuntimeHumanoidAvatarBuilder]   + RightIndexProximal   → Proximal Index.R
+[RuntimeHumanoidAvatarBuilder]   + RightIndexIntermediate → Intermediate Index.R
+[RuntimeHumanoidAvatarBuilder]   + RightIndexDistal     → Distal Index.R
+[RuntimeHumanoidAvatarBuilder]   + RightMiddleProximal  → Proximal Middle.R
+[RuntimeHumanoidAvatarBuilder]   + RightMiddleIntermediate → Intermediate Middle.R
+[RuntimeHumanoidAvatarBuilder]   + RightMiddleDistal    → Distal Middle.R
+[RuntimeHumanoidAvatarBuilder]   + RightRingProximal    → Proximal Ring.R
+[RuntimeHumanoidAvatarBuilder]   + RightRingIntermediate → Intermediate Ring.R
+[RuntimeHumanoidAvatarBuilder]   + RightRingDistal      → Distal Ring.R
+[RuntimeHumanoidAvatarBuilder]   + RightLittleProximal  → Proximal Little.R
+[RuntimeHumanoidAvatarBuilder]   + RightLittleIntermediate → Intermediate Little.R
+[RuntimeHumanoidAvatarBuilder]   + RightLittleDistal    → Distal Little.R
+[RuntimeHumanoidAvatarBuilder] === End Armature Construction ===
+[RuntimeHumanoidAvatarBuilder] === Left/Right Correction Start ===
+[RuntimeHumanoidAvatarBuilder] Hips transform: Hips
+[RuntimeHumanoidAvatarBuilder] Checking UpperLeg:
+[RuntimeHumanoidAvatarBuilder] Checking LowerLeg:
+[RuntimeHumanoidAvatarBuilder] Checking Foot:
+[RuntimeHumanoidAvatarBuilder] Checking Shoulder:
+[RuntimeHumanoidAvatarBuilder] Checking UpperArm:
+[RuntimeHumanoidAvatarBuilder] Checking LowerArm:
+[RuntimeHumanoidAvatarBuilder] Checking Hand:
+[RuntimeHumanoidAvatarBuilder] Checking Toes:
+[RuntimeHumanoidAvatarBuilder] Checking Eye:
+[RuntimeHumanoidAvatarBuilder] Checking ThumbProximal:
+[RuntimeHumanoidAvatarBuilder] Checking ThumbIntermediate:
+[RuntimeHumanoidAvatarBuilder] Checking ThumbDistal:
+[RuntimeHumanoidAvatarBuilder] Checking IndexProximal:
+[RuntimeHumanoidAvatarBuilder] Checking IndexIntermediate:
+[RuntimeHumanoidAvatarBuilder] Checking IndexDistal:
+[RuntimeHumanoidAvatarBuilder] Checking MiddleProximal:
+[RuntimeHumanoidAvatarBuilder] Checking MiddleIntermediate:
+[RuntimeHumanoidAvatarBuilder] Checking MiddleDistal:
+[RuntimeHumanoidAvatarBuilder] Checking RingProximal:
+[RuntimeHumanoidAvatarBuilder] Checking RingIntermediate:
+[RuntimeHumanoidAvatarBuilder] Checking RingDistal:
+[RuntimeHumanoidAvatarBuilder] Checking LittleProximal:
+[RuntimeHumanoidAvatarBuilder] Checking LittleIntermediate:
+[RuntimeHumanoidAvatarBuilder] Checking LittleDistal:
+[RuntimeHumanoidAvatarBuilder] Left/Right correction: 0 pairs swapped
+[RuntimeHumanoidAvatarBuilder] === Left/Right Correction End ===
+[RuntimeHumanoidAvatarBuilder] === Coordinate System Diagnostic ===
+[RuntimeHumanoidAvatarBuilder] [kyoko] Analyzing skeleton coordinate system...
+[RuntimeHumanoidAvatarBuilder]   Hips localRotation: (0.70711, 0.00000, 0.00000, 0.70711)
+[RuntimeHumanoidAvatarBuilder]   Hips Euler angles: (89.98, 0.00, 0.00)
+[RuntimeHumanoidAvatarBuilder]   Hips→Spine direction: (0.000, 1.000, 0.000)
+[WARN] [RuntimeHumanoidAvatarBuilder]   ⚠️ Detected Y-up coordinate system!
+[WARN] [RuntimeHumanoidAvatarBuilder]      Unity Humanoid expects Z-up. This may cause twisted bones.
+[RuntimeHumanoidAvatarBuilder]   Key bone rotations:
+[RuntimeHumanoidAvatarBuilder]     Hips: Euler(90.0, 0.0, 0.0)
+[RuntimeHumanoidAvatarBuilder]     Spine: Euler(10.2, 0.0, 0.0)
+[RuntimeHumanoidAvatarBuilder]     LeftUpperArm: Euler(0.0, 353.9, 0.0)
+[RuntimeHumanoidAvatarBuilder]     RightUpperArm: Euler(0.0, 6.1, 0.0)
+[RuntimeHumanoidAvatarBuilder]     LeftUpperLeg: Euler(1.7, 179.9, 180.0)
+[RuntimeHumanoidAvatarBuilder]     RightUpperLeg: Euler(1.7, 180.1, 180.0)
+[RuntimeHumanoidAvatarBuilder] === End Diagnostic ===
+[WARN] [kyoko] L-Arm off T-Pose by 17.3°
+[WARN] [kyoko] R-Arm off T-Pose by 17.3°
+[WARN] [kyoko] L-Leg off T-Pose by 28.2°
+[WARN] [kyoko] R-Leg off T-Pose by 28.2°
+[RuntimeHumanoidAvatarBuilder] Generated 152 SkeletonBones (using raw localRotation, avatownMobile style)
+[RuntimeHumanoidAvatarBuilder] HumanDescription configured:
+[RuntimeHumanoidAvatarBuilder] Successfully built Avatar for kyoko. IsValid: True, IsHuman: True
+[RuntimeHumanoidAvatarBuilder] === SkinnedMeshRenderer & BindPose Validation ===
+[RuntimeHumanoidAvatarBuilder] Found 16 SkinnedMeshRenderer(s)
+[RuntimeHumanoidAvatarBuilder] SMR #1: Body
+[RuntimeHumanoidAvatarBuilder]   Bones: 98
+[RuntimeHumanoidAvatarBuilder]     [0] Hips
+[RuntimeHumanoidAvatarBuilder]     [1] Spine
+[RuntimeHumanoidAvatarBuilder]     [2] Chest
+[RuntimeHumanoidAvatarBuilder]     [3] Neck
+[RuntimeHumanoidAvatarBuilder]     [4] Head
+[RuntimeHumanoidAvatarBuilder]     ... and 93 more bones
+[RuntimeHumanoidAvatarBuilder]   BindPoses: 98
+[RuntimeHumanoidAvatarBuilder]   BindPose[0] sample:
+[RuntimeHumanoidAvatarBuilder]     Position: (0.00, -0.70, -0.06, 1.00)
+[RuntimeHumanoidAvatarBuilder]     Rotation: (270.00, 0.00, 0.00)
+[RuntimeHumanoidAvatarBuilder]   RootBone: Hips
+[RuntimeHumanoidAvatarBuilder]   → Preserving original BindPoses (TriLib generated)
+[RuntimeHumanoidAvatarBuilder] SMR #2: Ear
+[RuntimeHumanoidAvatarBuilder]   Bones: 98
+[RuntimeHumanoidAvatarBuilder]     [0] Hips
+[RuntimeHumanoidAvatarBuilder]     [1] Spine
+[RuntimeHumanoidAvatarBuilder]     [2] Chest
+[RuntimeHumanoidAvatarBuilder]     [3] Neck
+[RuntimeHumanoidAvatarBuilder]     [4] Head
+[RuntimeHumanoidAvatarBuilder]     ... and 93 more bones
+[RuntimeHumanoidAvatarBuilder]   BindPoses: 98
+[RuntimeHumanoidAvatarBuilder]   BindPose[0] sample:
+[RuntimeHumanoidAvatarBuilder]     Position: (0.00, -0.70, -0.06, 1.00)
+[RuntimeHumanoidAvatarBuilder]     Rotation: (270.00, 0.00, 0.00)
+[RuntimeHumanoidAvatarBuilder]   RootBone: Hips
+[RuntimeHumanoidAvatarBuilder]   → Preserving original BindPoses (TriLib generated)
+[RuntimeHumanoidAvatarBuilder] SMR #3: Hair
+[RuntimeHumanoidAvatarBuilder]   Bones: 98
+[RuntimeHumanoidAvatarBuilder]     [0] Hips
+[RuntimeHumanoidAvatarBuilder]     [1] Spine
+[RuntimeHumanoidAvatarBuilder]     [2] Chest
+[RuntimeHumanoidAvatarBuilder]     [3] Neck
+[RuntimeHumanoidAvatarBuilder]     [4] Head
+[RuntimeHumanoidAvatarBuilder]     ... and 93 more bones
+[RuntimeHumanoidAvatarBuilder]   BindPoses: 98
+[RuntimeHumanoidAvatarBuilder]   BindPose[0] sample:
+[RuntimeHumanoidAvatarBuilder]     Position: (0.00, -0.70, -0.06, 1.00)
+[RuntimeHumanoidAvatarBuilder]     Rotation: (270.00, 0.00, 0.00)
+[RuntimeHumanoidAvatarBuilder]   RootBone: Hips
+[RuntimeHumanoidAvatarBuilder]   → Preserving original BindPoses (TriLib generated)
+[RuntimeHumanoidAvatarBuilder] SMR #4: Hat
+[RuntimeHumanoidAvatarBuilder]   Bones: 98
+[RuntimeHumanoidAvatarBuilder]     [0] Hips
+[RuntimeHumanoidAvatarBuilder]     [1] Spine
+[RuntimeHumanoidAvatarBuilder]     [2] Chest
+[RuntimeHumanoidAvatarBuilder]     [3] Neck
+[RuntimeHumanoidAvatarBuilder]     [4] Head
+[RuntimeHumanoidAvatarBuilder]     ... and 93 more bones
+[RuntimeHumanoidAvatarBuilder]   BindPoses: 98
+[RuntimeHumanoidAvatarBuilder]   BindPose[0] sample:
+[RuntimeHumanoidAvatarBuilder]     Position: (0.00, -0.70, -0.06, 1.00)
+[RuntimeHumanoidAvatarBuilder]     Rotation: (270.00, 0.00, 0.00)
+[RuntimeHumanoidAvatarBuilder]   RootBone: Hips
+[RuntimeHumanoidAvatarBuilder]   → Preserving original BindPoses (TriLib generated)
+[RuntimeHumanoidAvatarBuilder] SMR #5: Inner
+[RuntimeHumanoidAvatarBuilder]   Bones: 98
+[RuntimeHumanoidAvatarBuilder]     [0] Hips
+[RuntimeHumanoidAvatarBuilder]     [1] Spine
+[RuntimeHumanoidAvatarBuilder]     [2] Chest
+[RuntimeHumanoidAvatarBuilder]     [3] Neck
+[RuntimeHumanoidAvatarBuilder]     [4] Head
+[RuntimeHumanoidAvatarBuilder]     ... and 93 more bones
+[RuntimeHumanoidAvatarBuilder]   BindPoses: 98
+[RuntimeHumanoidAvatarBuilder]   BindPose[0] sample:
+[RuntimeHumanoidAvatarBuilder]     Position: (0.00, -0.70, -0.06, 1.00)
+[RuntimeHumanoidAvatarBuilder]     Rotation: (270.00, 0.00, 0.00)
+[RuntimeHumanoidAvatarBuilder]   RootBone: Hips
+[RuntimeHumanoidAvatarBuilder]   → Preserving original BindPoses (TriLib generated)
+[RuntimeHumanoidAvatarBuilder] SMR #6: Karada_new
+[RuntimeHumanoidAvatarBuilder]   Bones: 98
+[RuntimeHumanoidAvatarBuilder]     [0] Hips
+[RuntimeHumanoidAvatarBuilder]     [1] Spine
+[RuntimeHumanoidAvatarBuilder]     [2] Chest
+[RuntimeHumanoidAvatarBuilder]     [3] Neck
+[RuntimeHumanoidAvatarBuilder]     [4] Head
+[RuntimeHumanoidAvatarBuilder]     ... and 93 more bones
+[RuntimeHumanoidAvatarBuilder]   BindPoses: 98
+[RuntimeHumanoidAvatarBuilder]   BindPose[0] sample:
+[RuntimeHumanoidAvatarBuilder]     Position: (0.00, -0.70, -0.06, 1.00)
+[RuntimeHumanoidAvatarBuilder]     Rotation: (270.00, 0.00, 0.00)
+[RuntimeHumanoidAvatarBuilder]   RootBone: Hips
+[RuntimeHumanoidAvatarBuilder]   → Preserving original BindPoses (TriLib generated)
+[RuntimeHumanoidAvatarBuilder] SMR #7: Loungewear_kyoko
+[RuntimeHumanoidAvatarBuilder]   Bones: 98
+[RuntimeHumanoidAvatarBuilder]     [0] Hips
+[RuntimeHumanoidAvatarBuilder]     [1] Spine
+[RuntimeHumanoidAvatarBuilder]     [2] Chest
+[RuntimeHumanoidAvatarBuilder]     [3] Neck
+[RuntimeHumanoidAvatarBuilder]     [4] Head
+[RuntimeHumanoidAvatarBuilder]     ... and 93 more bones
+[RuntimeHumanoidAvatarBuilder]   BindPoses: 98
+[RuntimeHumanoidAvatarBuilder]   BindPose[0] sample:
+[RuntimeHumanoidAvatarBuilder]     Position: (0.00, -0.70, -0.06, 1.00)
+[RuntimeHumanoidAvatarBuilder]     Rotation: (270.00, 0.00, 0.00)
+[RuntimeHumanoidAvatarBuilder]   RootBone: Hips
+[RuntimeHumanoidAvatarBuilder]   → Preserving original BindPoses (TriLib generated)
+[RuntimeHumanoidAvatarBuilder] SMR #8: Loungewear_kyoko_Underwear
+[RuntimeHumanoidAvatarBuilder]   Bones: 98
+[RuntimeHumanoidAvatarBuilder]     [0] Hips
+[RuntimeHumanoidAvatarBuilder]     [1] Spine
+[RuntimeHumanoidAvatarBuilder]     [2] Chest
+[RuntimeHumanoidAvatarBuilder]     [3] Neck
+[RuntimeHumanoidAvatarBuilder]     [4] Head
+[RuntimeHumanoidAvatarBuilder]     ... and 93 more bones
+[RuntimeHumanoidAvatarBuilder]   BindPoses: 98
+[RuntimeHumanoidAvatarBuilder]   BindPose[0] sample:
+[RuntimeHumanoidAvatarBuilder]     Position: (0.00, -0.70, -0.06, 1.00)
+[RuntimeHumanoidAvatarBuilder]     Rotation: (270.00, 0.00, 0.00)
+[RuntimeHumanoidAvatarBuilder]   RootBone: Hips
+[RuntimeHumanoidAvatarBuilder]   → Preserving original BindPoses (TriLib generated)
+[RuntimeHumanoidAvatarBuilder] SMR #9: Loungewear_saneko
+[RuntimeHumanoidAvatarBuilder]   Bones: 98
+[RuntimeHumanoidAvatarBuilder]     [0] Hips
+[RuntimeHumanoidAvatarBuilder]     [1] Spine
+[RuntimeHumanoidAvatarBuilder]     [2] Chest
+[RuntimeHumanoidAvatarBuilder]     [3] Neck
+[RuntimeHumanoidAvatarBuilder]     [4] Head
+[RuntimeHumanoidAvatarBuilder]     ... and 93 more bones
+[RuntimeHumanoidAvatarBuilder]   BindPoses: 98
+[RuntimeHumanoidAvatarBuilder]   BindPose[0] sample:
+[RuntimeHumanoidAvatarBuilder]     Position: (0.00, -0.70, -0.06, 1.00)
+[RuntimeHumanoidAvatarBuilder]     Rotation: (270.00, 0.00, 0.00)
+[RuntimeHumanoidAvatarBuilder]   RootBone: Hips
+[RuntimeHumanoidAvatarBuilder]   → Preserving original BindPoses (TriLib generated)
+[RuntimeHumanoidAvatarBuilder] SMR #10: Nail
+[RuntimeHumanoidAvatarBuilder]   Bones: 98
+[RuntimeHumanoidAvatarBuilder]     [0] Hips
+[RuntimeHumanoidAvatarBuilder]     [1] Spine
+[RuntimeHumanoidAvatarBuilder]     [2] Chest
+[RuntimeHumanoidAvatarBuilder]     [3] Neck
+[RuntimeHumanoidAvatarBuilder]     [4] Head
+[RuntimeHumanoidAvatarBuilder]     ... and 93 more bones
+[RuntimeHumanoidAvatarBuilder]   BindPoses: 98
+[RuntimeHumanoidAvatarBuilder]   BindPose[0] sample:
+[RuntimeHumanoidAvatarBuilder]     Position: (0.00, -0.70, -0.06, 1.00)
+[RuntimeHumanoidAvatarBuilder]     Rotation: (270.00, 0.00, 0.00)
+[RuntimeHumanoidAvatarBuilder]   RootBone: Hips
+[RuntimeHumanoidAvatarBuilder]   → Preserving original BindPoses (TriLib generated)
+[RuntimeHumanoidAvatarBuilder] SMR #11: Outer
+[RuntimeHumanoidAvatarBuilder]   Bones: 98
+[RuntimeHumanoidAvatarBuilder]     [0] Hips
+[RuntimeHumanoidAvatarBuilder]     [1] Spine
+[RuntimeHumanoidAvatarBuilder]     [2] Chest
+[RuntimeHumanoidAvatarBuilder]     [3] Neck
+[RuntimeHumanoidAvatarBuilder]     [4] Head
+[RuntimeHumanoidAvatarBuilder]     ... and 93 more bones
+[RuntimeHumanoidAvatarBuilder]   BindPoses: 98
+[RuntimeHumanoidAvatarBuilder]   BindPose[0] sample:
+[RuntimeHumanoidAvatarBuilder]     Position: (0.00, -0.70, -0.06, 1.00)
+[RuntimeHumanoidAvatarBuilder]     Rotation: (270.00, 0.00, 0.00)
+[RuntimeHumanoidAvatarBuilder]   RootBone: Hips
+[RuntimeHumanoidAvatarBuilder]   → Preserving original BindPoses (TriLib generated)
+[RuntimeHumanoidAvatarBuilder] SMR #12: Shoes
+[RuntimeHumanoidAvatarBuilder]   Bones: 98
+[RuntimeHumanoidAvatarBuilder]     [0] Hips
+[RuntimeHumanoidAvatarBuilder]     [1] Spine
+[RuntimeHumanoidAvatarBuilder]     [2] Chest
+[RuntimeHumanoidAvatarBuilder]     [3] Neck
+[RuntimeHumanoidAvatarBuilder]     [4] Head
+[RuntimeHumanoidAvatarBuilder]     ... and 93 more bones
+[RuntimeHumanoidAvatarBuilder]   BindPoses: 98
+[RuntimeHumanoidAvatarBuilder]   BindPose[0] sample:
+[RuntimeHumanoidAvatarBuilder]     Position: (0.00, -0.70, -0.06, 1.00)
+[RuntimeHumanoidAvatarBuilder]     Rotation: (270.00, 0.00, 0.00)
+[RuntimeHumanoidAvatarBuilder]   RootBone: Hips
+[RuntimeHumanoidAvatarBuilder]   → Preserving original BindPoses (TriLib generated)
+[RuntimeHumanoidAvatarBuilder] SMR #13: Socks
+[RuntimeHumanoidAvatarBuilder]   Bones: 98
+[RuntimeHumanoidAvatarBuilder]     [0] Hips
+[RuntimeHumanoidAvatarBuilder]     [1] Spine
+[RuntimeHumanoidAvatarBuilder]     [2] Chest
+[RuntimeHumanoidAvatarBuilder]     [3] Neck
+[RuntimeHumanoidAvatarBuilder]     [4] Head
+[RuntimeHumanoidAvatarBuilder]     ... and 93 more bones
+[RuntimeHumanoidAvatarBuilder]   BindPoses: 98
+[RuntimeHumanoidAvatarBuilder]   BindPose[0] sample:
+[RuntimeHumanoidAvatarBuilder]     Position: (0.00, -0.70, -0.06, 1.00)
+[RuntimeHumanoidAvatarBuilder]     Rotation: (270.00, 0.00, 0.00)
+[RuntimeHumanoidAvatarBuilder]   RootBone: Hips
+[RuntimeHumanoidAvatarBuilder]   → Preserving original BindPoses (TriLib generated)
+[RuntimeHumanoidAvatarBuilder] SMR #14: Swimwear
+[RuntimeHumanoidAvatarBuilder]   Bones: 98
+[RuntimeHumanoidAvatarBuilder]     [0] Hips
+[RuntimeHumanoidAvatarBuilder]     [1] Spine
+[RuntimeHumanoidAvatarBuilder]     [2] Chest
+[RuntimeHumanoidAvatarBuilder]     [3] Neck
+[RuntimeHumanoidAvatarBuilder]     [4] Head
+[RuntimeHumanoidAvatarBuilder]     ... and 93 more bones
+[RuntimeHumanoidAvatarBuilder]   BindPoses: 98
+[RuntimeHumanoidAvatarBuilder]   BindPose[0] sample:
+[RuntimeHumanoidAvatarBuilder]     Position: (0.00, -0.70, -0.06, 1.00)
+[RuntimeHumanoidAvatarBuilder]     Rotation: (270.00, 0.00, 0.00)
+[RuntimeHumanoidAvatarBuilder]   RootBone: Hips
+[RuntimeHumanoidAvatarBuilder]   → Preserving original BindPoses (TriLib generated)
+[RuntimeHumanoidAvatarBuilder] SMR #15: Tail
+[RuntimeHumanoidAvatarBuilder]   Bones: 98
+[RuntimeHumanoidAvatarBuilder]     [0] Hips
+[RuntimeHumanoidAvatarBuilder]     [1] Spine
+[RuntimeHumanoidAvatarBuilder]     [2] Chest
+[RuntimeHumanoidAvatarBuilder]     [3] Neck
+[RuntimeHumanoidAvatarBuilder]     [4] Head
+[RuntimeHumanoidAvatarBuilder]     ... and 93 more bones
+[RuntimeHumanoidAvatarBuilder]   BindPoses: 98
+[RuntimeHumanoidAvatarBuilder]   BindPose[0] sample:
+[RuntimeHumanoidAvatarBuilder]     Position: (0.00, -0.70, -0.06, 1.00)
+[RuntimeHumanoidAvatarBuilder]     Rotation: (270.00, 0.00, 0.00)
+[RuntimeHumanoidAvatarBuilder]   RootBone: Hips
+[RuntimeHumanoidAvatarBuilder]   → Preserving original BindPoses (TriLib generated)
+[RuntimeHumanoidAvatarBuilder] SMR #16: Underwear
+[RuntimeHumanoidAvatarBuilder]   Bones: 98
+[RuntimeHumanoidAvatarBuilder]     [0] Hips
+[RuntimeHumanoidAvatarBuilder]     [1] Spine
+[RuntimeHumanoidAvatarBuilder]     [2] Chest
+[RuntimeHumanoidAvatarBuilder]     [3] Neck
+[RuntimeHumanoidAvatarBuilder]     [4] Head
+[RuntimeHumanoidAvatarBuilder]     ... and 93 more bones
+[RuntimeHumanoidAvatarBuilder]   BindPoses: 98
+[RuntimeHumanoidAvatarBuilder]   BindPose[0] sample:
+[RuntimeHumanoidAvatarBuilder]     Position: (0.00, -0.70, -0.06, 1.00)
+[RuntimeHumanoidAvatarBuilder]     Rotation: (270.00, 0.00, 0.00)
+[RuntimeHumanoidAvatarBuilder]   RootBone: Hips
+[RuntimeHumanoidAvatarBuilder]   → Preserving original BindPoses (TriLib generated)
+[RuntimeHumanoidAvatarBuilder] === End SkinnedMeshRenderer Validation ===
+[RuntimeFBXLoaderBridge] ✓ Avatar ready from RuntimeHumanoidAvatarBuilder. IsValid: True, IsHuman: True
+[RuntimeFBXLoaderBridge] SetupAnimator called for model: kyoko
+[RuntimeFBXLoaderBridge] Found existing Animator component. Current controller: null
+[RuntimeFBXLoaderBridge] Avatar is assigned: , IsValid: True, IsHuman: True
+[RuntimeFBXLoaderBridge] animatorController field is: UnityChanLocomotions
+[RuntimeFBXLoaderBridge] ✓ Set animator controller: UnityChanLocomotions
+[RuntimeFBXLoaderBridge] ✓ Animator controller successfully applied
+[RuntimeFBXLoaderBridge] Playing initial state: Idle
+[RuntimeFBXLoaderBridge] FBX load completed. Success: True
+
+Ended: 2025-11-17 18:34:20
+=== End of Log ===
