@@ -344,8 +344,23 @@ namespace AICam.AvatarBuilder
             var desc = new HumanDescription
             {
                 human    = humanBones.ToArray(),
-                skeleton = GenerateSkeletonBones(root)
+                skeleton = GenerateSkeletonBones(root),
+                // Unityエディターのデフォルト値に合わせる
+                upperArmTwist = 0.5f,
+                lowerArmTwist = 0.5f,
+                upperLegTwist = 0.5f,
+                lowerLegTwist = 0.5f,
+                armStretch = 0.05f,
+                legStretch = 0.05f,
+                feetSpacing = 0f,
+                hasTranslationDoF = false
             };
+
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] HumanDescription configured:");
+            Debug.Log($"  Bones: {desc.human.Length}, Skeleton: {desc.skeleton.Length}");
+            Debug.Log($"  ArmTwist: U={desc.upperArmTwist}, L={desc.lowerArmTwist}");
+            Debug.Log($"  LegTwist: U={desc.upperLegTwist}, L={desc.lowerLegTwist}");
+            Debug.Log($"  Stretch: Arm={desc.armStretch}, Leg={desc.legStretch}");
 
             UnityEngine.Avatar avatar = UnityEngine.AvatarBuilder.BuildHumanAvatar(root, desc);
             if (!avatar.isValid || !avatar.isHuman)
@@ -355,7 +370,72 @@ namespace AICam.AvatarBuilder
             }
 
             Debug.Log($"[RuntimeHumanoidAvatarBuilder] Successfully built Avatar for {model}. IsValid: {avatar.isValid}, IsHuman: {avatar.isHuman}");
+
+            // SkinnedMeshRendererのBindPoseとRootBoneを検証・修正
+            ValidateAndFixSkinnedMeshRenderers(root, map);
+
             return avatar;
+        }
+
+        // ───────────────────────────────────────────────────────────
+        // ⑦ SkinnedMeshRenderer 検証・修正
+        // ───────────────────────────────────────────────────────────
+        private static void ValidateAndFixSkinnedMeshRenderers(GameObject root, Dictionary<HumanBodyBones, Transform> map)
+        {
+            var skinnedMeshRenderers = root.GetComponentsInChildren<SkinnedMeshRenderer>();
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Validating {skinnedMeshRenderers.Length} SkinnedMeshRenderer(s)");
+
+            if (!map.TryGetValue(HumanBodyBones.Hips, out var hips))
+            {
+                Debug.LogWarning("[RuntimeHumanoidAvatarBuilder] Hips bone not found, cannot set rootBone");
+                return;
+            }
+
+            foreach (var smr in skinnedMeshRenderers)
+            {
+                // RootBoneをHipsに設定
+                if (smr.rootBone == null || smr.rootBone != hips)
+                {
+                    Debug.Log($"[RuntimeHumanoidAvatarBuilder] Setting rootBone to Hips for {smr.name}");
+                    smr.rootBone = hips;
+                }
+
+                // BindPoseを再計算
+                if (smr.bones != null && smr.bones.Length > 0 && smr.sharedMesh != null)
+                {
+                    RebuildBindPoses(smr, hips);
+                }
+            }
+        }
+
+        private static void RebuildBindPoses(SkinnedMeshRenderer smr, Transform rootBone)
+        {
+            if (smr == null || smr.sharedMesh == null || rootBone == null) return;
+
+            var bones = smr.bones;
+            if (bones == null || bones.Length == 0) return;
+
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Rebuilding BindPoses for {smr.name} ({bones.Length} bones)");
+
+            var bindposes = new Matrix4x4[bones.Length];
+            var rootL2W = rootBone.localToWorldMatrix;
+
+            for (int i = 0; i < bones.Length; i++)
+            {
+                if (bones[i] != null)
+                {
+                    // BindPose = Bone の WorldToLocal × RootBone の LocalToWorld
+                    bindposes[i] = bones[i].worldToLocalMatrix * rootL2W;
+                }
+                else
+                {
+                    Debug.LogWarning($"[RuntimeHumanoidAvatarBuilder] Bone[{i}] is null in {smr.name}");
+                    bindposes[i] = Matrix4x4.identity;
+                }
+            }
+
+            smr.sharedMesh.bindposes = bindposes;
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] BindPoses rebuilt for {smr.name}");
         }
 
         // ───── SkeletonBone 列生成 ─────
