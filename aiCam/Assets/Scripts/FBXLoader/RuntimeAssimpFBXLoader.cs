@@ -91,12 +91,18 @@ namespace AICam.FBXLoader
             // ボーン名辞書をクリア
             boneNameToTransform.Clear();
 
-            // ルートGameObjectを作成
+            // FBX名を決定
             string objName = string.IsNullOrEmpty(rootName) ? Path.GetFileNameWithoutExtension(fbxPath) : rootName;
-            GameObject rootObject = new GameObject(objName);
 
-            // ノード階層をGameObject階層に変換（メッシュも即座に処理）
-            await BuildBoneHierarchyAsync(scene.RootNode, rootObject.transform, scene);
+            // ノード階層をGameObject階層に変換（親なしで開始し、メッシュも即座に処理）
+            GameObject rootObject = await BuildBoneHierarchyAsyncRoot(scene.RootNode, scene);
+
+            // ルートGameObjectの名前をFBX名に変更
+            if (rootObject != null)
+            {
+                rootObject.name = objName;
+                UnityEngine.Debug.Log($"{LOG_PREFIX} Root GameObject renamed to: {objName}");
+            }
 
             // rootBoneを検索（Hips）- SkinnedMeshRenderer用
             cachedRootBone = FindRootBone(rootObject.transform);
@@ -111,6 +117,46 @@ namespace AICam.FBXLoader
 
             UnityEngine.Debug.Log($"{LOG_PREFIX} Bone hierarchy built successfully");
             LogHierarchy(rootObject.transform, 0);
+
+            return rootObject;
+        }
+
+        /// <summary>
+        /// ルートノードからGameObject階層を構築（親なし）
+        /// </summary>
+        private async UniTask<GameObject> BuildBoneHierarchyAsyncRoot(Node rootNode, Scene scene)
+        {
+            if (rootNode == null)
+                return null;
+
+            // ルートノード用のGameObjectを作成（親なし）
+            GameObject rootObject = new GameObject(rootNode.Name);
+
+            // Transform情報を設定
+            SetTransformFromAssimpMatrix(rootObject.transform, rootNode.Transform);
+
+            // ボーン名辞書に追加
+            if (!boneNameToTransform.ContainsKey(rootNode.Name))
+            {
+                boneNameToTransform[rootNode.Name] = rootObject.transform;
+            }
+
+            // このノードがメッシュを持っている場合、即座に処理
+            if (rootNode.MeshCount > 0)
+            {
+                string hierarchyPath = GetTransformPath(rootObject.transform);
+                UnityEngine.Debug.Log($"{LOG_PREFIX} Processing mesh node: {rootNode.Name} with {rootNode.MeshCount} mesh(es)");
+                UnityEngine.Debug.Log($"{LOG_PREFIX}   → Attaching to GameObject: {hierarchyPath}");
+
+                await LoadMeshesForNodeAsync(rootNode, rootObject.transform);
+                await UniTask.Yield();
+            }
+
+            // 子ノードを再帰的に処理
+            for (int i = 0; i < rootNode.ChildCount; i++)
+            {
+                await BuildBoneHierarchyAsync(rootNode.Children[i], rootObject.transform, scene, 1);
+            }
 
             return rootObject;
         }
