@@ -442,19 +442,32 @@ namespace AICam.AvatarBuilder
         // ───────────────────────────────────────────────────────────
         private static SkeletonBone[] GenerateSkeletonBones(GameObject root, Dictionary<HumanBodyBones, Transform> boneMap)
         {
-            // BindPoseから回転を抽出する試み
+            // BindPoseから回転を抽出
             var bindPoseRotations = ExtractBindPoseRotations(root);
+
+            // boneMapの逆引き用（Transform -> HumanBodyBones）
+            var transformToBone = new Dictionary<Transform, HumanBodyBones>();
+            foreach (var kvp in boneMap)
+            {
+                transformToBone[kvp.Value] = kvp.Key;
+            }
 
             var list = new List<SkeletonBone>();
             void Rec(Transform t)
             {
                 Quaternion rotation = t.localRotation;
 
-                // BindPoseから回転情報が取得できた場合はそれを使用
-                if (bindPoseRotations.TryGetValue(t, out var bindPoseRot))
+                // Humanoidボーンとしてマップされているボーンのみ、BindPose回転を使用
+                if (transformToBone.ContainsKey(t) && bindPoseRotations.TryGetValue(t, out var bindPoseRot))
                 {
-                    Debug.Log($"[RuntimeHumanoidAvatarBuilder] Using BindPose rotation for {t.name}: {bindPoseRot} (current: {t.localRotation})");
+                    var boneName = transformToBone[t];
+                    Debug.Log($"[RuntimeHumanoidAvatarBuilder] Using BindPose rotation for {boneName} ({t.name}): {bindPoseRot} (current: {t.localRotation})");
                     rotation = bindPoseRot;
+                }
+                else if (t == root.transform)
+                {
+                    // ルートは常に現在の回転を使用（座標系変換を保持）
+                    Debug.Log($"[RuntimeHumanoidAvatarBuilder] Using current rotation for root: {t.localRotation}");
                 }
 
                 list.Add(new SkeletonBone
