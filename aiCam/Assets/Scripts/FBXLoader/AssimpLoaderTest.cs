@@ -70,7 +70,7 @@ namespace AICam.FBXLoader
                 // デバッグビジュアライザーをアタッチ
                 if (autoAttachDebugVisualizer)
                 {
-                    var visualizer = loadedModel.AddComponent<AICam.Debug.BoneDebugVisualizer>();
+                    var visualizer = loadedModel.AddComponent<AICam.DebugTools.BoneDebugVisualizer>();
                     Debug.Log("[AssimpLoaderTest] BoneDebugVisualizer attached");
                 }
 
@@ -137,7 +137,7 @@ namespace AICam.FBXLoader
             Debug.Log("[AssimpLoaderTest] ✓ Animator configured");
 
             // デバッグビジュアライザーのAnimator参照を更新
-            var visualizer = loadedModel.GetComponent<AICam.Debug.BoneDebugVisualizer>();
+            var visualizer = loadedModel.GetComponent<AICam.DebugTools.BoneDebugVisualizer>();
             if (visualizer != null)
             {
                 // InspectorでAnimatorが自動設定される
@@ -171,7 +171,7 @@ namespace AICam.FBXLoader
                 return;
             }
 
-            var visualizer = loadedModel.GetComponent<AICam.Debug.BoneDebugVisualizer>();
+            var visualizer = loadedModel.GetComponent<AICam.DebugTools.BoneDebugVisualizer>();
             if (visualizer != null)
             {
                 visualizer.PrintBoneHierarchy();
@@ -191,7 +191,7 @@ namespace AICam.FBXLoader
                 return;
             }
 
-            var visualizer = loadedModel.GetComponent<AICam.Debug.BoneDebugVisualizer>();
+            var visualizer = loadedModel.GetComponent<AICam.DebugTools.BoneDebugVisualizer>();
             if (visualizer != null)
             {
                 visualizer.PrintAvatarInfo();

@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-namespace AICam.Debug
+namespace AICam.DebugTools
 {
     /// <summary>
     /// ボーン階層とAvatar情報をシーンビューで可視化するデバッグコンポーネント
