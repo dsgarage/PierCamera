@@ -166,31 +166,21 @@ namespace AICam.FBXLoader
                 return FBXProfile.VRMStyle;
             }
 
-            // ✔ Rule 3.5: Blender検出（RootNode Y=180°なしでも）- Armature X=270° + Hips X=90°
+            // ✔ Rule 3.5: Armature/Hips回転チェック（情報のみ・判定には使わない）
+            // RootNode Y=180°がない場合、Armature/Hipsの回転はリグ内部のローカル回転であり
+            // 座標系の指標ではない。UnityStyleとして扱うべき。
             Node armatureAlt = FindNodeByName(rootNode, "Armature");
             if (armatureAlt != null)
             {
                 Vector3 armEulerAlt = GetEulerFromAssimpMatrix(armatureAlt.Transform);
-                Debug.Log($"{LOG_PREFIX} Armature rotation (fallback check): ({armEulerAlt.x:F1}, {armEulerAlt.y:F1}, {armEulerAlt.z:F1})");
+                Debug.Log($"{LOG_PREFIX} Armature rotation (info only): ({armEulerAlt.x:F1}, {armEulerAlt.y:F1}, {armEulerAlt.z:F1})");
 
-                bool hasX270Alt = Mathf.Abs(armEulerAlt.x - 270f) < 5f || Mathf.Abs(armEulerAlt.x + 90f) < 5f;
-
-                if (hasX270Alt)
+                Node hipsAlt = FindNodeByName(armatureAlt, "Hips");
+                if (hipsAlt != null)
                 {
-                    Node hipsAlt = FindNodeByName(armatureAlt, "Hips");
-                    if (hipsAlt != null)
-                    {
-                        Vector3 hipsEulerAlt = GetEulerFromAssimpMatrix(hipsAlt.Transform);
-                        Debug.Log($"{LOG_PREFIX} Hips rotation (fallback check): ({hipsEulerAlt.x:F1}, {hipsEulerAlt.y:F1}, {hipsEulerAlt.z:F1})");
-
-                        bool hasX90Alt = Mathf.Abs(hipsEulerAlt.x - 90f) < 5f;
-
-                        if (hasX90Alt)
-                        {
-                            Debug.Log($"{LOG_PREFIX} ✓ CONFIRMED: BlenderStyle (ArmX=270, HipsX=90) - without RootY=180");
-                            return FBXProfile.BlenderStyle;
-                        }
-                    }
+                    Vector3 hipsEulerAlt = GetEulerFromAssimpMatrix(hipsAlt.Transform);
+                    Debug.Log($"{LOG_PREFIX} Hips rotation (info only): ({hipsEulerAlt.x:F1}, {hipsEulerAlt.y:F1}, {hipsEulerAlt.z:F1})");
+                    Debug.Log($"{LOG_PREFIX} → These are local rig rotations, not coordinate system indicators without RootY=180");
                 }
             }
 
