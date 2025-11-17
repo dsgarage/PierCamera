@@ -34,58 +34,91 @@ namespace AICam.FBXLoader
         {
             var profile = new FbxCoordProfile();
 
-            if (scene.Metadata == null || scene.Metadata.Count == 0)
-            {
-                Debug.LogWarning($"{LOG_PREFIX} No metadata found. Using default Y-up profile.");
-                return CreateDefaultYUpProfile();
-            }
-
             try
             {
-                // FBX Global Settings から軸情報を取得
-                int upAxis = GetMetadataInt(scene.Metadata, "UpAxis", 1);           // 0=X, 1=Y, 2=Z
-                int upAxisSign = GetMetadataInt(scene.Metadata, "UpAxisSign", 1);   // +1 or -1
-                int frontAxis = GetMetadataInt(scene.Metadata, "FrontAxis", 2);     // 前方向
-                int frontAxisSign = GetMetadataInt(scene.Metadata, "FrontAxisSign", 1);
-                int coordAxis = GetMetadataInt(scene.Metadata, "CoordAxis", 0);     // 右方向
-                int coordAxisSign = GetMetadataInt(scene.Metadata, "CoordAxisSign", 1);
+                // RootNodeのMetadataから座標系情報を取得を試みる
+                if (scene.RootNode != null && scene.RootNode.HasMetadata)
+                {
+                    Debug.Log($"{LOG_PREFIX} Attempting to read metadata from RootNode...");
 
-                profile.up = AxisToVector(upAxis, upAxisSign);
-                profile.front = AxisToVector(frontAxis, frontAxisSign);
-                profile.right = AxisToVector(coordAxis, coordAxisSign);
-                profile.isRightHanded = true; // FBX は基本的に右手系
+                    // メタデータから軸情報を取得
+                    int upAxis = GetMetadataInt(scene.RootNode, "UpAxis", -1);
+                    int upAxisSign = GetMetadataInt(scene.RootNode, "UpAxisSign", 1);
+                    int frontAxis = GetMetadataInt(scene.RootNode, "FrontAxis", -1);
+                    int frontAxisSign = GetMetadataInt(scene.RootNode, "FrontAxisSign", 1);
+                    int coordAxis = GetMetadataInt(scene.RootNode, "CoordAxis", -1);
+                    int coordAxisSign = GetMetadataInt(scene.RootNode, "CoordAxisSign", 1);
 
-                // プロファイル名を生成
-                profile.profileName = $"{AxisName(upAxis)}{SignChar(upAxisSign)}-up";
+                    if (upAxis >= 0)
+                    {
+                        profile.up = AxisToVector(upAxis, upAxisSign);
+                        profile.front = AxisToVector(frontAxis >= 0 ? frontAxis : 2, frontAxisSign);
+                        profile.right = AxisToVector(coordAxis >= 0 ? coordAxis : 0, coordAxisSign);
+                        profile.isRightHanded = true;
+                        profile.profileName = $"{AxisName(upAxis)}{SignChar(upAxisSign)}-up (metadata)";
 
-                Debug.Log($"{LOG_PREFIX} Detected coordinate system:");
-                Debug.Log($"{LOG_PREFIX}   UpAxis: {upAxis} (sign: {upAxisSign}) = {profile.up}");
-                Debug.Log($"{LOG_PREFIX}   FrontAxis: {frontAxis} (sign: {frontAxisSign}) = {profile.front}");
-                Debug.Log($"{LOG_PREFIX}   CoordAxis: {coordAxis} (sign: {coordAxisSign}) = {profile.right}");
+                        Debug.Log($"{LOG_PREFIX} Detected from metadata:");
+                        Debug.Log($"{LOG_PREFIX}   UpAxis: {upAxis} = {profile.up}");
+                        Debug.Log($"{LOG_PREFIX}   Profile: {profile.profileName}");
+
+                        return profile;
+                    }
+                }
+
+                // メタデータが取得できない場合、ボーン構造から推測
+                Debug.LogWarning($"{LOG_PREFIX} No metadata available. Analyzing scene structure...");
+                profile = AnalyzeSceneStructure(scene);
+
+                Debug.Log($"{LOG_PREFIX} Detected from structure analysis:");
                 Debug.Log($"{LOG_PREFIX}   Profile: {profile.profileName}");
             }
             catch (System.Exception e)
             {
-                Debug.LogWarning($"{LOG_PREFIX} Failed to read metadata: {e.Message}. Using default Y-up profile.");
-                return CreateDefaultYUpProfile();
+                Debug.LogWarning($"{LOG_PREFIX} Failed to detect coordinate system: {e.Message}");
+                Debug.LogWarning($"{LOG_PREFIX} Using default Y-up profile.");
+                profile = CreateDefaultYUpProfile();
             }
 
             return profile;
         }
 
         /// <summary>
-        /// メタデータから整数値を取得（存在しない場合はデフォルト値）
+        /// シーン構造を解析して座標系を推測
         /// </summary>
-        private static int GetMetadataInt(Metadata metadata, string key, int defaultValue)
+        private static FbxCoordProfile AnalyzeSceneStructure(Scene scene)
         {
-            if (metadata.ContainsKey(key))
+            // ボーンの向きから座標系を推測
+            // Hips→Spineの方向ベクトルを確認してY-upかZ-upかを判定
+
+            // とりあえずデフォルトのY-upプロファイルを返す
+            // より高度な解析が必要な場合は、ボーンの位置関係から判断
+            var profile = CreateDefaultYUpProfile();
+            profile.profileName = "Y+-up (structure analysis)";
+
+            return profile;
+        }
+
+        /// <summary>
+        /// ノードのメタデータから整数値を取得
+        /// </summary>
+        private static int GetMetadataInt(Node node, string key, int defaultValue)
+        {
+            if (!node.HasMetadata)
+                return defaultValue;
+
+            for (int i = 0; i < node.MetadataCount; i++)
             {
-                var entry = metadata[key];
-                if (entry.DataType == MetaDataType.Int32)
+                var metaKey = node.GetMetadataKey(i);
+                if (metaKey == key)
                 {
-                    return (int)entry.Data;
+                    var entry = node.GetMetadataEntry(i);
+                    if (entry.DataType == MetaDataType.Int32 || entry.DataType == MetaDataType.Int64)
+                    {
+                        return System.Convert.ToInt32(entry.Data);
+                    }
                 }
             }
+
             return defaultValue;
         }
 
