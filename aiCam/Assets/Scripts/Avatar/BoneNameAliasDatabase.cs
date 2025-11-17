@@ -7,7 +7,7 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-namespace AICam.Avatar
+namespace AICam.AvatarBuilder
 {
     /****************************************************
      *  BoneNameAliasDatabase (新フォーマット対応版)

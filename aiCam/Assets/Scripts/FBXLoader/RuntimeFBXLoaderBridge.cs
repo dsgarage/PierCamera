@@ -2,7 +2,7 @@ using UnityEngine;
 using System;
 using Cysharp.Threading.Tasks;
 using AICam.VRM;
-using AICam.Avatar;
+using AICam.AvatarBuilder;
 using VRM;
 using UniGLTF;
 using TriLibCore;
