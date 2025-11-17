@@ -178,9 +178,9 @@ namespace AICam.FBXLoader
 
                 onProgress?.Invoke(20f);
 
-                // Assimpでボーン階層をロード
+                // Assimpでボーン階層をロード（非同期）
                 var loader = new RuntimeAssimpFBXLoader();
-                currentModel = loader.LoadBoneHierarchy(browser.SelectedPath);
+                currentModel = await loader.LoadBoneHierarchy(browser.SelectedPath);
 
                 if (currentModel == null)
                 {
@@ -198,9 +198,9 @@ namespace AICam.FBXLoader
                 PlaceModel(currentModel);
                 onProgress?.Invoke(40f);
 
-                // メッシュをロード（SkinnedMeshRenderer with bones/bindposes）
+                // メッシュをロード（SkinnedMeshRenderer with bones/bindposes）（非同期）
                 Debug.Log("[RuntimeFBXLoaderBridge] Loading meshes...");
-                loader.LoadMeshes(currentModel);
+                await loader.LoadMeshes(currentModel);
                 onProgress?.Invoke(50f);
 
                 // デバッグビジュアライザーをアタッチ

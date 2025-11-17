@@ -2,6 +2,7 @@ using UnityEngine;
 using Assimp;
 using System.Collections.Generic;
 using System.IO;
+using Cysharp.Threading.Tasks;
 
 namespace AICam.FBXLoader
 {
@@ -25,12 +26,12 @@ namespace AICam.FBXLoader
         private Scene currentScene;
 
         /// <summary>
-        /// FBXファイルからボーン階層のみをロードしてGameObjectツリーを構築
+        /// FBXファイルからボーン階層のみをロードしてGameObjectツリーを構築（非同期）
         /// </summary>
         /// <param name="fbxPath">FBXファイルのパス</param>
         /// <param name="rootName">ルートGameObjectの名前</param>
         /// <returns>ルートGameObject</returns>
-        public GameObject LoadBoneHierarchy(string fbxPath, string rootName = null)
+        public async UniTask<GameObject> LoadBoneHierarchy(string fbxPath, string rootName = null)
         {
             if (!File.Exists(fbxPath))
             {
@@ -57,6 +58,9 @@ namespace AICam.FBXLoader
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Meshes: {scene.MeshCount}");
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Materials: {scene.MaterialCount}");
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Animations: {scene.AnimationCount}");
+
+            // 重い処理後にフレームを譲る
+            await UniTask.Yield();
 
             // FBX Global Settings (座標系情報)
             UnityEngine.Debug.Log($"{LOG_PREFIX} === FBX Global Settings ===");
@@ -91,7 +95,7 @@ namespace AICam.FBXLoader
             GameObject rootObject = new GameObject(objName);
 
             // ノード階層をGameObject階層に変換（ボーンのみ）
-            BuildBoneHierarchy(scene.RootNode, rootObject.transform, scene);
+            await BuildBoneHierarchyAsync(scene.RootNode, rootObject.transform, scene);
 
             UnityEngine.Debug.Log($"{LOG_PREFIX} Bone hierarchy built successfully");
             LogHierarchy(rootObject.transform, 0);
@@ -100,9 +104,9 @@ namespace AICam.FBXLoader
         }
 
         /// <summary>
-        /// Assimpノード階層をGameObject階層に再帰的に変換
+        /// Assimpノード階層をGameObject階層に再帰的に変換（非同期版）
         /// </summary>
-        private void BuildBoneHierarchy(Node node, Transform parentTransform, Scene scene)
+        private async UniTask BuildBoneHierarchyAsync(Node node, Transform parentTransform, Scene scene, int depth = 0)
         {
             if (node == null)
                 return;
@@ -120,10 +124,16 @@ namespace AICam.FBXLoader
                 nodeNameToTransform[node.Name] = nodeObject.transform;
             }
 
+            // 一定の深さごとにフレームを譲る（UIフリーズ防止）
+            if (depth % 10 == 0)
+            {
+                await UniTask.Yield();
+            }
+
             // 子ノードを再帰的に処理
             for (int i = 0; i < node.ChildCount; i++)
             {
-                BuildBoneHierarchy(node.Children[i], nodeObject.transform, scene);
+                await BuildBoneHierarchyAsync(node.Children[i], nodeObject.transform, scene, depth + 1);
             }
         }
 
@@ -353,10 +363,10 @@ namespace AICam.FBXLoader
         private Transform cachedRootBone;
 
         /// <summary>
-        /// Assimpシーンからメッシュデータをロードして、対応するノードにSkinnedMeshRendererを追加
+        /// Assimpシーンからメッシュデータをロードして、対応するノードにSkinnedMeshRendererを追加（非同期）
         /// </summary>
         /// <param name="rootObject">ルートGameObject</param>
-        public void LoadMeshes(GameObject rootObject)
+        public async UniTask LoadMeshes(GameObject rootObject)
         {
             if (currentScene == null)
             {
@@ -376,17 +386,19 @@ namespace AICam.FBXLoader
             // STEP 5: rootBoneを決定（Hips）
             cachedRootBone = FindRootBone(rootObject.transform);
 
+            await UniTask.Yield();
+
             // シーンのノード階層を再帰的に探索してメッシュを持つノードを処理
-            ProcessMeshNodes(currentScene.RootNode, rootObject.transform);
+            await ProcessMeshNodesAsync(currentScene.RootNode, rootObject.transform);
 
             UnityEngine.Debug.Log($"{LOG_PREFIX} === Mesh Loading Complete ===");
         }
 
 
         /// <summary>
-        /// ノード階層を再帰的に探索してメッシュを持つノードを処理
+        /// ノード階層を再帰的に探索してメッシュを持つノードを処理（非同期版）
         /// </summary>
-        private void ProcessMeshNodes(Node node, Transform rootTransform)
+        private async UniTask ProcessMeshNodesAsync(Node node, Transform rootTransform)
         {
             if (node == null)
                 return;
@@ -400,7 +412,10 @@ namespace AICam.FBXLoader
                     UnityEngine.Debug.Log($"{LOG_PREFIX} Processing mesh node: {node.Name} with {node.MeshCount} mesh(es)");
 
                     // このノードに含まれる全メッシュをロード（サブメッシュとして）
-                    LoadMeshesForNode(node, nodeTransform);
+                    await LoadMeshesForNodeAsync(node, nodeTransform);
+
+                    // 各メッシュ処理後にフレームを譲る
+                    await UniTask.Yield();
                 }
                 else
                 {
@@ -411,14 +426,14 @@ namespace AICam.FBXLoader
             // 子ノードを再帰的に処理
             for (int i = 0; i < node.ChildCount; i++)
             {
-                ProcessMeshNodes(node.Children[i], rootTransform);
+                await ProcessMeshNodesAsync(node.Children[i], rootTransform);
             }
         }
 
         /// <summary>
-        /// 特定のノードに含まれる全メッシュをロードしてSkinnedMeshRendererを作成
+        /// 特定のノードに含まれる全メッシュをロードしてSkinnedMeshRendererを作成（非同期版）
         /// </summary>
-        private void LoadMeshesForNode(Node node, Transform nodeTransform)
+        private async UniTask LoadMeshesForNodeAsync(Node node, Transform nodeTransform)
         {
             // 複数のメッシュがある場合はサブメッシュとして結合
             List<UnityEngine.Vector3> combinedVertices = new List<UnityEngine.Vector3>();
@@ -514,6 +529,9 @@ namespace AICam.FBXLoader
                 }
 
                 vertexOffset += assimpMesh.VertexCount;
+
+                // 各メッシュ処理後にフレームを譲る（重い処理のため）
+                await UniTask.Yield();
             }
 
             // BoneWeightsをロード（最初のメッシュのボーン構造を使用）
