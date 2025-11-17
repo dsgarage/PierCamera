@@ -128,49 +128,57 @@ namespace dsgarage.Avatar.Editor
                 AssetDatabase.DeleteAsset(assetPath);
             }
 
-            // Avatarをコピーして保存
-            // Note: Avatarは複雑な内部構造を持つため、単純なコピーでは完全に機能しない場合があります
-            // 代わりに、元のAvatarへの参照として保存します
-
             try
             {
-                // Runtime Avatarは直接アセット化できないため、
-                // プレハブとしてAnimator全体を保存する方法を推奨
-                string prefabPath = Path.Combine(savePath, avatarName + "_Prefab.prefab");
+                // Runtime生成されたAvatarを直接アセットとして保存
+                // Unity 2019.3以降では、Runtime Avatarもアセット化可能
+                UnityEngine.Avatar avatarCopy = Object.Instantiate(avatar);
+                avatarCopy.name = avatarName;
 
-                if (AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath) != null)
-                {
-                    AssetDatabase.DeleteAsset(prefabPath);
-                }
+                AssetDatabase.CreateAsset(avatarCopy, assetPath);
+                AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh();
 
-                // Animatorを持つGameObjectをプレハブ化
-                GameObject prefab = PrefabUtility.SaveAsPrefabAsset(targetAnimator.gameObject, prefabPath);
-
-                if (prefab != null)
+                // 保存されたAvatarを検証
+                var savedAvatar = AssetDatabase.LoadAssetAtPath<UnityEngine.Avatar>(assetPath);
+                if (savedAvatar != null && savedAvatar.isValid)
                 {
                     EditorUtility.DisplayDialog(
                         "Success",
-                        $"Avatar付きプレハブを保存しました:\n{prefabPath}\n\n" +
-                        $"このプレハブをシーンに配置することで、\n" +
-                        $"EditorインポートAvatarと同様に使用できます。",
+                        $"Avatarアセットを保存しました:\n{assetPath}\n\n" +
+                        $"IsValid: {savedAvatar.isValid}\n" +
+                        $"IsHuman: {savedAvatar.isHuman}\n\n" +
+                        $"このAvatarは他のAnimatorに割り当てて使用できます。",
                         "OK");
 
                     // 保存したアセットを選択
-                    Selection.activeObject = prefab;
-                    EditorGUIUtility.PingObject(prefab);
+                    Selection.activeObject = savedAvatar;
+                    EditorGUIUtility.PingObject(savedAvatar);
+
+                    Debug.Log($"[SaveRuntimeAvatar] Avatar saved successfully: {assetPath}");
                 }
                 else
                 {
-                    EditorUtility.DisplayDialog("Error", "プレハブの作成に失敗しました", "OK");
+                    EditorUtility.DisplayDialog(
+                        "Warning",
+                        $"Avatarは保存されましたが、検証に失敗しました。\n" +
+                        $"AssetPath: {assetPath}\n\n" +
+                        $"保存されたAvatarが正しく機能しない可能性があります。",
+                        "OK");
+
+                    Debug.LogWarning($"[SaveRuntimeAvatar] Avatar saved but validation failed: {assetPath}");
                 }
             }
             catch (System.Exception e)
             {
-                EditorUtility.DisplayDialog("Error", $"保存中にエラーが発生しました:\n{e.Message}", "OK");
-                Debug.LogError($"[SaveRuntimeAvatar] {e}");
+                EditorUtility.DisplayDialog(
+                    "Error",
+                    $"Avatar保存中にエラーが発生しました:\n{e.Message}\n\n" +
+                    $"Runtime生成されたAvatarは直接アセット化できない場合があります。\n" +
+                    $"代わりにGameObject全体をPrefabとして保存することを検討してください。",
+                    "OK");
+                Debug.LogError($"[SaveRuntimeAvatar] Error saving avatar: {e}");
             }
-
-            AssetDatabase.Refresh();
         }
     }
 }
