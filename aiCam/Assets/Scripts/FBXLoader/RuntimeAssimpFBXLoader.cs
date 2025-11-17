@@ -87,7 +87,7 @@ namespace AICam.FBXLoader
         /// <summary>
         /// AssimpのMatrix4x4からUnityのTransformに変換
         /// </summary>
-        private void SetTransformFromAssimpMatrix(Transform transform, Matrix4x4 assimpMatrix)
+        private void SetTransformFromAssimpMatrix(Transform transform, Assimp.Matrix4x4 assimpMatrix)
         {
             // Assimpの行列を分解
             Assimp.Vector3D scale;
