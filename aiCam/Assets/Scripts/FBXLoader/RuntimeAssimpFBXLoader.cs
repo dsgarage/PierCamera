@@ -41,9 +41,9 @@ namespace AICam.FBXLoader
 
             UnityEngine.Debug.Log($"{LOG_PREFIX} Loading FBX: {fbxPath}");
 
-            // Assimpでシーンをロード
+            // Assimpでシーンをロード（三角形化を有効化）
             AssimpContext importer = new AssimpContext();
-            Scene scene = importer.ImportFile(fbxPath, PostProcessSteps.None);
+            Scene scene = importer.ImportFile(fbxPath, PostProcessSteps.Triangulate);
 
             if (scene == null || scene.RootNode == null)
             {
@@ -611,76 +611,40 @@ namespace AICam.FBXLoader
                 unityMesh.RecalculateNormals();
             }
 
-            // BoneWeightsを設定
+            // 【デバッグ版】BoneWeightsは静的メッシュでは使用しないのでコメントアウト
+            // （スキニング実装時に復活させる）
+            /*
             if (combinedBoneWeights.Count > 0)
             {
                 unityMesh.boneWeights = combinedBoneWeights.ToArray();
                 UnityEngine.Debug.Log($"{LOG_PREFIX}   BoneWeights assigned: {combinedBoneWeights.Count}");
             }
+            */
 
             // バウンディングボックスを再計算
             unityMesh.RecalculateBounds();
 
-            // STEP 7: SkinnedMeshRendererの完全セットアップ（bones[], rootBone, bindposes）
-            SkinnedMeshRenderer renderer = nodeTransform.gameObject.AddComponent<SkinnedMeshRenderer>();
-            renderer.sharedMesh = unityMesh;
+            // 【デバッグ版】MeshFilter + MeshRenderer（スキニング無し・静的メッシュ）
+            UnityEngine.Debug.Log($"{LOG_PREFIX} === Creating Static Mesh (MeshFilter + MeshRenderer) ===");
 
-            // ボーン情報を収集（最初のメッシュからのみ - 簡易実装）
-            int bonesCount = 0;
-            int bindposesCount = 0;
+            // MeshFilterを追加
+            MeshFilter meshFilter = nodeTransform.gameObject.AddComponent<MeshFilter>();
+            meshFilter.sharedMesh = unityMesh;
 
-            if (node.MeshCount > 0)
-            {
-                int assimpMeshIndex = node.MeshIndices[0];
-                Assimp.Mesh assimpMesh = currentScene.Meshes[assimpMeshIndex];
-
-                if (assimpMesh.HasBones)
-                {
-                    // ボーン名からTransformへのマッピング
-                    List<Transform> boneTransforms = new List<Transform>();
-                    for (int i = 0; i < assimpMesh.BoneCount; i++)
-                    {
-                        Assimp.Bone bone = assimpMesh.Bones[i];
-                        if (nodeNameToTransform.TryGetValue(bone.Name, out Transform boneTransform))
-                        {
-                            boneTransforms.Add(boneTransform);
-                        }
-                        else
-                        {
-                            UnityEngine.Debug.LogWarning($"{LOG_PREFIX} [STEP 7] Bone not found in hierarchy: {bone.Name}");
-                            boneTransforms.Add(null); // nullは後でidentity matrixに
-                        }
-                    }
-
-                    // STEP 6: bindpose計算
-                    Transform[] bones = boneTransforms.ToArray();
-                    UnityEngine.Matrix4x4[] bindposes = CalculateBindPoses(bones, cachedRootBone);
-
-                    // STEP 7: SkinnedMeshRendererにセット
-                    renderer.bones = bones;
-                    renderer.rootBone = cachedRootBone;
-                    unityMesh.bindposes = bindposes;
-
-                    bonesCount = bones.Length;
-                    bindposesCount = bindposes.Length;
-                }
-            }
+            // MeshRendererを追加
+            MeshRenderer meshRenderer = nodeTransform.gameObject.AddComponent<MeshRenderer>();
 
             // lilToonシェーダーを使用したマテリアルを作成
             UnityEngine.Material material = CreateLilToonMaterial(node.Name);
-            renderer.sharedMaterial = material;
+            meshRenderer.sharedMaterial = material;
 
-            // SkinnedMeshRenderer情報をログ出力
-            UnityEngine.Debug.Log($"{LOG_PREFIX} === SkinnedMeshRenderer: {nodeTransform.name} ===");
+            // メッシュ情報をログ出力
+            UnityEngine.Debug.Log($"{LOG_PREFIX} === Static Mesh: {nodeTransform.name} ===");
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Mesh: {unityMesh.name}");
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Vertices: {unityMesh.vertexCount}");
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Triangles: {unityMesh.triangles.Length / 3}");
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Normals: {(unityMesh.normals != null && unityMesh.normals.Length > 0 ? "Yes" : "No")} ({unityMesh.normals?.Length ?? 0})");
             UnityEngine.Debug.Log($"{LOG_PREFIX}   UVs: {(unityMesh.uv != null && unityMesh.uv.Length > 0 ? "Yes" : "No")} ({unityMesh.uv?.Length ?? 0})");
-            UnityEngine.Debug.Log($"{LOG_PREFIX}   BoneWeights: {(unityMesh.boneWeights != null && unityMesh.boneWeights.Length > 0 ? "Yes" : "No")} ({unityMesh.boneWeights?.Length ?? 0})");
-            UnityEngine.Debug.Log($"{LOG_PREFIX}   Bones[]: {bonesCount}");
-            UnityEngine.Debug.Log($"{LOG_PREFIX}   BindPoses[]: {bindposesCount}");
-            UnityEngine.Debug.Log($"{LOG_PREFIX}   RootBone: {(renderer.rootBone != null ? renderer.rootBone.name : "NULL")}");
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Material: {material.name} (Shader: {material.shader.name})");
         }
 
