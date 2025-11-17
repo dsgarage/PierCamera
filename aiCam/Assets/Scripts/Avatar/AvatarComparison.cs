@@ -5,16 +5,25 @@ using UnityEngine;
 namespace dsgarage.Avatar
 {
     /// <summary>
-    /// EditorインポートされたAvatarとRuntime生成Avatarの詳細比較ツール
+    /// Avatar詳細比較ツール
+    /// - Avatar直接指定: 保存済みAvatarアセット同士の比較
+    /// - Animator経由: シーン内のAnimator経由での比較（ボーン回転・T-Pose分析）
     /// </summary>
     public class AvatarComparison : MonoBehaviour
     {
-        [Header("比較対象")]
-        [Tooltip("Unity Editorで正しくインポートされたkyoko Avatar")]
-        [SerializeField] private UnityEngine.Avatar editorKyokoAvatar;
+        [Header("比較対象 - Avatar直接指定")]
+        [Tooltip("比較元Avatar（Editorインポート or 保存済みRuntime Avatar）")]
+        [SerializeField] private UnityEngine.Avatar referenceAvatar;
 
-        [Tooltip("Runtime生成されたAvatarを持つAnimator")]
-        [SerializeField] private Animator runtimeGeneratedAnimator;
+        [Tooltip("比較先Avatar（Runtime生成 or 保存済みAvatar）")]
+        [SerializeField] private UnityEngine.Avatar targetAvatar;
+
+        [Header("比較対象 - Animator経由（オプション）")]
+        [Tooltip("比較元Animator（Avatarが割り当てられていない場合に使用）")]
+        [SerializeField] private Animator referenceAnimator;
+
+        [Tooltip("比較先Animator（Avatarが割り当てられていない場合に使用）")]
+        [SerializeField] private Animator targetAnimator;
 
         [Header("出力設定")]
         [SerializeField] private bool outputToFile = true;
@@ -32,60 +41,82 @@ namespace dsgarage.Avatar
             report.AppendLine("═══════════════════════════════════════════════════════════");
             report.AppendLine();
 
-            if (editorKyokoAvatar == null)
+            // Avatar参照を取得（直接 or Animator経由）
+            UnityEngine.Avatar refAvatar = referenceAvatar;
+            if (refAvatar == null && referenceAnimator != null)
             {
-                report.AppendLine("❌ ERROR: editorKyokoAvatar is not assigned");
+                refAvatar = referenceAnimator.avatar;
+            }
+
+            UnityEngine.Avatar tgtAvatar = targetAvatar;
+            if (tgtAvatar == null && targetAnimator != null)
+            {
+                tgtAvatar = targetAnimator.avatar;
+            }
+
+            // 検証
+            if (refAvatar == null)
+            {
+                report.AppendLine("❌ ERROR: Reference Avatar is not assigned");
+                report.AppendLine("   referenceAvatar または referenceAnimator を設定してください");
                 OutputReport();
                 return;
             }
 
-            if (runtimeGeneratedAnimator == null || runtimeGeneratedAnimator.avatar == null)
+            if (tgtAvatar == null)
             {
-                report.AppendLine("❌ ERROR: runtimeGeneratedAnimator or its avatar is not assigned");
+                report.AppendLine("❌ ERROR: Target Avatar is not assigned");
+                report.AppendLine("   targetAvatar または targetAnimator を設定してください");
                 OutputReport();
                 return;
             }
-
-            var runtimeAvatar = runtimeGeneratedAnimator.avatar;
 
             // 基本情報
-            CompareBasicInfo(editorKyokoAvatar, runtimeAvatar);
+            CompareBasicInfo(refAvatar, tgtAvatar);
 
-            // ボーンマッピング比較
-            CompareBoneMappings();
-
-            // ボーン回転比較（最重要）
-            CompareBoneRotations();
-
-            // T-Pose アライメント比較
-            CompareTPoseAlignment();
+            // ボーンマッピング比較（Animatorが必要）
+            if (referenceAnimator != null && targetAnimator != null)
+            {
+                CompareBoneMappings();
+                CompareBoneRotations();
+                CompareTPoseAlignment();
+            }
+            else
+            {
+                report.AppendLine("─────────────────────────────────────────────────────────");
+                report.AppendLine("2-4. Bone Rotations / T-Pose Comparison");
+                report.AppendLine("─────────────────────────────────────────────────────────");
+                report.AppendLine("⚠️  Animatorが設定されていないため、ボーン回転比較はスキップされました。");
+                report.AppendLine("   詳細な回転比較を行うには、referenceAnimator と targetAnimator を設定してください。");
+                report.AppendLine();
+            }
 
             OutputReport();
         }
 
-        private void CompareBasicInfo(UnityEngine.Avatar editorAvatar, UnityEngine.Avatar runtimeAvatar)
+        private void CompareBasicInfo(UnityEngine.Avatar refAvatar, UnityEngine.Avatar tgtAvatar)
         {
             report.AppendLine("─────────────────────────────────────────────────────────");
             report.AppendLine("1. Basic Information");
             report.AppendLine("─────────────────────────────────────────────────────────");
-            report.AppendLine($"Editor Avatar:");
-            report.AppendLine($"  Name: {editorAvatar.name}");
-            report.AppendLine($"  IsValid: {editorAvatar.isValid}");
-            report.AppendLine($"  IsHuman: {editorAvatar.isHuman}");
+            report.AppendLine($"Reference Avatar:");
+            report.AppendLine($"  Name: {refAvatar.name}");
+            report.AppendLine($"  IsValid: {refAvatar.isValid}");
+            report.AppendLine($"  IsHuman: {refAvatar.isHuman}");
             report.AppendLine();
-            report.AppendLine($"Runtime Avatar:");
-            report.AppendLine($"  Name: {runtimeAvatar.name}");
-            report.AppendLine($"  IsValid: {runtimeAvatar.isValid}");
-            report.AppendLine($"  IsHuman: {runtimeAvatar.isHuman}");
+            report.AppendLine($"Target Avatar:");
+            report.AppendLine($"  Name: {tgtAvatar.name}");
+            report.AppendLine($"  IsValid: {tgtAvatar.isValid}");
+            report.AppendLine($"  IsHuman: {tgtAvatar.isHuman}");
             report.AppendLine();
 
-            if (!editorAvatar.isValid || !editorAvatar.isHuman)
+            if (!refAvatar.isValid || !refAvatar.isHuman)
             {
-                report.AppendLine("⚠️  WARNING: Editor Avatar is not valid or not human!");
+                report.AppendLine("⚠️  WARNING: Reference Avatar is not valid or not human!");
             }
-            if (!runtimeAvatar.isValid || !runtimeAvatar.isHuman)
+            if (!tgtAvatar.isValid || !tgtAvatar.isHuman)
             {
-                report.AppendLine("⚠️  WARNING: Runtime Avatar is not valid or not human!");
+                report.AppendLine("⚠️  WARNING: Target Avatar is not valid or not human!");
             }
             report.AppendLine();
         }
@@ -96,54 +127,51 @@ namespace dsgarage.Avatar
             report.AppendLine("2. Bone Mappings Comparison");
             report.AppendLine("─────────────────────────────────────────────────────────");
 
-            // EditorのAnimatorを探す
-            var editorAnimator = FindEditorAnimator();
-            if (editorAnimator == null)
+            if (referenceAnimator == null || targetAnimator == null)
             {
-                report.AppendLine("⚠️  Could not find Editor Animator in scene");
-                report.AppendLine("   Please ensure kyoko model with Editor Avatar is in the scene");
+                report.AppendLine("⚠️  Animators not set, skipping bone mapping comparison");
                 report.AppendLine();
                 return;
             }
 
             int differenceCount = 0;
-            int missingInRuntime = 0;
-            int missingInEditor = 0;
+            int missingInTarget = 0;
+            int missingInReference = 0;
 
             foreach (HumanBodyBones bone in System.Enum.GetValues(typeof(HumanBodyBones)))
             {
                 if (bone == HumanBodyBones.LastBone) continue;
 
-                var editorBone = editorAnimator.GetBoneTransform(bone);
-                var runtimeBone = runtimeGeneratedAnimator.GetBoneTransform(bone);
+                var refBone = referenceAnimator.GetBoneTransform(bone);
+                var tgtBone = targetAnimator.GetBoneTransform(bone);
 
-                if (editorBone != null && runtimeBone != null)
+                if (refBone != null && tgtBone != null)
                 {
-                    if (editorBone.name != runtimeBone.name)
+                    if (refBone.name != tgtBone.name)
                     {
                         report.AppendLine($"⚠️  {bone}:");
-                        report.AppendLine($"     Editor:  '{editorBone.name}'");
-                        report.AppendLine($"     Runtime: '{runtimeBone.name}'");
+                        report.AppendLine($"     Reference: '{refBone.name}'");
+                        report.AppendLine($"     Target:    '{tgtBone.name}'");
                         differenceCount++;
                     }
                 }
-                else if (editorBone != null && runtimeBone == null)
+                else if (refBone != null && tgtBone == null)
                 {
-                    report.AppendLine($"❌ {bone}: Missing in Runtime (Editor has '{editorBone.name}')");
-                    missingInRuntime++;
+                    report.AppendLine($"❌ {bone}: Missing in Target (Reference has '{refBone.name}')");
+                    missingInTarget++;
                 }
-                else if (editorBone == null && runtimeBone != null)
+                else if (refBone == null && tgtBone != null)
                 {
-                    report.AppendLine($"➕ {bone}: Missing in Editor (Runtime has '{runtimeBone.name}')");
-                    missingInEditor++;
+                    report.AppendLine($"➕ {bone}: Missing in Reference (Target has '{tgtBone.name}')");
+                    missingInReference++;
                 }
             }
 
             report.AppendLine();
             report.AppendLine($"Summary:");
             report.AppendLine($"  Name differences: {differenceCount}");
-            report.AppendLine($"  Missing in Runtime: {missingInRuntime}");
-            report.AppendLine($"  Missing in Editor: {missingInEditor}");
+            report.AppendLine($"  Missing in Target: {missingInTarget}");
+            report.AppendLine($"  Missing in Reference: {missingInReference}");
             report.AppendLine();
         }
 
@@ -153,10 +181,9 @@ namespace dsgarage.Avatar
             report.AppendLine("3. Bone Rotations Comparison (CRITICAL)");
             report.AppendLine("─────────────────────────────────────────────────────────");
 
-            var editorAnimator = FindEditorAnimator();
-            if (editorAnimator == null)
+            if (referenceAnimator == null || targetAnimator == null)
             {
-                report.AppendLine("⚠️  Could not find Editor Animator");
+                report.AppendLine("⚠️  Animators not set, skipping rotation comparison");
                 report.AppendLine();
                 return;
             }
@@ -185,20 +212,20 @@ namespace dsgarage.Avatar
 
             foreach (var bone in criticalBones)
             {
-                var editorBone = editorAnimator.GetBoneTransform(bone);
-                var runtimeBone = runtimeGeneratedAnimator.GetBoneTransform(bone);
+                var refBone = referenceAnimator.GetBoneTransform(bone);
+                var tgtBone = targetAnimator.GetBoneTransform(bone);
 
-                if (editorBone != null && runtimeBone != null)
+                if (refBone != null && tgtBone != null)
                 {
                     // LocalRotation比較
-                    float localAngleDiff = Quaternion.Angle(editorBone.localRotation, runtimeBone.localRotation);
+                    float localAngleDiff = Quaternion.Angle(refBone.localRotation, tgtBone.localRotation);
 
                     // WorldRotation比較
-                    float worldAngleDiff = Quaternion.Angle(editorBone.rotation, runtimeBone.rotation);
+                    float worldAngleDiff = Quaternion.Angle(refBone.rotation, tgtBone.rotation);
 
-                    report.AppendLine($"{bone} ({editorBone.name}):");
-                    report.AppendLine($"  Editor  LocalRot: {editorBone.localRotation} (Euler: {editorBone.localEulerAngles})");
-                    report.AppendLine($"  Runtime LocalRot: {runtimeBone.localRotation} (Euler: {runtimeBone.localEulerAngles})");
+                    report.AppendLine($"{bone} ({refBone.name}):");
+                    report.AppendLine($"  Reference LocalRot: {refBone.localRotation} (Euler: {refBone.localEulerAngles})");
+                    report.AppendLine($"  Target    LocalRot: {tgtBone.localRotation} (Euler: {tgtBone.localEulerAngles})");
                     report.AppendLine($"  Local Angle Diff: {localAngleDiff:F2}°");
                     report.AppendLine($"  World Angle Diff: {worldAngleDiff:F2}°");
 
@@ -238,128 +265,113 @@ namespace dsgarage.Avatar
             report.AppendLine("4. T-Pose Alignment Analysis");
             report.AppendLine("─────────────────────────────────────────────────────────");
 
-            var editorAnimator = FindEditorAnimator();
-            if (editorAnimator == null)
+            if (referenceAnimator == null || targetAnimator == null)
             {
-                report.AppendLine("⚠️  Could not find Editor Animator");
+                report.AppendLine("⚠️  Animators not set, skipping T-pose comparison");
                 report.AppendLine();
                 return;
             }
 
             // Hipsを基準にT-Poseチェック
-            var editorHips = editorAnimator.GetBoneTransform(HumanBodyBones.Hips);
-            var runtimeHips = runtimeGeneratedAnimator.GetBoneTransform(HumanBodyBones.Hips);
+            var refHips = referenceAnimator.GetBoneTransform(HumanBodyBones.Hips);
+            var tgtHips = targetAnimator.GetBoneTransform(HumanBodyBones.Hips);
 
-            if (editorHips == null || runtimeHips == null)
+            if (refHips == null || tgtHips == null)
             {
                 report.AppendLine("⚠️  Hips bone not found");
                 report.AppendLine();
                 return;
             }
 
-            var editorSpine = editorAnimator.GetBoneTransform(HumanBodyBones.Spine);
-            var runtimeSpine = runtimeGeneratedAnimator.GetBoneTransform(HumanBodyBones.Spine);
+            var refSpine = referenceAnimator.GetBoneTransform(HumanBodyBones.Spine);
+            var tgtSpine = targetAnimator.GetBoneTransform(HumanBodyBones.Spine);
 
-            // editorUpをスコープ外で定義（CheckArmTPose/CheckLegTPoseで使用）
-            Vector3 editorUp = Vector3.up; // デフォルト値
+            // refUpをスコープ外で定義（CheckArmTPose/CheckLegTPoseで使用）
+            Vector3 refUp = Vector3.up; // デフォルト値
 
-            if (editorSpine != null && runtimeSpine != null)
+            if (refSpine != null && tgtSpine != null)
             {
-                editorUp = (editorSpine.position - editorHips.position).normalized;
-                Vector3 runtimeUp = (runtimeSpine.position - runtimeHips.position).normalized;
+                refUp = (refSpine.position - refHips.position).normalized;
+                Vector3 tgtUp = (tgtSpine.position - tgtHips.position).normalized;
 
                 report.AppendLine("Spine Direction (from Hips):");
-                report.AppendLine($"  Editor:  {editorUp}");
-                report.AppendLine($"  Runtime: {runtimeUp}");
-                report.AppendLine($"  Angle Diff: {Vector3.Angle(editorUp, runtimeUp):F2}°");
+                report.AppendLine($"  Reference: {refUp}");
+                report.AppendLine($"  Target:    {tgtUp}");
+                report.AppendLine($"  Angle Diff: {Vector3.Angle(refUp, tgtUp):F2}°");
                 report.AppendLine();
             }
 
             // 腕のT-Poseチェック
             CheckArmTPose("Left",
-                editorAnimator.GetBoneTransform(HumanBodyBones.LeftUpperArm),
-                runtimeGeneratedAnimator.GetBoneTransform(HumanBodyBones.LeftUpperArm),
-                editorHips, runtimeHips, editorUp);
+                referenceAnimator.GetBoneTransform(HumanBodyBones.LeftUpperArm),
+                targetAnimator.GetBoneTransform(HumanBodyBones.LeftUpperArm),
+                refHips, tgtHips, refUp);
 
             CheckArmTPose("Right",
-                editorAnimator.GetBoneTransform(HumanBodyBones.RightUpperArm),
-                runtimeGeneratedAnimator.GetBoneTransform(HumanBodyBones.RightUpperArm),
-                editorHips, runtimeHips, editorUp);
+                referenceAnimator.GetBoneTransform(HumanBodyBones.RightUpperArm),
+                targetAnimator.GetBoneTransform(HumanBodyBones.RightUpperArm),
+                refHips, tgtHips, refUp);
 
             // 脚のT-Poseチェック
             CheckLegTPose("Left",
-                editorAnimator.GetBoneTransform(HumanBodyBones.LeftUpperLeg),
-                runtimeGeneratedAnimator.GetBoneTransform(HumanBodyBones.LeftUpperLeg),
-                editorHips, runtimeHips, editorUp);
+                referenceAnimator.GetBoneTransform(HumanBodyBones.LeftUpperLeg),
+                targetAnimator.GetBoneTransform(HumanBodyBones.LeftUpperLeg),
+                refHips, tgtHips, refUp);
 
             CheckLegTPose("Right",
-                editorAnimator.GetBoneTransform(HumanBodyBones.RightUpperLeg),
-                runtimeGeneratedAnimator.GetBoneTransform(HumanBodyBones.RightUpperLeg),
-                editorHips, runtimeHips, editorUp);
+                referenceAnimator.GetBoneTransform(HumanBodyBones.RightUpperLeg),
+                targetAnimator.GetBoneTransform(HumanBodyBones.RightUpperLeg),
+                refHips, tgtHips, refUp);
 
             report.AppendLine();
         }
 
-        private void CheckArmTPose(string side, Transform editorArm, Transform runtimeArm,
-            Transform editorHips, Transform runtimeHips, Vector3 editorUp)
+        private void CheckArmTPose(string side, Transform refArm, Transform tgtArm,
+            Transform refHips, Transform tgtHips, Vector3 refUp)
         {
-            if (editorArm == null || runtimeArm == null) return;
+            if (refArm == null || tgtArm == null) return;
 
-            Vector3 editorDir = (editorArm.position - editorHips.position).normalized;
-            Vector3 runtimeDir = (runtimeArm.position - runtimeHips.position).normalized;
+            Vector3 refDir = (refArm.position - refHips.position).normalized;
+            Vector3 tgtDir = (tgtArm.position - tgtHips.position).normalized;
 
-            float editorAngle = Vector3.Angle(editorUp, editorDir);
-            float runtimeAngle = Vector3.Angle(editorUp, runtimeDir);
+            float refAngle = Vector3.Angle(refUp, refDir);
+            float tgtAngle = Vector3.Angle(refUp, tgtDir);
 
             report.AppendLine($"{side} Upper Arm (T-Pose should be ~90° from spine):");
-            report.AppendLine($"  Editor:  {editorAngle:F1}° from spine up");
-            report.AppendLine($"  Runtime: {runtimeAngle:F1}° from spine up");
-            report.AppendLine($"  Diff: {Mathf.Abs(editorAngle - runtimeAngle):F1}°");
+            report.AppendLine($"  Reference: {refAngle:F1}° from spine up");
+            report.AppendLine($"  Target:    {tgtAngle:F1}° from spine up");
+            report.AppendLine($"  Diff: {Mathf.Abs(refAngle - tgtAngle):F1}°");
 
-            if (Mathf.Abs(editorAngle - 90f) > 15f)
-                report.AppendLine($"  ⚠️  Editor arm off T-Pose");
-            if (Mathf.Abs(runtimeAngle - 90f) > 15f)
-                report.AppendLine($"  ⚠️  Runtime arm off T-Pose by {Mathf.Abs(runtimeAngle - 90f):F1}°");
+            if (Mathf.Abs(refAngle - 90f) > 15f)
+                report.AppendLine($"  ⚠️  Reference arm off T-Pose");
+            if (Mathf.Abs(tgtAngle - 90f) > 15f)
+                report.AppendLine($"  ⚠️  Target arm off T-Pose by {Mathf.Abs(tgtAngle - 90f):F1}°");
 
             report.AppendLine();
         }
 
-        private void CheckLegTPose(string side, Transform editorLeg, Transform runtimeLeg,
-            Transform editorHips, Transform runtimeHips, Vector3 editorUp)
+        private void CheckLegTPose(string side, Transform refLeg, Transform tgtLeg,
+            Transform refHips, Transform tgtHips, Vector3 refUp)
         {
-            if (editorLeg == null || runtimeLeg == null) return;
+            if (refLeg == null || tgtLeg == null) return;
 
-            Vector3 editorDir = (editorLeg.position - editorHips.position).normalized;
-            Vector3 runtimeDir = (runtimeLeg.position - runtimeHips.position).normalized;
+            Vector3 refDir = (refLeg.position - refHips.position).normalized;
+            Vector3 tgtDir = (tgtLeg.position - tgtHips.position).normalized;
 
-            float editorAngle = Vector3.Angle(-editorUp, editorDir);
-            float runtimeAngle = Vector3.Angle(-editorUp, runtimeDir);
+            float refAngle = Vector3.Angle(-refUp, refDir);
+            float tgtAngle = Vector3.Angle(-refUp, tgtDir);
 
             report.AppendLine($"{side} Upper Leg (T-Pose should be ~0° from spine down):");
-            report.AppendLine($"  Editor:  {editorAngle:F1}° from spine down");
-            report.AppendLine($"  Runtime: {runtimeAngle:F1}° from spine down");
-            report.AppendLine($"  Diff: {Mathf.Abs(editorAngle - runtimeAngle):F1}°");
+            report.AppendLine($"  Reference: {refAngle:F1}° from spine down");
+            report.AppendLine($"  Target:    {tgtAngle:F1}° from spine down");
+            report.AppendLine($"  Diff: {Mathf.Abs(refAngle - tgtAngle):F1}°");
 
-            if (editorAngle > 20f)
-                report.AppendLine($"  ⚠️  Editor leg off T-Pose");
-            if (runtimeAngle > 20f)
-                report.AppendLine($"  ⚠️  Runtime leg off T-Pose by {runtimeAngle:F1}°");
+            if (refAngle > 20f)
+                report.AppendLine($"  ⚠️  Reference leg off T-Pose");
+            if (tgtAngle > 20f)
+                report.AppendLine($"  ⚠️  Target leg off T-Pose by {tgtAngle:F1}°");
 
             report.AppendLine();
-        }
-
-        private Animator FindEditorAnimator()
-        {
-            // Scene内のすべてのAnimatorを探す
-            var allAnimators = FindObjectsOfType<Animator>();
-            foreach (var anim in allAnimators)
-            {
-                if (anim.avatar == editorKyokoAvatar)
-                {
-                    return anim;
-                }
-            }
-            return null;
         }
 
         private void OutputReport()
