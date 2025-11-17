@@ -442,9 +442,31 @@ namespace AICam.AvatarBuilder
         // ───────────────────────────────────────────────────────────
         private static SkeletonBone[] GenerateSkeletonBones(GameObject root, Dictionary<HumanBodyBones, Transform> boneMap)
         {
+            // boneMapの逆引き用
+            var transformToBone = new Dictionary<Transform, HumanBodyBones>();
+            foreach (var kvp in boneMap)
+            {
+                transformToBone[kvp.Value] = kvp.Key;
+            }
+
             var list = new List<SkeletonBone>();
             void Rec(Transform t)
             {
+                // Humanoidボーンの場合は詳細ログ出力
+                if (transformToBone.TryGetValue(t, out var humanBone))
+                {
+                    Debug.Log($"[SkeletonBone] {humanBone} ({t.name}):");
+                    Debug.Log($"  LocalPos: {t.localPosition}");
+                    Debug.Log($"  LocalRot: {t.localRotation} (Euler: {t.localEulerAngles})");
+                    Debug.Log($"  WorldRot: {t.rotation} (Euler: {t.eulerAngles})");
+
+                    // 親の情報もログ
+                    if (t.parent != null)
+                    {
+                        Debug.Log($"  Parent: {t.parent.name} (Rot: {t.parent.localRotation})");
+                    }
+                }
+
                 list.Add(new SkeletonBone
                 {
                     name     = t.name,
@@ -455,6 +477,8 @@ namespace AICam.AvatarBuilder
                 foreach (Transform c in t) Rec(c);
             }
             Rec(root.transform);
+
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Generated {list.Count} SkeletonBones");
             return list.ToArray();
         }
     }
