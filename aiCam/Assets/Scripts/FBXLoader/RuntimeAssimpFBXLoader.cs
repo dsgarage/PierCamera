@@ -560,8 +560,8 @@ namespace AICam.FBXLoader
                             if (vertexIndex >= boneWeights.Length)
                                 continue;
 
-                            // BoneWeightに追加（最大4つまで）
-                            ref UnityEngine.BoneWeight bw = ref boneWeights[vertexIndex];
+                            // BoneWeightに追加（最大4つまで）- async methodsではrefが使えないので直接アクセス
+                            UnityEngine.BoneWeight bw = boneWeights[vertexIndex];
 
                             if (bw.weight0 == 0f)
                             {
@@ -583,6 +583,9 @@ namespace AICam.FBXLoader
                                 bw.boneIndex3 = boneIndex;
                                 bw.weight3 = weight;
                             }
+
+                            // 変更を配列に書き戻す
+                            boneWeights[vertexIndex] = bw;
                         }
                     }
 

@@ -1,6 +1,7 @@
 using UnityEngine;
 using AICam.FBXLoader;
 using AICam.AvatarBuilder;
+using Cysharp.Threading.Tasks;
 
 namespace AICam.FBXLoader
 {
@@ -32,7 +33,7 @@ namespace AICam.FBXLoader
         }
 
         [ContextMenu("Load FBX")]
-        public void LoadFBX()
+        public async void LoadFBX()
         {
             if (string.IsNullOrEmpty(fbxFilePath))
             {
@@ -55,9 +56,9 @@ namespace AICam.FBXLoader
                     loadedModel = null;
                 }
 
-                // Assimpでボーン階層をロード
+                // Assimpでボーン階層をロード（非同期）
                 var loader = new RuntimeAssimpFBXLoader();
-                loadedModel = loader.LoadBoneHierarchy(fbxFilePath);
+                loadedModel = await loader.LoadBoneHierarchy(fbxFilePath);
 
                 if (loadedModel == null)
                 {
