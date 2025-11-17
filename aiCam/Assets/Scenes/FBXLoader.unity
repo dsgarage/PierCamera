@@ -409,6 +409,8 @@ MonoBehaviour:
   modelScale: {x: 1, y: 1, z: 1}
   animatorController: {fileID: 9100000, guid: 8d5a0e0d58f4e4176a844a1a03976c19, type: 2}
   initialStateName: Idle
+  useRuntimeHumanoidAvatarBuilder: 1
+  humanoidAvatarMapper: {fileID: 0}
 --- !u!114 &871856094
 MonoBehaviour:
   m_ObjectHideFlags: 0
