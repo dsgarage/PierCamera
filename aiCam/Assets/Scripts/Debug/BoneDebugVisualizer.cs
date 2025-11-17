@@ -22,6 +22,10 @@ namespace AICam.DebugTools
         [SerializeField] private float boneLineWidth = 2f;
         [SerializeField] private float boneSphereRadius = 0.02f;
 
+        [Header("Game View表示")]
+        [SerializeField] private bool showInGameView = true;
+        [SerializeField] private Material lineMaterial;
+
         [Header("対象")]
         [SerializeField] private Transform rootBone;
         [SerializeField] private Animator animator;
@@ -43,24 +47,51 @@ namespace AICam.DebugTools
 
         private void Update()
         {
-            // Game viewで骨格を描画（Debug.DrawLine使用）
-            if (!showBoneHierarchy)
-                return;
-
-            if (rootBone == null)
-                return;
-
             // Humanoidボーンマップを構築
             if (showHumanoidBones && animator != null && animator.avatar != null && animator.avatar.isHuman)
             {
                 BuildHumanoidBoneMap();
             }
-
-            // ボーン階層をDebug.DrawLineで描画
-            DrawBoneRuntimeRecursive(rootBone);
         }
 
-        private void DrawBoneRuntimeRecursive(Transform bone)
+        private void OnRenderObject()
+        {
+            // Game viewで骨格を描画（GL使用）
+            if (!showInGameView || !showBoneHierarchy)
+                return;
+
+            if (rootBone == null)
+                return;
+
+            // マテリアルの準備
+            if (lineMaterial == null)
+            {
+                // デフォルトマテリアル（Unlit）を作成
+                Shader shader = Shader.Find("Hidden/Internal-Colored");
+                lineMaterial = new Material(shader);
+                lineMaterial.hideFlags = HideFlags.HideAndDontSave;
+                lineMaterial.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                lineMaterial.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                lineMaterial.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Off);
+                lineMaterial.SetInt("_ZWrite", 0);
+            }
+
+            // マテリアルを適用
+            lineMaterial.SetPass(0);
+
+            // GL描画開始
+            GL.PushMatrix();
+            GL.MultMatrix(transform.localToWorldMatrix);
+            GL.Begin(GL.LINES);
+
+            // ボーン階層を描画
+            DrawBoneGLRecursive(rootBone);
+
+            GL.End();
+            GL.PopMatrix();
+        }
+
+        private void DrawBoneGLRecursive(Transform bone)
         {
             if (bone == null)
                 return;
@@ -75,16 +106,18 @@ namespace AICam.DebugTools
             else if (isHumanoidBone && showHumanoidBones)
                 boneColor = humanoidBoneColor;
 
-            // 親への線を描画（Game view用）
-            if (bone.parent != null && showBoneHierarchy)
+            // 親への線を描画
+            if (bone.parent != null)
             {
-                Debug.DrawLine(bone.position, bone.parent.position, boneColor);
+                GL.Color(boneColor);
+                GL.Vertex3(bone.position.x, bone.position.y, bone.position.z);
+                GL.Vertex3(bone.parent.position.x, bone.parent.position.y, bone.parent.position.z);
             }
 
             // 子ボーンへ再帰
             foreach (Transform child in bone)
             {
-                DrawBoneRuntimeRecursive(child);
+                DrawBoneGLRecursive(child);
             }
         }
 
