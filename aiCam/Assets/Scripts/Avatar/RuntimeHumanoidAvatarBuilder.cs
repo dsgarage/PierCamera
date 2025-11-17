@@ -457,11 +457,13 @@ namespace AICam.AvatarBuilder
         /// </summary>
         private static Quaternion FixJointOrientation(Quaternion rawRotation, HumanBodyBones boneType)
         {
-            Vector3 forward = rawRotation * Vector3.forward;
-            Vector3 up = rawRotation * Vector3.up;
-
             switch (boneType)
             {
+                // Hips: Unity Humanoid標準の座標系変換 (Y-up → Z-up)
+                // Editor インポート時と同じ 90° X-axis 回転を適用
+                case HumanBodyBones.Hips:
+                    return Quaternion.Euler(90f, 0f, 0f);
+
                 // 腕系: Forward(+Z), Up(-Y)
                 case HumanBodyBones.LeftUpperArm:
                 case HumanBodyBones.RightUpperArm:
@@ -469,7 +471,11 @@ namespace AICam.AvatarBuilder
                 case HumanBodyBones.RightLowerArm:
                 case HumanBodyBones.LeftHand:
                 case HumanBodyBones.RightHand:
+                {
+                    Vector3 forward = rawRotation * Vector3.forward;
+                    Vector3 up = rawRotation * Vector3.up;
                     return Quaternion.LookRotation(forward, -up);
+                }
 
                 // 脚系: Forward(+Z), Up(+Y)
                 case HumanBodyBones.LeftUpperLeg:
@@ -480,7 +486,11 @@ namespace AICam.AvatarBuilder
                 case HumanBodyBones.RightFoot:
                 case HumanBodyBones.LeftToes:
                 case HumanBodyBones.RightToes:
+                {
+                    Vector3 forward = rawRotation * Vector3.forward;
+                    Vector3 up = rawRotation * Vector3.up;
                     return Quaternion.LookRotation(forward, up);
+                }
 
                 // 胴体・頭系: Forward(+Z), Up(+Y)
                 case HumanBodyBones.Spine:
@@ -488,9 +498,13 @@ namespace AICam.AvatarBuilder
                 case HumanBodyBones.UpperChest:
                 case HumanBodyBones.Neck:
                 case HumanBodyBones.Head:
+                {
+                    Vector3 forward = rawRotation * Vector3.forward;
+                    Vector3 up = rawRotation * Vector3.up;
                     return Quaternion.LookRotation(forward, up);
+                }
 
-                // Hipsとその他: 補正なし（元の回転を維持）
+                // その他: 補正なし（元の回転を維持）
                 default:
                     return rawRotation;
             }
