@@ -63,16 +63,10 @@ namespace AICam.AvatarBuilder
             // ⑤ T-ポーズ角度チェック
             CheckTPose(map, modelName);
 
-            // ⑤.5 ボーン変形を保存してバインドポーズ（identity）にリセット
-            var savedTransforms = SaveAndResetBoneTransforms(root);
-
-            // ⑥ Avatar 組み立て（バインドポーズで実行）
-            var avatar = BuildHumanoidAvatar(root, map, modelName);
-
-            // ⑦ ボーン変形を復元
-            RestoreBoneTransforms(savedTransforms);
-
-            return avatar;
+            // ⑥ Avatar 組み立て
+            // NOTE: ボーンをリセットせず、TriLibがロードした状態のまま使用
+            //       SkinnedMeshRenderer.bindposesに正しいバインドポーズ情報が含まれている
+            return BuildHumanoidAvatar(root, map, modelName);
         }
 
         // ───────────────────────────────────────────────────────────
@@ -444,217 +438,24 @@ namespace AICam.AvatarBuilder
         }
 
         // ───────────────────────────────────────────────────────────
-        // SkeletonBone 列生成（Joint Orientation補正付き）
+        // SkeletonBone 列生成
         // ───────────────────────────────────────────────────────────
         private static SkeletonBone[] GenerateSkeletonBones(GameObject root, Dictionary<HumanBodyBones, Transform> boneMap)
         {
-            // Transform → HumanBodyBones の逆引きマップを作成
-            var transformToBone = new Dictionary<Transform, HumanBodyBones>();
-            foreach (var kvp in boneMap)
-            {
-                if (kvp.Value != null)
-                    transformToBone[kvp.Value] = kvp.Key;
-            }
-
             var list = new List<SkeletonBone>();
             void Rec(Transform t)
             {
-                // このTransformに対応するHumanBodyBoneを取得
-                HumanBodyBones boneType = HumanBodyBones.LastBone;
-                transformToBone.TryGetValue(t, out boneType);
-
-                // Joint Orientation補正を適用
-                Quaternion correctedRotation = FixJointOrientation(t.localRotation, boneType, t.name);
-
                 list.Add(new SkeletonBone
                 {
                     name     = t.name,
                     position = t.localPosition,
-                    rotation = correctedRotation,
-                    scale    = Vector3.one  // 常にVector3.oneに正規化
+                    rotation = t.localRotation,  // TriLibの変換をそのまま使用
+                    scale    = t.localScale
                 });
                 foreach (Transform c in t) Rec(c);
             }
             Rec(root.transform);
             return list.ToArray();
-        }
-
-        // ───────────────────────────────────────────────────────────
-        // Joint Orientation 補正
-        // Unity Humanoidが要求する軸方向に補正
-        // ───────────────────────────────────────────────────────────
-        private static Quaternion FixJointOrientation(Quaternion rawRotation, HumanBodyBones boneType, string boneName)
-        {
-            // 部位ごとに必要な軸補正を適用
-            switch (boneType)
-            {
-                // ───── Spine系: Forward(+Z), Up(+Y) ─────
-                case HumanBodyBones.Hips:
-                case HumanBodyBones.Spine:
-                case HumanBodyBones.Chest:
-                case HumanBodyBones.UpperChest:
-                case HumanBodyBones.Neck:
-                case HumanBodyBones.Head:
-                    return FixSpineOrientation(rawRotation);
-
-                // ───── Arm系: Forward(+Z), Up(-Y) ─────
-                case HumanBodyBones.LeftShoulder:
-                case HumanBodyBones.LeftUpperArm:
-                case HumanBodyBones.LeftLowerArm:
-                case HumanBodyBones.RightShoulder:
-                case HumanBodyBones.RightUpperArm:
-                case HumanBodyBones.RightLowerArm:
-                    return FixArmOrientation(rawRotation);
-
-                // ───── Leg系: Forward(+Z), Up(+Y) ─────
-                case HumanBodyBones.LeftUpperLeg:
-                case HumanBodyBones.LeftLowerLeg:
-                case HumanBodyBones.RightUpperLeg:
-                case HumanBodyBones.RightLowerLeg:
-                    return FixLegOrientation(rawRotation);
-
-                // ───── Hand/Foot/Toe系: Forward(+Z), Up(+Y) ─────
-                case HumanBodyBones.LeftHand:
-                case HumanBodyBones.RightHand:
-                case HumanBodyBones.LeftFoot:
-                case HumanBodyBones.RightFoot:
-                case HumanBodyBones.LeftToes:
-                case HumanBodyBones.RightToes:
-                    return FixHandFootOrientation(rawRotation);
-
-                // ───── 指ボーン: 補正なし（親のHandに従う） ─────
-                case HumanBodyBones.LeftThumbProximal:
-                case HumanBodyBones.LeftThumbIntermediate:
-                case HumanBodyBones.LeftThumbDistal:
-                case HumanBodyBones.LeftIndexProximal:
-                case HumanBodyBones.LeftIndexIntermediate:
-                case HumanBodyBones.LeftIndexDistal:
-                case HumanBodyBones.LeftMiddleProximal:
-                case HumanBodyBones.LeftMiddleIntermediate:
-                case HumanBodyBones.LeftMiddleDistal:
-                case HumanBodyBones.LeftRingProximal:
-                case HumanBodyBones.LeftRingIntermediate:
-                case HumanBodyBones.LeftRingDistal:
-                case HumanBodyBones.LeftLittleProximal:
-                case HumanBodyBones.LeftLittleIntermediate:
-                case HumanBodyBones.LeftLittleDistal:
-                case HumanBodyBones.RightThumbProximal:
-                case HumanBodyBones.RightThumbIntermediate:
-                case HumanBodyBones.RightThumbDistal:
-                case HumanBodyBones.RightIndexProximal:
-                case HumanBodyBones.RightIndexIntermediate:
-                case HumanBodyBones.RightIndexDistal:
-                case HumanBodyBones.RightMiddleProximal:
-                case HumanBodyBones.RightMiddleIntermediate:
-                case HumanBodyBones.RightMiddleDistal:
-                case HumanBodyBones.RightRingProximal:
-                case HumanBodyBones.RightRingIntermediate:
-                case HumanBodyBones.RightRingDistal:
-                case HumanBodyBones.RightLittleProximal:
-                case HumanBodyBones.RightLittleIntermediate:
-                case HumanBodyBones.RightLittleDistal:
-                    // 指ボーンは補正なし
-                    return rawRotation;
-
-                // ───── その他（マップされていないボーン）: 補正なし ─────
-                default:
-                    return rawRotation;
-            }
-        }
-
-        // Spine系の補正: Forward(+Z), Up(+Y)
-        private static Quaternion FixSpineOrientation(Quaternion raw)
-        {
-            // Spine系は通常、DCCツールでも Forward=+Z, Up=+Y のため
-            // 多くの場合は補正不要だが、念のため正規化
-            return raw;
-        }
-
-        // Arm系の補正: Forward(+Z), Up(-Y)
-        private static Quaternion FixArmOrientation(Quaternion raw)
-        {
-            // 腕は Unity Humanoid で Up=-Y を要求
-            // DCCからのrawRotationでUp方向を取得し、反転させる
-            Vector3 forward = raw * Vector3.forward;
-            Vector3 up = raw * Vector3.up;
-
-            // Up方向を反転してLookRotationを再構築
-            Quaternion corrected = Quaternion.LookRotation(forward, -up);
-            return corrected;
-        }
-
-        // Leg系の補正: Forward(+Z), Up(+Y)
-        private static Quaternion FixLegOrientation(Quaternion raw)
-        {
-            // Leg系は Forward=+Z, Up=+Y（Spine系と同じ）
-            return raw;
-        }
-
-        // Hand/Foot/Toe系の補正: Forward(+Z), Up(+Y)
-        private static Quaternion FixHandFootOrientation(Quaternion raw)
-        {
-            // Hand/Foot も Forward=+Z, Up=+Y
-            return raw;
-        }
-
-        // ───────────────────────────────────────────────────────────
-        // ボーン変形の保存・リセット・復元
-        // ───────────────────────────────────────────────────────────
-        private class TransformData
-        {
-            public Transform transform;
-            public Vector3 localPosition;
-            public Quaternion localRotation;
-            public Vector3 localScale;
-        }
-
-        private static List<TransformData> SaveAndResetBoneTransforms(GameObject root)
-        {
-            var savedTransforms = new List<TransformData>();
-            var allTransforms = root.GetComponentsInChildren<Transform>();
-
-            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Saving and resetting {allTransforms.Length} bone transforms to bind pose");
-
-            foreach (var t in allTransforms)
-            {
-                // 現在の変形を保存
-                savedTransforms.Add(new TransformData
-                {
-                    transform = t,
-                    localPosition = t.localPosition,
-                    localRotation = t.localRotation,
-                    localScale = t.localScale
-                });
-
-                // rootは位置を保持、他のボーンはidentityにリセット
-                if (t != root.transform)
-                {
-                    t.localRotation = Quaternion.identity;
-                    // localPositionとlocalScaleは維持（骨格構造を保持）
-                }
-            }
-
-            Debug.Log($"[RuntimeHumanoidAvatarBuilder] All bones reset to bind pose");
-            return savedTransforms;
-        }
-
-        private static void RestoreBoneTransforms(List<TransformData> savedTransforms)
-        {
-            if (savedTransforms == null) return;
-
-            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Restoring {savedTransforms.Count} bone transforms");
-
-            foreach (var data in savedTransforms)
-            {
-                if (data.transform != null)
-                {
-                    data.transform.localPosition = data.localPosition;
-                    data.transform.localRotation = data.localRotation;
-                    data.transform.localScale = data.localScale;
-                }
-            }
-
-            Debug.Log($"[RuntimeHumanoidAvatarBuilder] All bone transforms restored");
         }
     }
 }
