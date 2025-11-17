@@ -282,18 +282,26 @@ namespace AICam.FBXLoader
                             }
                             else
                             {
-                                Debug.LogError("[RuntimeFBXLoaderBridge] ✗ Failed to create Avatar with RuntimeHumanoidAvatarBuilder");
-                                Debug.Log("[RuntimeFBXLoaderBridge] Falling back to TriLib-generated Avatar (if available)");
+                                string avatarSource = useRuntimeHumanoidAvatarBuilder ? "RuntimeHumanoidAvatarBuilder" : "TriLib";
+                                Debug.LogError($"[RuntimeFBXLoaderBridge] ✗ Failed to create valid Avatar. Source: {avatarSource}, Avatar: {(newAvatar != null ? "not null" : "null")}, IsValid: {newAvatar?.isValid}, IsHuman: {newAvatar?.isHuman}");
 
                                 // フォールバック: TriLibのAvatarを使用
-                                if (animator != null && animator.avatar != null && animator.avatar.isValid && animator.avatar.isHuman)
+                                if (!useRuntimeHumanoidAvatarBuilder && animator != null && animator.avatar != null)
                                 {
-                                    Debug.Log("[RuntimeFBXLoaderBridge] Using TriLib-generated Avatar as fallback");
+                                    // TriLib使用時にここに来ることはないはず
+                                    Debug.LogError("[RuntimeFBXLoaderBridge] Unexpected: TriLib Avatar is invalid");
+                                    loadSuccess = false;
+                                }
+                                else if (useRuntimeHumanoidAvatarBuilder && animator != null && animator.avatar != null && animator.avatar.isValid && animator.avatar.isHuman)
+                                {
+                                    Debug.Log("[RuntimeFBXLoaderBridge] Falling back to TriLib-generated Avatar");
+                                    newAvatar = animator.avatar;
                                     SetupAnimator(currentModel);
                                     loadSuccess = true;
                                 }
                                 else
                                 {
+                                    Debug.LogError("[RuntimeFBXLoaderBridge] No valid Avatar available");
                                     loadSuccess = false;
                                 }
                             }
