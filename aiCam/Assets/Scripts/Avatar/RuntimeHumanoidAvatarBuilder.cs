@@ -438,6 +438,65 @@ namespace AICam.AvatarBuilder
         }
 
         // ───────────────────────────────────────────────────────────
+        // 座標系変換: Assimp(右手系) → Unity(左手系)
+        // ───────────────────────────────────────────────────────────
+        private static Matrix4x4 ConvertAssimpToUnity(Matrix4x4 assimpMatrix)
+        {
+            // 右手系→左手系: Z軸を反転
+            var flipZ = Matrix4x4.Scale(new Vector3(1f, 1f, -1f));
+            return flipZ * assimpMatrix * flipZ;
+        }
+
+        // ───────────────────────────────────────────────────────────
+        // Joint Orientation 補正: Unity Humanoid仕様に合わせる
+        // ───────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// ボーンタイプに応じたJoint Orientation補正を適用
+        /// Unity Humanoid仕様: 基本的に Forward(+Z), Up(+Y) だが、腕はUp(-Y)
+        /// </summary>
+        private static Quaternion FixJointOrientation(Quaternion rawRotation, HumanBodyBones boneType)
+        {
+            Vector3 forward = rawRotation * Vector3.forward;
+            Vector3 up = rawRotation * Vector3.up;
+
+            switch (boneType)
+            {
+                // 腕系: Forward(+Z), Up(-Y)
+                case HumanBodyBones.LeftUpperArm:
+                case HumanBodyBones.RightUpperArm:
+                case HumanBodyBones.LeftLowerArm:
+                case HumanBodyBones.RightLowerArm:
+                case HumanBodyBones.LeftHand:
+                case HumanBodyBones.RightHand:
+                    return Quaternion.LookRotation(forward, -up);
+
+                // 脚系: Forward(+Z), Up(+Y)
+                case HumanBodyBones.LeftUpperLeg:
+                case HumanBodyBones.RightUpperLeg:
+                case HumanBodyBones.LeftLowerLeg:
+                case HumanBodyBones.RightLowerLeg:
+                case HumanBodyBones.LeftFoot:
+                case HumanBodyBones.RightFoot:
+                case HumanBodyBones.LeftToes:
+                case HumanBodyBones.RightToes:
+                    return Quaternion.LookRotation(forward, up);
+
+                // 胴体・頭系: Forward(+Z), Up(+Y)
+                case HumanBodyBones.Spine:
+                case HumanBodyBones.Chest:
+                case HumanBodyBones.UpperChest:
+                case HumanBodyBones.Neck:
+                case HumanBodyBones.Head:
+                    return Quaternion.LookRotation(forward, up);
+
+                // Hipsとその他: 補正なし（元の回転を維持）
+                default:
+                    return rawRotation;
+            }
+        }
+
+        // ───────────────────────────────────────────────────────────
         // SkeletonBone 列生成
         // ───────────────────────────────────────────────────────────
         private static SkeletonBone[] GenerateSkeletonBones(GameObject root, Dictionary<HumanBodyBones, Transform> boneMap)
@@ -452,13 +511,23 @@ namespace AICam.AvatarBuilder
             var list = new List<SkeletonBone>();
             void Rec(Transform t)
             {
-                // Humanoidボーンの場合は詳細ログ出力
+                Quaternion finalRotation = t.localRotation;
+
+                // Humanoidボーンの場合は Joint Orientation 補正を適用
                 if (transformToBone.TryGetValue(t, out var humanBone))
                 {
+                    Quaternion rawRotation = t.localRotation;
+                    Quaternion correctedRotation = FixJointOrientation(rawRotation, humanBone);
+
+                    float angleDiff = Quaternion.Angle(rawRotation, correctedRotation);
+
                     Debug.Log($"[SkeletonBone] {humanBone} ({t.name}):");
-                    Debug.Log($"  LocalPos: {t.localPosition}");
-                    Debug.Log($"  LocalRot: {t.localRotation} (Euler: {t.localEulerAngles})");
-                    Debug.Log($"  WorldRot: {t.rotation} (Euler: {t.eulerAngles})");
+                    Debug.Log($"  RawLocalRot: {rawRotation} (Euler: {rawRotation.eulerAngles})");
+                    Debug.Log($"  CorrectedRot: {correctedRotation} (Euler: {correctedRotation.eulerAngles})");
+                    Debug.Log($"  Correction Angle: {angleDiff:F2}°");
+
+                    // 補正後の回転を使用
+                    finalRotation = correctedRotation;
 
                     // 親の情報もログ
                     if (t.parent != null)
@@ -471,14 +540,14 @@ namespace AICam.AvatarBuilder
                 {
                     name     = t.name,
                     position = t.localPosition,
-                    rotation = t.localRotation,
-                    scale    = t.localScale
+                    rotation = finalRotation,  // Joint Orientation補正済み
+                    scale    = Vector3.one     // 常に1に正規化
                 });
                 foreach (Transform c in t) Rec(c);
             }
             Rec(root.transform);
 
-            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Generated {list.Count} SkeletonBones");
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Generated {list.Count} SkeletonBones (with Joint Orientation corrections)");
             return list.ToArray();
         }
     }
