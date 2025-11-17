@@ -307,7 +307,7 @@ namespace AICam.AvatarBuilder
                 skeleton = GenerateSkeletonBones(root)
             };
 
-            UnityEngine.Avatar avatar = AvatarBuilder.BuildHumanAvatar(root, desc);
+            UnityEngine.Avatar avatar = UnityEngine.AvatarBuilder.BuildHumanAvatar(root, desc);
             if (!avatar.isValid || !avatar.isHuman)
             {
                 Debug.LogError($"[{model}] Avatar build FAILED");
