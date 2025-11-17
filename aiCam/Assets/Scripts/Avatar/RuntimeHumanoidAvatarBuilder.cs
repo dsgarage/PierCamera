@@ -205,8 +205,6 @@ namespace AICam.AvatarBuilder
         // ───────────────────────────────────────────────────────────
         private static void EnsureLeftRight(ref Dictionary<HumanBodyBones, Transform> map, Transform hips)
         {
-            bool IsLeft(Transform t) => hips.InverseTransformPoint(t.position).x < 0f;
-
             Debug.Log($"[RuntimeHumanoidAvatarBuilder] === Left/Right Correction Start ===");
             Debug.Log($"[RuntimeHumanoidAvatarBuilder] Hips transform: {hips.name}");
 
