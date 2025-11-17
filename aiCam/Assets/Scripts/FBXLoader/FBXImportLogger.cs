@@ -322,12 +322,13 @@ namespace AICam.FBXLoader
         /// </summary>
         private bool ShouldCaptureLog(string log, LogType type)
         {
-            // FBX関連、Avatar関連、TriLib関連のログのみキャプチャ
+            // FBX関連、Avatar関連、Assimp関連のログのみキャプチャ
             if (log.Contains("[RuntimeFBXLoaderBridge]") ||
+                log.Contains("[RuntimeAssimpFBXLoader]") ||
+                log.Contains("[FbxCoordDetector]") ||
                 log.Contains("[RuntimeHumanoidAvatarBuilder]") ||
                 log.Contains("[SkeletonBone]") ||
                 log.Contains("[FixJointOrientation]") ||
-                log.Contains("TriLib") ||
                 type == LogType.Error ||
                 type == LogType.Exception ||
                 type == LogType.Warning)

@@ -48,10 +48,24 @@ namespace AICam.FBXLoader
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Materials: {scene.MaterialCount}");
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Animations: {scene.AnimationCount}");
 
+            // FBX Global Settings (座標系情報)
+            UnityEngine.Debug.Log($"{LOG_PREFIX} === FBX Global Settings ===");
+
             // FBX座標系を自動検出
             coordProfile = FbxCoordinateSystemDetector.ExtractFbxCoordProfile(scene);
             coordinateConversionMatrix = FbxCoordinateSystemDetector.BuildConversionMatrix(coordProfile);
-            UnityEngine.Debug.Log($"{LOG_PREFIX} Using coordinate profile: {coordProfile}");
+
+            UnityEngine.Debug.Log($"{LOG_PREFIX} Detected Coordinate System:");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Profile: {coordProfile.profileName}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Up Axis: {coordProfile.up}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Front Axis: {coordProfile.front}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Right Axis: {coordProfile.right}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Handedness: {(coordProfile.isRightHanded ? "Right-handed" : "Left-handed")}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX} Conversion to Unity (Left-handed, Y-up, Z-forward):");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Matrix Row 0: {coordinateConversionMatrix.GetRow(0)}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Matrix Row 1: {coordinateConversionMatrix.GetRow(1)}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Matrix Row 2: {coordinateConversionMatrix.GetRow(2)}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX} === End Global Settings ===");
 
             // ルートGameObjectを作成
             string objName = string.IsNullOrEmpty(rootName) ? Path.GetFileNameWithoutExtension(fbxPath) : rootName;

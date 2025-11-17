@@ -301,20 +301,29 @@ namespace AICam.AvatarBuilder
                 Debug.Log($"[RuntimeHumanoidAvatarBuilder]   Right({rb}): '{rn}' at local X={rPosLocal.x:F3}, isLeft={rIsLeft}");
                 Debug.Log($"[RuntimeHumanoidAvatarBuilder]   Has L/R in name: {hasLeftRightInName}");
 
-                // 位置が逆転している場合はスワップ（名前に関わらず）
-                if (!lIsLeft && rIsLeft)
+                // ★ 名前優先ロジック: .L/.R などがあれば絶対に信頼する
+                if (hasLeftRightInName)
                 {
-                    if (hasLeftRightInName)
+                    // 名前が正しいので、位置が逆でも swap しない
+                    if (!lIsLeft && rIsLeft)
                     {
-                        Debug.LogWarning($"[RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names suggest correct mapping, but positions are reversed!");
+                        Debug.LogWarning($"[RuntimeHumanoidAvatarBuilder]   ⚠️ Bone names are correct, but positions are reversed due to 180° rotation. Trusting bone names.");
                     }
-                    Debug.Log($"[RuntimeHumanoidAvatarBuilder]   => SWAPPING bones (position-based correction)");
-                    (map[lb], map[rb]) = (map[rb], map[lb]);
-                    swapCount++;
+                    Debug.Log($"[RuntimeHumanoidAvatarBuilder]   => Trusting bone names, no swap");
                 }
                 else
                 {
-                    Debug.Log($"[RuntimeHumanoidAvatarBuilder]   => No swap needed (positions correct)");
+                    // 名前から左右判定できないときだけ、位置で swap を試みる
+                    if (!lIsLeft && rIsLeft)
+                    {
+                        Debug.Log($"[RuntimeHumanoidAvatarBuilder]   => SWAPPING bones (position-based correction, no name info)");
+                        (map[lb], map[rb]) = (map[rb], map[lb]);
+                        swapCount++;
+                    }
+                    else
+                    {
+                        Debug.Log($"[RuntimeHumanoidAvatarBuilder]   => No swap needed (positions correct)");
+                    }
                 }
             }
 
@@ -407,20 +416,35 @@ namespace AICam.AvatarBuilder
                 Vector3 hipsToSpine = (spine.position - hips.position).normalized;
                 Debug.Log($"[RuntimeHumanoidAvatarBuilder]   Hips→Spine direction: ({hipsToSpine.x:F3}, {hipsToSpine.y:F3}, {hipsToSpine.z:F3})");
 
-                // Y-up検出: Spine direction の Y成分が大きい
+                // Hips→Spine方向の診断
                 if (Mathf.Abs(hipsToSpine.y) > 0.9f)
                 {
-                    Debug.LogWarning($"[RuntimeHumanoidAvatarBuilder]   ⚠️ Detected Y-up coordinate system!");
-                    Debug.LogWarning($"[RuntimeHumanoidAvatarBuilder]      Unity Humanoid expects Z-up. This may cause twisted bones.");
+                    // Y方向に大きい = 座標系が90度回転している可能性
+                    if (hipsToSpine.y > 0)
+                    {
+                        Debug.Log($"[RuntimeHumanoidAvatarBuilder]   ✓ Hips→Spine = +Y (standard T-pose/A-pose orientation)");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[RuntimeHumanoidAvatarBuilder]   ⚠️ Hips→Spine = -Y (inverted, may cause bone twists)");
+                        Debug.LogWarning($"[RuntimeHumanoidAvatarBuilder]      Expected: Hips→Spine should point in +Y or +Z direction.");
+                    }
                 }
                 // Z-up検出: Spine direction の Z成分が大きい
                 else if (Mathf.Abs(hipsToSpine.z) > 0.9f)
                 {
-                    Debug.Log($"[RuntimeHumanoidAvatarBuilder]   ✓ Detected Z-up coordinate system (Unity standard)");
+                    if (hipsToSpine.z > 0)
+                    {
+                        Debug.Log($"[RuntimeHumanoidAvatarBuilder]   ✓ Hips→Spine = +Z (acceptable for some DCC tools)");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[RuntimeHumanoidAvatarBuilder]   ⚠️ Hips→Spine = -Z (unusual orientation)");
+                    }
                 }
                 else
                 {
-                    Debug.LogWarning($"[RuntimeHumanoidAvatarBuilder]   ⚠️ Unusual up-axis direction detected");
+                    Debug.LogWarning($"[RuntimeHumanoidAvatarBuilder]   ⚠️ Unusual Hips→Spine direction detected");
                 }
             }
 
@@ -554,11 +578,25 @@ namespace AICam.AvatarBuilder
                 hasTranslationDoF = false
             };
 
-            Debug.Log($"[RuntimeHumanoidAvatarBuilder] HumanDescription configured:");
-            Debug.Log($"  Bones: {desc.human.Length}, Skeleton: {desc.skeleton.Length}");
-            Debug.Log($"  ArmTwist: U={desc.upperArmTwist}, L={desc.lowerArmTwist}");
-            Debug.Log($"  LegTwist: U={desc.upperLegTwist}, L={desc.lowerLegTwist}");
-            Debug.Log($"  Stretch: Arm={desc.armStretch}, Leg={desc.legStretch}");
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] === HumanDescription Details ===");
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Total Bones: {desc.human.Length}, Skeleton: {desc.skeleton.Length}");
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] ArmTwist: U={desc.upperArmTwist}, L={desc.lowerArmTwist}");
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] LegTwist: U={desc.upperLegTwist}, L={desc.lowerLegTwist}");
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Stretch: Arm={desc.armStretch}, Leg={desc.legStretch}");
+
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] HumanBone[] mapping ({desc.human.Length} bones):");
+            foreach (var hb in desc.human)
+            {
+                Debug.Log($"[RuntimeHumanoidAvatarBuilder]   {hb.humanName,-25} → {hb.boneName}");
+            }
+
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] SkeletonBone[] sample (first 10):");
+            for (int i = 0; i < Mathf.Min(10, desc.skeleton.Length); i++)
+            {
+                var sb = desc.skeleton[i];
+                Debug.Log($"[RuntimeHumanoidAvatarBuilder]   [{i}] {sb.name,-30} Pos:{sb.position} Rot:{sb.rotation.eulerAngles}");
+            }
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] === End HumanDescription Details ===");
 
             UnityEngine.Avatar avatar = UnityEngine.AvatarBuilder.BuildHumanAvatar(root, desc);
             if (!avatar.isValid || !avatar.isHuman)
@@ -784,33 +822,21 @@ namespace AICam.AvatarBuilder
             var list = new List<SkeletonBone>();
             void Rec(Transform t)
             {
-                Quaternion finalRotation = t.localRotation;
-
-                // Hipsボーンの場合のみ座標系補正
-                if (transformToBone.TryGetValue(t, out var humanBone) && humanBone == HumanBodyBones.Hips)
-                {
-                    // Y-up → Z-up 変換: 90°X回転を打ち消す
-                    // 元: Euler(90, 0, 0) → 目標: Euler(0, 0, 0)
-                    Quaternion yUpToZUpCorrection = Quaternion.Euler(-90f, 0f, 0f);
-                    finalRotation = t.localRotation * yUpToZUpCorrection;
-
-                    Debug.Log($"[RuntimeHumanoidAvatarBuilder] Hips rotation correction:");
-                    Debug.Log($"  Original: {t.localRotation.eulerAngles}");
-                    Debug.Log($"  Corrected: {finalRotation.eulerAngles}");
-                }
-
+                // ★ Transform.localTRS の完全コピー（補正なし）
+                // Unity が SkeletonBone と Transform の一致を期待しているため、
+                // 補正行列を混在させると自動補正が発生して姿勢が崩れる
                 list.Add(new SkeletonBone
                 {
                     name     = t.name,
                     position = t.localPosition,
-                    rotation = finalRotation,
-                    scale    = Vector3.one
+                    rotation = t.localRotation,  // 完全コピー
+                    scale    = t.localScale       // 完全コピー
                 });
                 foreach (Transform c in t) Rec(c);
             }
             Rec(root.transform);
 
-            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Generated {list.Count} SkeletonBones (Hips corrected for Z-up)");
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Generated {list.Count} SkeletonBones (pure Transform copy, no corrections)");
             return list.ToArray();
         }
     }
