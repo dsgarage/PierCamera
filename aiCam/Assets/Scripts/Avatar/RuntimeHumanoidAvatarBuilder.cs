@@ -442,20 +442,94 @@ namespace AICam.AvatarBuilder
         // ───────────────────────────────────────────────────────────
         private static SkeletonBone[] GenerateSkeletonBones(GameObject root, Dictionary<HumanBodyBones, Transform> boneMap)
         {
+            // BindPoseから回転を抽出する試み
+            var bindPoseRotations = ExtractBindPoseRotations(root);
+
             var list = new List<SkeletonBone>();
             void Rec(Transform t)
             {
+                Quaternion rotation = t.localRotation;
+
+                // BindPoseから回転情報が取得できた場合はそれを使用
+                if (bindPoseRotations.TryGetValue(t, out var bindPoseRot))
+                {
+                    Debug.Log($"[RuntimeHumanoidAvatarBuilder] Using BindPose rotation for {t.name}: {bindPoseRot} (current: {t.localRotation})");
+                    rotation = bindPoseRot;
+                }
+
                 list.Add(new SkeletonBone
                 {
                     name     = t.name,
                     position = t.localPosition,
-                    rotation = t.localRotation,  // TriLibの変換をそのまま使用
+                    rotation = rotation,
                     scale    = t.localScale
                 });
                 foreach (Transform c in t) Rec(c);
             }
             Rec(root.transform);
             return list.ToArray();
+        }
+
+        // ───────────────────────────────────────────────────────────
+        // BindPoseから回転を抽出
+        // ───────────────────────────────────────────────────────────
+        private static Dictionary<Transform, Quaternion> ExtractBindPoseRotations(GameObject root)
+        {
+            var bindPoseRotations = new Dictionary<Transform, Quaternion>();
+            var skinnedMeshRenderers = root.GetComponentsInChildren<SkinnedMeshRenderer>();
+
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Extracting BindPose rotations from {skinnedMeshRenderers.Length} SkinnedMeshRenderer(s)");
+
+            foreach (var smr in skinnedMeshRenderers)
+            {
+                if (smr.bones == null || smr.bones.Length == 0) continue;
+                if (smr.sharedMesh == null || smr.sharedMesh.bindposes == null) continue;
+
+                var bones = smr.bones;
+                var bindposes = smr.sharedMesh.bindposes;
+
+                if (bones.Length != bindposes.Length)
+                {
+                    Debug.LogWarning($"[RuntimeHumanoidAvatarBuilder] Bone count mismatch in {smr.name}: {bones.Length} bones vs {bindposes.Length} bindposes");
+                    continue;
+                }
+
+                for (int i = 0; i < bones.Length; i++)
+                {
+                    if (bones[i] == null) continue;
+                    if (bindPoseRotations.ContainsKey(bones[i])) continue;  // 既に追加済み
+
+                    // BindPose行列から回転を抽出
+                    // bindpose = bone.worldToLocalMatrix * root.localToWorldMatrix の逆行列
+                    // つまり bindpose.inverse が bone のワールド変換を表す
+                    Matrix4x4 boneWorldMatrix = bindposes[i].inverse;
+
+                    // 親のワールド変換を取得
+                    Matrix4x4 parentWorldMatrix = Matrix4x4.identity;
+                    if (bones[i].parent != null)
+                    {
+                        int parentIndex = System.Array.IndexOf(bones, bones[i].parent);
+                        if (parentIndex >= 0)
+                        {
+                            parentWorldMatrix = bindposes[parentIndex].inverse;
+                        }
+                        else
+                        {
+                            // 親がボーン配列にない場合は現在の親のワールド変換を使用
+                            parentWorldMatrix = bones[i].parent.localToWorldMatrix;
+                        }
+                    }
+
+                    // ローカル変換 = 親の逆行列 × 自分のワールド行列
+                    Matrix4x4 localMatrix = parentWorldMatrix.inverse * boneWorldMatrix;
+                    Quaternion localRotation = localMatrix.rotation;
+
+                    bindPoseRotations[bones[i]] = localRotation;
+                }
+            }
+
+            Debug.Log($"[RuntimeHumanoidAvatarBuilder] Extracted {bindPoseRotations.Count} BindPose rotations");
+            return bindPoseRotations;
         }
     }
 }
