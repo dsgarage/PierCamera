@@ -605,23 +605,26 @@ namespace AICam.FBXLoader
                 await UniTask.Yield();
             }
 
-            // STEP 5 (前処理): BoneWeightsをロード（最初のメッシュのボーン構造を使用）
-            if (node.MeshCount > 0)
+            // STEP 5 (前処理): BoneWeightsをロード（全メッシュから結合）
+            UnityEngine.BoneWeight[] allBoneWeights = new UnityEngine.BoneWeight[combinedVertices.Count];
+            int globalVertexOffset = 0;
+            int totalWeightsProcessed = 0;
+            int totalSkippedWeights = 0;
+
+            UnityEngine.Debug.Log($"{LOG_PREFIX} === STEP 5 (Pre-processing): Loading BoneWeights ===");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Total combined vertices: {combinedVertices.Count}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Processing {node.MeshCount} mesh(es)");
+
+            // 各メッシュのBoneWeightを処理
+            for (int meshIndex = 0; meshIndex < node.MeshCount; meshIndex++)
             {
-                int assimpMeshIndex = node.MeshIndices[0];
+                int assimpMeshIndex = node.MeshIndices[meshIndex];
                 Assimp.Mesh assimpMesh = currentScene.Meshes[assimpMeshIndex];
+
+                UnityEngine.Debug.Log($"{LOG_PREFIX}   Mesh[{meshIndex}]: {assimpMesh.Name}, Vertices: {assimpMesh.VertexCount}, Bones: {assimpMesh.BoneCount}");
 
                 if (assimpMesh.HasBones)
                 {
-                    UnityEngine.Debug.Log($"{LOG_PREFIX} === STEP 5 (Pre-processing): Loading BoneWeights ===");
-                    UnityEngine.Debug.Log($"{LOG_PREFIX}   Total vertices: {combinedVertices.Count}");
-                    UnityEngine.Debug.Log($"{LOG_PREFIX}   Total bones: {assimpMesh.BoneCount}");
-
-                    // 頂点数分のBoneWeight配列を初期化
-                    UnityEngine.BoneWeight[] boneWeights = new UnityEngine.BoneWeight[combinedVertices.Count];
-                    int totalWeightsProcessed = 0;
-                    int skippedWeights = 0;
-
                     // 各ボーンのウェイトデータを処理
                     for (int boneIndex = 0; boneIndex < assimpMesh.BoneCount; boneIndex++)
                     {
@@ -631,18 +634,20 @@ namespace AICam.FBXLoader
                         // このボーンが影響する全頂点を処理
                         foreach (var vertexWeight in bone.VertexWeights)
                         {
-                            int vertexIndex = vertexWeight.VertexID;
+                            // グローバル頂点インデックスに変換（メッシュオフセットを加算）
+                            int globalVertexIndex = globalVertexOffset + vertexWeight.VertexID;
                             float weight = vertexWeight.Weight;
 
                             // 頂点範囲チェック
-                            if (vertexIndex >= boneWeights.Length)
+                            if (globalVertexIndex >= allBoneWeights.Length)
                             {
-                                skippedWeights++;
+                                totalSkippedWeights++;
+                                UnityEngine.Debug.LogWarning($"{LOG_PREFIX}     Out of range: vertex {globalVertexIndex} >= {allBoneWeights.Length}");
                                 continue;
                             }
 
-                            // BoneWeightに追加（最大4つまで）- async methodsではrefが使えないので直接アクセス
-                            UnityEngine.BoneWeight bw = boneWeights[vertexIndex];
+                            // BoneWeightに追加（最大4つまで）
+                            UnityEngine.BoneWeight bw = allBoneWeights[globalVertexIndex];
                             bool added = false;
 
                             if (bw.weight0 == 0f)
@@ -677,26 +682,32 @@ namespace AICam.FBXLoader
                             }
                             else
                             {
-                                skippedWeights++;
+                                totalSkippedWeights++;
                             }
 
                             // 変更を配列に書き戻す
-                            boneWeights[vertexIndex] = bw;
+                            allBoneWeights[globalVertexIndex] = bw;
                         }
 
-                        UnityEngine.Debug.Log($"{LOG_PREFIX}   Bone[{boneIndex}] '{bone.Name}': {weightsForThisBone} weights assigned");
-                    }
-
-                    combinedBoneWeights.AddRange(boneWeights);
-
-                    UnityEngine.Debug.Log($"{LOG_PREFIX} === STEP 5 (Pre-processing) Complete ===");
-                    UnityEngine.Debug.Log($"{LOG_PREFIX}   Total weights processed: {totalWeightsProcessed}");
-                    UnityEngine.Debug.Log($"{LOG_PREFIX}   Vertices with weights: {boneWeights.Length}");
-                    if (skippedWeights > 0)
-                    {
-                        UnityEngine.Debug.LogWarning($"{LOG_PREFIX}   Skipped weights (>4 per vertex or out of range): {skippedWeights}");
+                        if (meshIndex == 0)  // 最初のメッシュのボーン情報のみログ出力
+                        {
+                            UnityEngine.Debug.Log($"{LOG_PREFIX}   Bone[{boneIndex}] '{bone.Name}': {weightsForThisBone} weights assigned");
+                        }
                     }
                 }
+
+                // 次のメッシュのオフセットを更新
+                globalVertexOffset += assimpMesh.VertexCount;
+            }
+
+            combinedBoneWeights.AddRange(allBoneWeights);
+
+            UnityEngine.Debug.Log($"{LOG_PREFIX} === STEP 5 (Pre-processing) Complete ===");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Total weights processed: {totalWeightsProcessed}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Combined vertices: {allBoneWeights.Length}");
+            if (totalSkippedWeights > 0)
+            {
+                UnityEngine.Debug.LogWarning($"{LOG_PREFIX}   Skipped weights (>4 per vertex or out of range): {totalSkippedWeights}");
             }
 
             // Unity Meshを作成
