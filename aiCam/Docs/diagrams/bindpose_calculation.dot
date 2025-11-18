@@ -1,0 +1,45 @@
+digraph BindPoseCalculation {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    // Title
+    Title [label="BindPose行列計算フロー", fillcolor=gold, fontsize=14];
+
+    // Input from Assimp
+    subgraph cluster_assimp {
+        label="Assimpから取得";
+        style=filled;
+        fillcolor=lightcyan;
+
+        OffsetMatrix [label="bone.OffsetMatrix\n(Assimp)\n\n= 逆BindPose行列\n= Bᵢ⁻¹ (FBX座標系)"];
+    }
+
+    // Coordinate Conversion
+    ConversionStep [label="座標系変換適用\n\nB'ᵢ⁻¹ = M_conv · Bᵢ⁻¹ · M_conv⁻¹\n\n共役変換 (Similarity Transform)\n理由: 行列は線形変換子として作用",
+                    fillcolor=orange];
+
+    // Unity BindPose
+    subgraph cluster_unity_bindpose {
+        label="Unity BindPose";
+        style=filled;
+        fillcolor=lightgreen;
+
+        UnityBindPose [label="mesh.bindposes[i]\n= B'ᵢ⁻¹\n\n(Unity座標系の逆BindPose)"];
+    }
+
+    // Validation
+    Validation [label="検証 (Aポーズ時):\n\nMᵢ · B'ᵢ⁻¹ ≈ I\n\nここで:\nMᵢ = bones[i].localToWorldMatrix\nI = 単位行列\n\nこれが成立しない場合、\nメッシュが崩壊する",
+                fillcolor=pink, shape=note];
+
+    // Mathematical Explanation
+    Math [label="数学的意味:\n\nBindPose Bᵢ = 初期姿勢のワールド行列\n逆BindPose Bᵢ⁻¹ = 頂点をボーンローカル空間に変換\n\nスキニング計算:\nv_final = Σᵢ wᵢ · (Mᵢ · Bᵢ⁻¹) · v_local\n         ︸━━━━━━━︸\n         Tᵢ (ボーン変換)\n\n1. Bᵢ⁻¹: v_local → ボーンローカル空間\n2. Mᵢ: ボーンローカル → 現在のワールド空間\n3. wᵢ: 複数ボーンの影響をブレンド",
+          shape=component, fillcolor=lavender, fontsize=10];
+
+    // Flow
+    Title -> OffsetMatrix [style=invis];
+    OffsetMatrix -> ConversionStep;
+    ConversionStep -> UnityBindPose;
+    UnityBindPose -> Validation;
+    Validation -> Math [style=dashed, label="理論"];
+}

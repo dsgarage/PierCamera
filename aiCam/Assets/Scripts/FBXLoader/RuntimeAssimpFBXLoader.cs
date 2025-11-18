@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.IO;
 using Cysharp.Threading.Tasks;
 
+using arCam.FBXLoader;
+
 namespace AICam.FBXLoader
 {
     /// <summary>
@@ -226,18 +228,17 @@ namespace AICam.FBXLoader
         /// AssimpのMatrix4x4からUnityのTransformに変換（座標系変換適用）
         /// Transform階層とMesh頂点の両方をUnity座標系に統一
         /// </summary>
-        private void SetTransformFromAssimpMatrix(Transform transform, Assimp.Matrix4x4 assimpMatrix)
+        private void SetTransformFromAssimpMatrix(Transform t, Assimp.Matrix4x4 m)
         {
-            // Assimpの行列を分解
-            Assimp.Vector3D scale;
-            Assimp.Quaternion rotation;
-            Assimp.Vector3D position;
-            assimpMatrix.Decompose(out scale, out rotation, out position);
+            m.Decompose(out var s, out var r, out var p);
 
-            // 座標系変換を適用してUnity座標系に統一
-            transform.localPosition = FbxCoordinateSystemDetector.ConvertVector(position, coordinateConversionMatrix);
-            transform.localRotation = FbxCoordinateSystemDetector.ConvertQuaternion(rotation, coordinateConversionMatrix);
-            transform.localScale = new UnityEngine.Vector3(scale.X, scale.Y, scale.Z);
+            UnityEngine.Vector3 pos = FbxCoordinateSystemDetector.ConvertVector(p, coordinateConversionMatrix);
+            UnityEngine.Quaternion rot = FbxCoordinateSystemDetector.ConvertQuaternion(r, coordinateConversionMatrix);
+            UnityEngine.Vector3 scale = new UnityEngine.Vector3(s.X, s.Y, s.Z);
+
+            t.localPosition = pos;
+            t.localRotation = rot;
+            t.localScale = scale;
         }
 
         /// <summary>
@@ -452,251 +453,69 @@ namespace AICam.FBXLoader
                 UnityEngine.Debug.Log($"{LOG_PREFIX} Root bone found: {cachedRootBone.name}");
             }
 
+            // サニティチェック: モデルロード完了
+            UnityEngine.Debug.Log($"{LOG_PREFIX} ========================================");
+            UnityEngine.Debug.Log($"{LOG_PREFIX} [Check] モデルロード完了");
+            UnityEngine.Debug.Log($"{LOG_PREFIX} [Check] Root Transform = {rootObject.transform.name}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX} [Check] Bone Count in hierarchy = {boneNameToTransform.Count}");
+
             await UniTask.Yield();
         }
 
         /// <summary>
         /// 特定のノードに含まれる全メッシュをロードしてSkinnedMeshRendererを作成（非同期版）
-        /// 必ずレンダラーコンポーネントを作成することを保証
+        /// v0.5.0: リファクタリング - 4クラスアーキテクチャを使用
         /// </summary>
         private async UniTask LoadMeshesForNodeAsync(Node node, Transform nodeTransform)
         {
             try
             {
+                UnityEngine.Debug.Log($"{LOG_PREFIX} ========================================");
                 UnityEngine.Debug.Log($"{LOG_PREFIX} [LoadMeshesForNode] START for node: {node.Name}");
+                UnityEngine.Debug.Log($"{LOG_PREFIX} ========================================");
 
-                // 複数のメッシュがある場合はサブメッシュとして結合
-                List<UnityEngine.Vector3> combinedVertices = new List<UnityEngine.Vector3>();
-                List<UnityEngine.Vector3> combinedNormals = new List<UnityEngine.Vector3>();
-                List<UnityEngine.Vector2> combinedUVs = new List<UnityEngine.Vector2>();
-                List<int> combinedTriangles = new List<int>();
-                List<UnityEngine.BoneWeight> combinedBoneWeights = new List<UnityEngine.BoneWeight>();
-                int vertexOffset = 0;
-                bool hasNormals = false;
-
-            for (int meshIndex = 0; meshIndex < node.MeshCount; meshIndex++)
-            {
-                int assimpMeshIndex = node.MeshIndices[meshIndex];
-                Assimp.Mesh assimpMesh = currentScene.Meshes[assimpMeshIndex];
-
-                // 頂点データをロード（v0.3.2: 座標系変換を適用）
-                for (int i = 0; i < assimpMesh.VertexCount; i++)
-                {
-                    Assimp.Vector3D vertex = assimpMesh.Vertices[i];
-                    // Mesh頂点に座標系変換を適用（右手系→左手系）
-                    // Transform階層はFBX RestPoseを保持するため変換しない
-                    UnityEngine.Vector3 unityVertex = FbxCoordinateSystemDetector.ConvertVector(vertex, coordinateConversionMatrix);
-                    combinedVertices.Add(unityVertex);
-                }
-
-                // 法線データをロード（v0.3.2: 座標系変換を適用）
-                if (assimpMesh.HasNormals)
-                {
-                    hasNormals = true;
-                    for (int i = 0; i < assimpMesh.VertexCount; i++)
-                    {
-                        Assimp.Vector3D normal = assimpMesh.Normals[i];
-                        // 法線も座標系変換を適用して正規化
-                        UnityEngine.Vector3 unityNormal = FbxCoordinateSystemDetector.ConvertVector(normal, coordinateConversionMatrix);
-                        combinedNormals.Add(unityNormal.normalized);
-                    }
-                }
-                else
-                {
-                    // 法線がない場合はダミーを追加（後でRecalculateNormals）
-                    for (int i = 0; i < assimpMesh.VertexCount; i++)
-                    {
-                        combinedNormals.Add(UnityEngine.Vector3.up);
-                    }
-                }
-
-                // UVデータをロード（チャンネル0のみ）
-                if (assimpMesh.HasTextureCoords(0))
-                {
-                    for (int i = 0; i < assimpMesh.VertexCount; i++)
-                    {
-                        Assimp.Vector3D uv = assimpMesh.TextureCoordinateChannels[0][i];
-                        combinedUVs.Add(new UnityEngine.Vector2(uv.X, uv.Y));
-                    }
-                }
-                else
-                {
-                    // UVがない場合はダミーを追加
-                    for (int i = 0; i < assimpMesh.VertexCount; i++)
-                    {
-                        combinedUVs.Add(UnityEngine.Vector2.zero);
-                    }
-                }
-
-                // 三角形インデックスをロード
-                for (int i = 0; i < assimpMesh.FaceCount; i++)
-                {
-                    Assimp.Face face = assimpMesh.Faces[i];
-                    if (face.IndexCount == 3)
-                    {
-                        // 頂点オフセットを加算してインデックスを調整
-                        int idx0 = vertexOffset + face.Indices[0];
-                        int idx1 = vertexOffset + face.Indices[1];
-                        int idx2 = vertexOffset + face.Indices[2];
-
-                        // 座標系変換で左手系・右手系が変わる場合、三角形の巻き順を反転
-                        if (shouldFlipTriangleWinding)
-                        {
-                            combinedTriangles.Add(idx0);
-                            combinedTriangles.Add(idx2); // 反転: idx1とidx2を入れ替え
-                            combinedTriangles.Add(idx1);
-                        }
-                        else
-                        {
-                            combinedTriangles.Add(idx0);
-                            combinedTriangles.Add(idx1);
-                            combinedTriangles.Add(idx2);
-                        }
-                    }
-                    else
-                    {
-                        UnityEngine.Debug.LogWarning($"{LOG_PREFIX}     Face {i} is not a triangle (indices: {face.IndexCount})");
-                    }
-                }
-
-                vertexOffset += assimpMesh.VertexCount;
-
-                // 各メッシュ処理後にフレームを譲る（重い処理のため）
+                // ============================================================
+                // v0.5.0 REFACTORED: 4-Class Architecture
+                // ============================================================
+                // STEP 2: MeshDataCollector - メッシュデータ収集
+                MeshDataCollector meshCollector = new MeshDataCollector(
+                    currentScene, node, coordinateConversionMatrix, debugMode: false);
+                MeshData meshData = meshCollector.Collect();
                 await UniTask.Yield();
-            }
 
-            // STEP 5 (前処理): BoneWeightsをロード（全メッシュから結合）
-            UnityEngine.BoneWeight[] allBoneWeights = new UnityEngine.BoneWeight[combinedVertices.Count];
-            int globalVertexOffset = 0;
-            int totalWeightsProcessed = 0;
-            int totalSkippedWeights = 0;
+                // STEP 3: BoneDataCollector - ボーンデータ収集
+                BoneDataCollector boneCollector = new BoneDataCollector(
+                    currentScene, node, meshData.vertices.Count, debugMode: false);
+                BoneData boneData = boneCollector.Collect();
+                await UniTask.Yield();
 
-            UnityEngine.Debug.Log($"{LOG_PREFIX} === STEP 5 (Pre-processing): Loading BoneWeights ===");
-            UnityEngine.Debug.Log($"{LOG_PREFIX}   Total combined vertices: {combinedVertices.Count}");
-            UnityEngine.Debug.Log($"{LOG_PREFIX}   Processing {node.MeshCount} mesh(es)");
-
-            // 各メッシュのBoneWeightを処理
-            for (int meshIndex = 0; meshIndex < node.MeshCount; meshIndex++)
-            {
-                int assimpMeshIndex = node.MeshIndices[meshIndex];
-                Assimp.Mesh assimpMesh = currentScene.Meshes[assimpMeshIndex];
-
-                UnityEngine.Debug.Log($"{LOG_PREFIX}   Mesh[{meshIndex}]: {assimpMesh.Name}, Vertices: {assimpMesh.VertexCount}, Bones: {assimpMesh.BoneCount}");
-
-                if (assimpMesh.HasBones)
+                // ボーンがない場合は静的メッシュとして作成
+                if (boneData.allUniqueBoneNames.Count == 0)
                 {
-                    // 各ボーンのウェイトデータを処理
-                    for (int boneIndex = 0; boneIndex < assimpMesh.BoneCount; boneIndex++)
-                    {
-                        Assimp.Bone bone = assimpMesh.Bones[boneIndex];
-                        int weightsForThisBone = 0;
-
-                        // このボーンが影響する全頂点を処理
-                        foreach (var vertexWeight in bone.VertexWeights)
-                        {
-                            // グローバル頂点インデックスに変換（メッシュオフセットを加算）
-                            int globalVertexIndex = globalVertexOffset + vertexWeight.VertexID;
-                            float weight = vertexWeight.Weight;
-
-                            // 頂点範囲チェック
-                            if (globalVertexIndex >= allBoneWeights.Length)
-                            {
-                                totalSkippedWeights++;
-                                UnityEngine.Debug.LogWarning($"{LOG_PREFIX}     Out of range: vertex {globalVertexIndex} >= {allBoneWeights.Length}");
-                                continue;
-                            }
-
-                            // BoneWeightに追加（最大4つまで）
-                            UnityEngine.BoneWeight bw = allBoneWeights[globalVertexIndex];
-                            bool added = false;
-
-                            if (bw.weight0 == 0f)
-                            {
-                                bw.boneIndex0 = boneIndex;
-                                bw.weight0 = weight;
-                                added = true;
-                            }
-                            else if (bw.weight1 == 0f)
-                            {
-                                bw.boneIndex1 = boneIndex;
-                                bw.weight1 = weight;
-                                added = true;
-                            }
-                            else if (bw.weight2 == 0f)
-                            {
-                                bw.boneIndex2 = boneIndex;
-                                bw.weight2 = weight;
-                                added = true;
-                            }
-                            else if (bw.weight3 == 0f)
-                            {
-                                bw.boneIndex3 = boneIndex;
-                                bw.weight3 = weight;
-                                added = true;
-                            }
-
-                            if (added)
-                            {
-                                weightsForThisBone++;
-                                totalWeightsProcessed++;
-                            }
-                            else
-                            {
-                                totalSkippedWeights++;
-                            }
-
-                            // 変更を配列に書き戻す
-                            allBoneWeights[globalVertexIndex] = bw;
-                        }
-
-                        if (meshIndex == 0)  // 最初のメッシュのボーン情報のみログ出力
-                        {
-                            UnityEngine.Debug.Log($"{LOG_PREFIX}   Bone[{boneIndex}] '{bone.Name}': {weightsForThisBone} weights assigned");
-                        }
-                    }
+                    UnityEngine.Debug.Log($"{LOG_PREFIX} Mesh has no bones, creating static mesh (MeshFilter + MeshRenderer)");
+                    CreateStaticMeshRenderer(nodeTransform, meshData.unityMesh);
+                    UnityEngine.Debug.Log($"{LOG_PREFIX} [LoadMeshesForNode] SUCCESS (Static Mesh) for node: {node.Name}");
+                    return;
                 }
 
-                // 次のメッシュのオフセットを更新
-                globalVertexOffset += assimpMesh.VertexCount;
-            }
+                // STEP 4: SkinnedMeshBuilder - SkinnedMeshRenderer 構築
+                SkinnedMeshBuilder skinnedMeshBuilder = new SkinnedMeshBuilder(
+                    nodeTransform.gameObject, boneNameToTransform, coordinateConversionMatrix, debugMode: false);
 
-            combinedBoneWeights.AddRange(allBoneWeights);
+                // rootBone名を決定（Hipsまたは最初のボーン）
+                string rootBoneName = cachedRootBone != null ? cachedRootBone.name : (boneData.allUniqueBoneNames.Count > 0 ? boneData.allUniqueBoneNames[0] : null);
 
-            UnityEngine.Debug.Log($"{LOG_PREFIX} === STEP 5 (Pre-processing) Complete ===");
-            UnityEngine.Debug.Log($"{LOG_PREFIX}   Total weights processed: {totalWeightsProcessed}");
-            UnityEngine.Debug.Log($"{LOG_PREFIX}   Combined vertices: {allBoneWeights.Length}");
-            if (totalSkippedWeights > 0)
-            {
-                UnityEngine.Debug.LogWarning($"{LOG_PREFIX}   Skipped weights (>4 per vertex or out of range): {totalSkippedWeights}");
-            }
+                // マテリアル作成
+                UnityEngine.Material material = CreateLilToonMaterial(node.Name);
+                UnityEngine.Material[] materials = new UnityEngine.Material[] { material };
 
-            // Unity Meshを作成
-            UnityEngine.Mesh unityMesh = new UnityEngine.Mesh();
-            unityMesh.name = $"{node.Name}_Mesh";
-            unityMesh.vertices = combinedVertices.ToArray();
-            unityMesh.uv = combinedUVs.ToArray();
-            unityMesh.triangles = combinedTriangles.ToArray();
+                // SkinnedMeshRenderer 構築
+                SkinnedMeshRenderer smr = skinnedMeshBuilder.Build(meshData, boneData, rootBoneName, materials);
+                await UniTask.Yield();
 
-            // 法線を設定
-            if (hasNormals)
-            {
-                unityMesh.normals = combinedNormals.ToArray();
-            }
-            else
-            {
-                unityMesh.RecalculateNormals();
-            }
-
-            // バウンディングボックスを再計算
-            unityMesh.RecalculateBounds();
-
-                // STEP 3: BlendShapeを追加（SMR.sharedMeshをセットする前に必須）
-                await AddBlendShapesToMesh(node, unityMesh);
-
-                // STEP 4-7: SkinnedMeshRenderer のセットアップ
-                await SetupSkinnedMeshRenderer(node, nodeTransform, unityMesh, combinedBoneWeights);
-
+                UnityEngine.Debug.Log($"{LOG_PREFIX} ========================================");
                 UnityEngine.Debug.Log($"{LOG_PREFIX} [LoadMeshesForNode] SUCCESS for node: {node.Name}");
+                UnityEngine.Debug.Log($"{LOG_PREFIX} ========================================");
             }
             catch (System.Exception ex)
             {
@@ -834,7 +653,9 @@ namespace AICam.FBXLoader
             Node node,
             Transform nodeTransform,
             UnityEngine.Mesh mesh,
-            List<UnityEngine.BoneWeight> boneWeights)
+            List<UnityEngine.BoneWeight> boneWeights,
+            List<string> allUniqueBoneNames,
+            Dictionary<string, Assimp.Matrix4x4> boneNameToOffsetMatrix)
         {
             UnityEngine.Debug.Log($"{LOG_PREFIX} === Setting up SkinnedMeshRenderer ===");
 
@@ -856,8 +677,8 @@ namespace AICam.FBXLoader
                 return;
             }
 
-            // STEP 4: BoneTransforms（bones[]）の構築
-            Transform[] bones = BuildBonesArray(assimpMesh);
+            // STEP 4: BoneTransforms（bones[]）の構築（全ユニークボーンから）
+            Transform[] bones = BuildBonesArray(allUniqueBoneNames);
             if (bones == null || bones.Length == 0)
             {
                 UnityEngine.Debug.LogError($"{LOG_PREFIX} Failed to build bones array");
@@ -904,8 +725,8 @@ namespace AICam.FBXLoader
                 UnityEngine.Debug.LogError($"{LOG_PREFIX} STEP 5 FAILED: No bone weights found!");
             }
 
-            // STEP 6: BindPose（bindposes）の生成
-            UnityEngine.Matrix4x4[] bindposes = BuildBindPoses(bones, nodeTransform);
+            // STEP 6: BindPose（bindposes）の生成（全ユニークボーンから）
+            UnityEngine.Matrix4x4[] bindposes = BuildBindPoses(allUniqueBoneNames, bones, boneNameToOffsetMatrix);
             if (bindposes == null || bindposes.Length == 0)
             {
                 UnityEngine.Debug.LogError($"{LOG_PREFIX} STEP 6 FAILED: Could not build bindposes");
@@ -998,25 +819,24 @@ namespace AICam.FBXLoader
         }
 
         /// <summary>
-        /// STEP 4: aiMesh.Bones から Transform[] bones を構築
+        /// STEP 4: ボーン名リストから Transform[] bones を構築（マルチメッシュ対応）
         /// </summary>
-        private Transform[] BuildBonesArray(Assimp.Mesh assimpMesh)
+        private Transform[] BuildBonesArray(List<string> boneNames)
         {
-            if (!assimpMesh.HasBones)
+            if (boneNames == null || boneNames.Count == 0)
                 return null;
 
-            UnityEngine.Debug.Log($"{LOG_PREFIX} === STEP 4: Building Bones Array ===");
-            UnityEngine.Debug.Log($"{LOG_PREFIX}   Total bones in mesh: {assimpMesh.BoneCount}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX} === STEP 4: Building Bones Array (All Unique Bones) ===");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Total unique bones: {boneNames.Count}");
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Cached bone names: {boneNameToTransform.Count}");
 
-            Transform[] bones = new Transform[assimpMesh.BoneCount];
+            Transform[] bones = new Transform[boneNames.Count];
             int foundCount = 0;
             int notFoundCount = 0;
 
-            for (int i = 0; i < assimpMesh.BoneCount; i++)
+            for (int i = 0; i < boneNames.Count; i++)
             {
-                Assimp.Bone bone = assimpMesh.Bones[i];
-                string boneName = bone.Name;
+                string boneName = boneNames[i];
 
                 // ボーン名辞書から Transform を取得
                 if (boneNameToTransform.TryGetValue(boneName, out Transform boneTransform))
@@ -1025,7 +845,6 @@ namespace AICam.FBXLoader
                     foundCount++;
                     UnityEngine.Debug.Log($"{LOG_PREFIX}   Bone[{i}]: {boneName}");
                     UnityEngine.Debug.Log($"{LOG_PREFIX}     → Path: {GetTransformPath(boneTransform)}");
-                    UnityEngine.Debug.Log($"{LOG_PREFIX}     → Affects: {bone.VertexWeightCount} vertices");
                 }
                 else
                 {
@@ -1036,7 +855,7 @@ namespace AICam.FBXLoader
             }
 
             UnityEngine.Debug.Log($"{LOG_PREFIX} === STEP 4 Complete ===");
-            UnityEngine.Debug.Log($"{LOG_PREFIX}   Found: {foundCount}/{assimpMesh.BoneCount}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Found: {foundCount}/{boneNames.Count}");
             if (notFoundCount > 0)
             {
                 UnityEngine.Debug.LogError($"{LOG_PREFIX}   NOT FOUND: {notFoundCount} bones missing!");
@@ -1046,10 +865,13 @@ namespace AICam.FBXLoader
         }
 
         /// <summary>
-        /// STEP 6: BindPose を Unity 標準式で計算
-        /// Transform階層とMesh頂点が両方Unity座標系なので、Unity式が正しく動作する
+        /// STEP 6: BindPose を Assimp OffsetMatrix から計算（マルチメッシュ対応）
+        /// Assimpのbone.OffsetMatrixは逆バインド行列なので、これを座標系変換して使用
         /// </summary>
-        private UnityEngine.Matrix4x4[] BuildBindPoses(Transform[] bones, Transform meshTransform)
+        private UnityEngine.Matrix4x4[] BuildBindPoses(
+            List<string> boneNames,
+            Transform[] bones,
+            Dictionary<string, Assimp.Matrix4x4> boneNameToOffsetMatrix)
         {
             if (bones == null || bones.Length == 0)
             {
@@ -1057,41 +879,42 @@ namespace AICam.FBXLoader
                 return null;
             }
 
-            if (meshTransform == null)
+            if (boneNames == null || boneNames.Count == 0)
             {
-                UnityEngine.Debug.LogError($"{LOG_PREFIX} BuildBindPoses: meshTransform is null");
+                UnityEngine.Debug.LogError($"{LOG_PREFIX} BuildBindPoses: boneNames is null or empty");
                 return null;
             }
 
-            UnityEngine.Debug.Log($"{LOG_PREFIX} === STEP 6: Building BindPoses (Unity Formula) ===");
-            UnityEngine.Debug.Log($"{LOG_PREFIX}   Mesh Transform: {meshTransform.name} at {GetTransformPath(meshTransform)}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX} === STEP 6: Building BindPoses (Assimp OffsetMatrix, Multi-Mesh) ===");
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Total bones: {bones.Length}");
-            UnityEngine.Debug.Log($"{LOG_PREFIX}   Formula: bindposes[i] = bones[i].worldToLocalMatrix * meshTransform.localToWorldMatrix");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Source: Assimp bone.OffsetMatrix with coordinate conversion");
 
             UnityEngine.Matrix4x4[] bindposes = new UnityEngine.Matrix4x4[bones.Length];
             int validCount = 0;
 
-            for (int i = 0; i < bones.Length; i++)
+            for (int i = 0; i < boneNames.Count; i++)
             {
-                if (bones[i] != null)
+                string boneName = boneNames[i];
+
+                if (bones[i] != null && boneNameToOffsetMatrix.TryGetValue(boneName, out Assimp.Matrix4x4 offsetMatrix))
                 {
-                    // Unity標準のBindPose計算式（メッシュ空間 → ボーン空間）
-                    bindposes[i] = bones[i].worldToLocalMatrix * meshTransform.localToWorldMatrix;
+                    // Assimp OffsetMatrixを座標系変換してBindPoseに使用
+                    bindposes[i] = FbxCoordinateSystemDetector.ConvertAssimpMatrix(offsetMatrix, coordinateConversionMatrix);
                     validCount++;
 
                     UnityEngine.Debug.Log($"{LOG_PREFIX}   BindPose[{i}]: {bones[i].name}");
                     UnityEngine.Debug.Log($"{LOG_PREFIX}     → Bone Path: {GetTransformPath(bones[i])}");
-                    UnityEngine.Debug.Log($"{LOG_PREFIX}     → Bone Position: {bones[i].position}, Rotation: {bones[i].rotation.eulerAngles}");
 
                     // 行列の一部を表示（デバッグ用）
                     UnityEngine.Vector3 pos = bindposes[i].GetPosition();
                     UnityEngine.Quaternion rot = bindposes[i].rotation;
                     UnityEngine.Debug.Log($"{LOG_PREFIX}     → BindPose Matrix: pos={pos}, rot={rot.eulerAngles}");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}     → BindPose Full Matrix:\n{bindposes[i]}");
                 }
                 else
                 {
                     bindposes[i] = UnityEngine.Matrix4x4.identity;
-                    UnityEngine.Debug.LogError($"{LOG_PREFIX}   BindPose[{i}]: NULL BONE - using identity matrix");
+                    UnityEngine.Debug.LogError($"{LOG_PREFIX}   BindPose[{i}]: {boneName} - NULL BONE or NO OFFSET MATRIX - using identity matrix");
                 }
             }
 

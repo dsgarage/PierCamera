@@ -1,0 +1,52 @@
+digraph CoordinateConversion {
+    rankdir=LR;
+    node [shape=box, style="rounded,filled", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    // FBX Coordinate System
+    subgraph cluster_fbx {
+        label="FBX座標系\n(右手系・Y-up)";
+        style=filled;
+        fillcolor=lightpink;
+
+        FBX_Axes [label="X⃗ = (1,0,0) Right\nY⃗ = (0,1,0) Up\nZ⃗ = (0,0,1) Forward", shape=note];
+        FBX_Data [label="• Transform.position\n• Transform.rotation\n• Mesh.vertices\n• Mesh.normals\n• BindPose行列"];
+    }
+
+    // Conversion Matrix
+    ConversionMatrix [label="座標変換行列\nM_conv\n\n例 (BlenderStyle):\n[-1  0  0  0]\n[ 0  1  0  0]\n[ 0  0 -1  0]\n[ 0  0  0  1]",
+                      fillcolor=yellow, shape=component];
+
+    // Conversion Types
+    subgraph cluster_conversion {
+        label="変換タイプ";
+        style=dashed;
+
+        VectorConv [label="ベクトル変換\nv' = M_conv · v"];
+        QuatConv [label="四元数変換\nq' = M·R(q)·M⁻¹"];
+        MatrixConv [label="行列変換\nM' = M_conv·M·M_conv⁻¹"];
+        TriangleConv [label="三角形巻き順\ndet(M_conv)<0 → 反転"];
+    }
+
+    // Unity Coordinate System
+    subgraph cluster_unity {
+        label="Unity座標系\n(左手系・Y-up・Z-forward)";
+        style=filled;
+        fillcolor=lightgreen;
+
+        Unity_Axes [label="X⃗ = (1,0,0) Right\nY⃗ = (0,1,0) Up\nZ⃗ = (0,0,1) Forward", shape=note];
+        Unity_Data [label="• Transform.position\n• Transform.rotation\n• Mesh.vertices\n• Mesh.normals\n• BindPose行列"];
+    }
+
+    // Flow
+    FBX_Data -> ConversionMatrix [label="適用"];
+    ConversionMatrix -> VectorConv;
+    ConversionMatrix -> QuatConv;
+    ConversionMatrix -> MatrixConv;
+    ConversionMatrix -> TriangleConv;
+
+    VectorConv -> Unity_Data;
+    QuatConv -> Unity_Data;
+    MatrixConv -> Unity_Data;
+    TriangleConv -> Unity_Data;
+}

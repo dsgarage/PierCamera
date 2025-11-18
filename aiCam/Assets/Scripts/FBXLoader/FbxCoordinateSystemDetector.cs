@@ -476,15 +476,18 @@ namespace AICam.FBXLoader
         /// <summary>
         /// Assimp Quaternionを座標系変換してUnity Quaternionに変換
         /// </summary>
-        public static UnityEngine.Quaternion ConvertQuaternion(Assimp.Quaternion assimpQuat, UnityEngine.Matrix4x4 conversionMatrix)
+        public static UnityEngine.Quaternion ConvertQuaternion(Assimp.Quaternion assimpQuat, UnityEngine.Matrix4x4 conv)
         {
-            UnityEngine.Quaternion quat = new UnityEngine.Quaternion(assimpQuat.X, assimpQuat.Y, assimpQuat.Z, assimpQuat.W);
+            // まず assimpQuat を UnityQuaternion へ
+            UnityEngine.Quaternion q = new UnityEngine.Quaternion(assimpQuat.X, assimpQuat.Y, assimpQuat.Z, assimpQuat.W);
 
-            // 回転も座標系変換を適用
-            Vector3 forward = conversionMatrix.MultiplyVector(quat * Vector3.forward);
-            Vector3 up = conversionMatrix.MultiplyVector(quat * Vector3.up);
+            // 回転行列を作り変換行列に適用
+            UnityEngine.Matrix4x4 rot = UnityEngine.Matrix4x4.Rotate(q);
 
-            return UnityEngine.Quaternion.LookRotation(forward, up);
+            // 座標系変換行列を掛け合わせて新しい回転を得る
+            UnityEngine.Matrix4x4 result = conv * rot * conv.inverse;
+
+            return result.rotation;
         }
     }
 }

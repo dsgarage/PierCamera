@@ -1,0 +1,65 @@
+digraph CoordinateSystems {
+    rankdir=TB;
+    node [fontname="Arial"];
+    edge [fontname="Arial"];
+
+    // Title
+    Title [label="座標系比較表", shape=box, style="rounded,filled", fillcolor=gold, fontsize=16];
+
+    // Unity
+    subgraph cluster_unity {
+        label="Unity座標系 (ターゲット)";
+        style=filled;
+        fillcolor=lightgreen;
+
+        Unity [label="手系: 左手系 (Left-handed)\nUp軸: Y+ (上向き)\n前方軸: Z+ (前向き)\n右軸: X+ (右向き)\n\n数学的定義:\nX⃗ = [1, 0, 0]ᵀ  (Right)\nY⃗ = [0, 1, 0]ᵀ  (Up)\nZ⃗ = [0, 0, 1]ᵀ  (Forward)\n\n外積検証:\nX⃗ × Y⃗ = Z⃗ ✓",
+               shape=note, fontsize=11];
+    }
+
+    // UnityStyle
+    subgraph cluster_unity_style {
+        label="UnityStyle (FBX)";
+        style=filled;
+        fillcolor=lavender;
+
+        UnityStyle [label="手系: 右手系\nUp軸: Y+\n前方軸: Z+\n\n変換行列:\nM_conv = I (単位行列)\n\n理由: 既にUnityと同じ軸配置",
+                    shape=note, fontsize=10];
+    }
+
+    // BlenderStyle
+    subgraph cluster_blender {
+        label="BlenderStyle (FBX)";
+        style=filled;
+        fillcolor=lightpink;
+
+        Blender [label="手系: 右手系\nUp軸: Y+\n前方軸: Z+ (but RootY=180°)\n\n変換行列:\nM_conv = diag(-1, 1, -1, 1)\n        = [-1  0  0  0]\n          [ 0  1  0  0]\n          [ 0  0 -1  0]\n          [ 0  0  0  1]\n\n理由:\n• RootNodeにY=180°回転\n• X軸とZ軸を反転して補正",
+                 shape=note, fontsize=10];
+    }
+
+    // MixamoStyle
+    subgraph cluster_mixamo {
+        label="MixamoStyle (FBX)";
+        style=filled;
+        fillcolor=lightcyan;
+
+        Mixamo [label="手系: 右手系\nUp軸: Y+\n前方軸: Z+\n\n変換行列:\nM_conv = diag(1, 1, -1, 1)\n        = [1  0  0  0]\n          [0  1  0  0]\n          [0  0 -1  0]\n          [0  0  0  1]\n\n理由:\n• 標準的な右手系→左手系変換\n• Z軸のみ反転",
+                shape=note, fontsize=10];
+    }
+
+    // MaxStyle
+    subgraph cluster_max {
+        label="MaxStyle (FBX)";
+        style=filled;
+        fillcolor=lightyellow;
+
+        Max [label="手系: 右手系\nUp軸: Z+ (異なる！)\n前方軸: Y+\n\n変換行列:\nM_conv = [1  0  0  0]\n         [0  0  1  0]\n         [0 -1  0  0]\n         [0  0  0  1]\n\n理由:\n• Z-up → Y-up変換\n• X⃗_unity = X⃗_max\n• Y⃗_unity = Z⃗_max\n• Z⃗_unity = -Y⃗_max",
+            shape=note, fontsize=10];
+    }
+
+    // Connections
+    Title -> Unity [style=invis];
+    Unity -> UnityStyle;
+    Unity -> Blender;
+    Unity -> Mixamo;
+    Unity -> Max;
+}

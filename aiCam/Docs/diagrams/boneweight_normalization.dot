@@ -1,0 +1,55 @@
+digraph BoneWeightNormalization {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    // Title
+    Title [label="BoneWeight正規化プロセス", fillcolor=gold, fontsize=14];
+
+    // Raw weights from Assimp
+    subgraph cluster_raw {
+        label="Assimpから取得した生データ";
+        style=filled;
+        fillcolor=lightcyan;
+
+        RawWeights [label="頂点vに影響するボーン:\n\nbone[0]: weight = 0.45\nbone[2]: weight = 0.30\nbone[5]: weight = 0.20\nbone[7]: weight = 0.10\n\n合計 = 1.05 (誤差あり)"];
+    }
+
+    // Global Index Mapping
+    IndexMapping [label="グローバルインデックスマッピング\n\nbone[0] → globalIndex = 0\nbone[2] → globalIndex = 2\nbone[5] → globalIndex = 5\nbone[7] → globalIndex = 7\n\n※マルチメッシュ対応のため必須",
+                  fillcolor=lightyellow];
+
+    // BoneWeight struct
+    BoneWeightStruct [label="UnityEngine.BoneWeight構築\n\nboneIndex0 = 0, weight0 = 0.45\nboneIndex1 = 2, weight1 = 0.30\nboneIndex2 = 5, weight2 = 0.20\nboneIndex3 = 7, weight3 = 0.10\n\n制約: 最大4ボーン",
+                      fillcolor=orange];
+
+    // Normalization
+    Normalization [label="正規化式:\n\nsum = w₀ + w₁ + w₂ + w₃\n\nif (sum > 0.0001):\n    w'ᵢ = wᵢ / sum\nelse:\n    w'₀ = 1.0  (強制設定)\n    boneIndex₀ = 0\n\n結果:\nw'₀ + w'₁ + w'₂ + w'₃ = 1.0",
+                   fillcolor=pink, shape=component];
+
+    // Final result
+    subgraph cluster_result {
+        label="正規化後のBoneWeight";
+        style=filled;
+        fillcolor=lightgreen;
+
+        NormalizedWeights [label="boneIndex0 = 0, weight0 = 0.4286\nboneIndex1 = 2, weight1 = 0.2857\nboneIndex2 = 5, weight2 = 0.1905\nboneIndex3 = 7, weight3 = 0.0952\n\n合計 = 1.0000 ✓"];
+    }
+
+    // Validation
+    Validation [label="検証:\n\n✓ 0 ≤ boneIndexᵢ < bones.Length\n✓ 0 ≤ weightᵢ ≤ 1.0\n✓ Σwᵢ = 1.0\n✓ weightᵢ > 0 ⟹ boneIndexᵢ有効",
+                shape=note, fillcolor=lavender];
+
+    // Important note
+    Note [label="重要:\n\n• Tiny weight (< 0.001) も保持する\n  （丸めない）\n• 5つ以上のボーンがある場合、\n  重みの大きい上位4つを選択\n• ゼロウェイト頂点は強制的に\n  weight0=1, boneIndex0=0に設定",
+          shape=note, fillcolor=pink, style="rounded,dashed"];
+
+    // Flow
+    Title -> RawWeights [style=invis];
+    RawWeights -> IndexMapping;
+    IndexMapping -> BoneWeightStruct;
+    BoneWeightStruct -> Normalization;
+    Normalization -> NormalizedWeights;
+    NormalizedWeights -> Validation;
+    Validation -> Note [style=dashed];
+}

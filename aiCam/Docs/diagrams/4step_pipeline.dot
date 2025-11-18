@@ -1,0 +1,64 @@
+digraph FourStepPipeline {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    // STEP 1
+    subgraph cluster_step1 {
+        label="STEP 1: Transform階層構築";
+        style=filled;
+        fillcolor=lavender;
+
+        S1_Input [label="Input:\nAssimp Scene\nM_conv"];
+        S1_Process [label="TransformBuilder.Build()\n・Nodeツリー再帰走査\n・Matrix4x4分解\n・座標変換適用\n・GameObject生成"];
+        S1_Output [label="Output:\nTransform階層\nboneNameToTransform辞書"];
+
+        S1_Input -> S1_Process -> S1_Output;
+    }
+
+    // STEP 2
+    subgraph cluster_step2 {
+        label="STEP 2: メッシュデータ収集";
+        style=filled;
+        fillcolor=lightcyan;
+
+        S2_Input [label="Input:\nAssimp Mesh\nM_conv"];
+        S2_Process [label="MeshDataCollector.Collect()\n・頂点・法線変換\n・三角形巻き順反転\n・BlendShape登録\n・Unity Mesh作成"];
+        S2_Output [label="Output:\nMeshData\n(vertices, normals,\ntriangles, BlendShapes)"];
+
+        S2_Input -> S2_Process -> S2_Output;
+    }
+
+    // STEP 3
+    subgraph cluster_step3 {
+        label="STEP 3: ボーンデータ収集";
+        style=filled;
+        fillcolor=mistyrose;
+
+        S3_Input [label="Input:\nAssimp Bones\nvertexCount"];
+        S3_Process [label="BoneDataCollector.Collect()\n・全ユニークボーン収集\n・BoneWeight構築\n・Weight正規化 (Σwᵢ=1)\n・OffsetMatrix収集"];
+        S3_Output [label="Output:\nBoneData\n(boneWeights[], \noffsetMatrices)"];
+
+        S3_Input -> S3_Process -> S3_Output;
+    }
+
+    // STEP 4
+    subgraph cluster_step4 {
+        label="STEP 4: SkinnedMeshRenderer構築";
+        style=filled;
+        fillcolor=lightgoldenrodyellow;
+
+        S4_Input [label="Input:\nMeshData\nBoneData\nboneNameToTransform"];
+        S4_Process [label="SkinnedMeshBuilder.Build()\n・bones[]構築\n・bindposes[]計算\n・SMRセットアップ"];
+        S4_Output [label="Output:\nSkinnedMeshRenderer\n(bones, sharedMesh,\nrootBone, material)"];
+
+        S4_Input -> S4_Process -> S4_Output;
+    }
+
+    // Flow between steps
+    S1_Output -> S2_Input [style=dashed];
+    S1_Output -> S3_Input [style=dashed];
+    S2_Output -> S4_Input;
+    S3_Output -> S4_Input;
+    S1_Output -> S4_Input;
+}

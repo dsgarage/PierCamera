@@ -3,3 +3,8 @@
 FBX_ComparisonLogs/
 FBX_ImportLog/
 Material_Dump_Log/
+
+# FBX Import Logs
+FBXImportLogs/
+*.bak
+*.bak.meta
