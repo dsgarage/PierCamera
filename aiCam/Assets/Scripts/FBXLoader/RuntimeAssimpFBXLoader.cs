@@ -223,8 +223,9 @@ namespace AICam.FBXLoader
         }
 
         /// <summary>
-        /// AssimpのMatrix4x4からUnityのTransformに変換（座標系変換適用）
-        /// v0.3.2の成功ロジック: Transform階層に座標変換を適用してAポーズを維持
+        /// AssimpのMatrix4x4からUnityのTransformに変換（生TRS値を使用）
+        /// Transform階層はFBX RestPoseを保持するため座標変換を適用しない
+        /// 座標変換はMesh頂点のみに適用する
         /// </summary>
         private void SetTransformFromAssimpMatrix(Transform transform, Assimp.Matrix4x4 assimpMatrix)
         {
@@ -234,9 +235,10 @@ namespace AICam.FBXLoader
             Assimp.Vector3D position;
             assimpMatrix.Decompose(out scale, out rotation, out position);
 
-            // 座標系変換を適用してUnityのTransformに設定（v0.3.2と同じ）
-            transform.localPosition = FbxCoordinateSystemDetector.ConvertVector(position, coordinateConversionMatrix);
-            transform.localRotation = FbxCoordinateSystemDetector.ConvertQuaternion(rotation, coordinateConversionMatrix);
+            // Assimpの生TRS値をそのままUnity Transformに設定（座標変換なし）
+            // これによりTransform階層がFBX RestPoseと完全一致する
+            transform.localPosition = new UnityEngine.Vector3(position.X, position.Y, position.Z);
+            transform.localRotation = new UnityEngine.Quaternion(rotation.X, rotation.Y, rotation.Z, rotation.W);
             transform.localScale = new UnityEngine.Vector3(scale.X, scale.Y, scale.Z);
         }
 
@@ -521,7 +523,8 @@ namespace AICam.FBXLoader
                 for (int i = 0; i < assimpMesh.VertexCount; i++)
                 {
                     Assimp.Vector3D vertex = assimpMesh.Vertices[i];
-                    // Transform階層と同じ座標変換を適用（基準を一致させる）
+                    // Mesh頂点に座標系変換を適用（右手系→左手系）
+                    // Transform階層はFBX RestPoseを保持するため変換しない
                     UnityEngine.Vector3 unityVertex = FbxCoordinateSystemDetector.ConvertVector(vertex, coordinateConversionMatrix);
                     combinedVertices.Add(unityVertex);
                 }
@@ -931,7 +934,7 @@ namespace AICam.FBXLoader
             }
 
             // STEP 6: BindPose（bindposes）の生成
-            UnityEngine.Matrix4x4[] bindposes = BuildBindPoses(bones, nodeTransform);
+            UnityEngine.Matrix4x4[] bindposes = BuildBindPoses(assimpMesh);
             if (bindposes == null || bindposes.Length == 0)
             {
                 UnityEngine.Debug.LogError($"{LOG_PREFIX} STEP 6 FAILED: Could not build bindposes");
@@ -1072,65 +1075,66 @@ namespace AICam.FBXLoader
         }
 
         /// <summary>
-        /// STEP 6: BindPose を Unity 基準で計算
+        /// STEP 6: BindPose を Assimp offsetMatrix から生成
+        /// Transform階層はFBX RestPoseを保持しているため、offsetMatrixをそのまま使用
         /// </summary>
-        private UnityEngine.Matrix4x4[] BuildBindPoses(Transform[] bones, Transform meshTransform)
+        private UnityEngine.Matrix4x4[] BuildBindPoses(Assimp.Mesh assimpMesh)
         {
-            if (bones == null || bones.Length == 0)
+            if (assimpMesh == null || !assimpMesh.HasBones)
             {
-                UnityEngine.Debug.LogError($"{LOG_PREFIX} BuildBindPoses: bones array is null or empty");
+                UnityEngine.Debug.LogError($"{LOG_PREFIX} BuildBindPoses: mesh has no bones");
                 return null;
             }
 
-            if (meshTransform == null)
+            UnityEngine.Debug.Log($"{LOG_PREFIX} === STEP 6: Building BindPoses from OffsetMatrix ===");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Mesh: {assimpMesh.Name}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Total bones: {assimpMesh.BoneCount}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Source: Assimp aiBone.OffsetMatrix (FBX RestPose inverse)");
+
+            UnityEngine.Matrix4x4[] bindposes = new UnityEngine.Matrix4x4[assimpMesh.BoneCount];
+
+            for (int i = 0; i < assimpMesh.BoneCount; i++)
             {
-                UnityEngine.Debug.LogError($"{LOG_PREFIX} BuildBindPoses: meshTransform is null, cannot build bindposes");
-                return null;
-            }
+                Assimp.Bone bone = assimpMesh.Bones[i];
 
-            UnityEngine.Debug.Log($"{LOG_PREFIX} === STEP 6: Building BindPoses ===");
-            UnityEngine.Debug.Log($"{LOG_PREFIX}   Mesh Transform: {meshTransform.name} at {GetTransformPath(meshTransform)}");
-            UnityEngine.Debug.Log($"{LOG_PREFIX}   Total bones: {bones.Length}");
-            UnityEngine.Debug.Log($"{LOG_PREFIX}   Formula: bindposes[i] = bones[i].worldToLocalMatrix * meshTransform.localToWorldMatrix");
+                // Assimpの offsetMatrix はFBX RestPoseの逆行列
+                // これをUnity座標系に変換してBindPoseとして使用
+                bindposes[i] = ConvertAssimpMatrixToUnity(bone.OffsetMatrix);
 
-            UnityEngine.Matrix4x4[] bindposes = new UnityEngine.Matrix4x4[bones.Length];
-            int validCount = 0;
-            int nullCount = 0;
+                UnityEngine.Debug.Log($"{LOG_PREFIX}   BindPose[{i}]: {bone.Name}");
 
-            for (int i = 0; i < bones.Length; i++)
-            {
-                if (bones[i] != null)
-                {
-                    // Unity基準の正しいBindPose計算式（メッシュ空間 → ボーン空間）
-                    bindposes[i] = bones[i].worldToLocalMatrix * meshTransform.localToWorldMatrix;
-                    validCount++;
-
-                    UnityEngine.Debug.Log($"{LOG_PREFIX}   BindPose[{i}]: {bones[i].name}");
-                    UnityEngine.Debug.Log($"{LOG_PREFIX}     → Position: {bones[i].position}");
-                    UnityEngine.Debug.Log($"{LOG_PREFIX}     → Rotation: {bones[i].rotation.eulerAngles}");
-
-                    // 行列の一部を表示（デバッグ用）
-                    UnityEngine.Vector3 pos = bindposes[i].GetPosition();
-                    UnityEngine.Quaternion rot = bindposes[i].rotation;
-                    UnityEngine.Debug.Log($"{LOG_PREFIX}     → BindPose Matrix: pos={pos}, rot={rot.eulerAngles}");
-                }
-                else
-                {
-                    // ボーンが見つからなかった場合は単位行列
-                    bindposes[i] = UnityEngine.Matrix4x4.identity;
-                    nullCount++;
-                    UnityEngine.Debug.LogError($"{LOG_PREFIX}   BindPose[{i}]: NULL BONE - using identity matrix");
-                }
+                // 行列の一部を表示（デバッグ用）
+                UnityEngine.Vector3 pos = bindposes[i].GetPosition();
+                UnityEngine.Quaternion rot = bindposes[i].rotation;
+                UnityEngine.Debug.Log($"{LOG_PREFIX}     → OffsetMatrix converted to Unity");
+                UnityEngine.Debug.Log($"{LOG_PREFIX}     → BindPose Matrix: pos={pos}, rot={rot.eulerAngles}");
             }
 
             UnityEngine.Debug.Log($"{LOG_PREFIX} === STEP 6 Complete ===");
-            UnityEngine.Debug.Log($"{LOG_PREFIX}   Valid bindposes: {validCount}");
-            if (nullCount > 0)
-            {
-                UnityEngine.Debug.LogError($"{LOG_PREFIX}   Null bones: {nullCount}");
-            }
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   BindPoses created: {bindposes.Length}");
 
             return bindposes;
+        }
+
+        /// <summary>
+        /// Assimpの行列をUnity行列に変換（座標系変換適用）
+        /// 右手座標系(FBX) → 左手座標系(Unity)
+        /// </summary>
+        private UnityEngine.Matrix4x4 ConvertAssimpMatrixToUnity(Assimp.Matrix4x4 assimpMatrix)
+        {
+            // Assimpの行列を分解
+            Assimp.Vector3D scale;
+            Assimp.Quaternion rotation;
+            Assimp.Vector3D position;
+            assimpMatrix.Decompose(out scale, out rotation, out position);
+
+            // 座標系変換を適用
+            UnityEngine.Vector3 unityPosition = FbxCoordinateSystemDetector.ConvertVector(position, coordinateConversionMatrix);
+            UnityEngine.Quaternion unityRotation = FbxCoordinateSystemDetector.ConvertQuaternion(rotation, coordinateConversionMatrix);
+            UnityEngine.Vector3 unityScale = new UnityEngine.Vector3(scale.X, scale.Y, scale.Z);
+
+            // Unity行列として再構築
+            return UnityEngine.Matrix4x4.TRS(unityPosition, unityRotation, unityScale);
         }
 
         /// <summary>
