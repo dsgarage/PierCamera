@@ -426,45 +426,7 @@ namespace AICam.FBXLoader
             return null;
         }
 
-        /// <summary>
-        /// STEP 6: bindposeをUnity Transformから計算する
-        /// </summary>
-        /// <param name="bones">ボーンTransform配列</param>
-        /// <param name="rootBone">rootBone（Hips）</param>
-        /// <returns>bindpose配列</returns>
-        private UnityEngine.Matrix4x4[] CalculateBindPoses(Transform[] bones, Transform rootBone)
-        {
-            if (bones == null || bones.Length == 0)
-            {
-                UnityEngine.Debug.LogWarning($"{LOG_PREFIX} [STEP 6] No bones provided for bindpose calculation");
-                return new UnityEngine.Matrix4x4[0];
-            }
-
-            if (rootBone == null)
-            {
-                UnityEngine.Debug.LogError($"{LOG_PREFIX} [STEP 6] rootBone is null!");
-                return new UnityEngine.Matrix4x4[0];
-            }
-
-            UnityEngine.Matrix4x4[] bindposes = new UnityEngine.Matrix4x4[bones.Length];
-
-            // Unity期待値の公式: bindpose[i] = bones[i].worldToLocalMatrix * rootBone.localToWorldMatrix
-            for (int i = 0; i < bones.Length; i++)
-            {
-                if (bones[i] == null)
-                {
-                    UnityEngine.Debug.LogWarning($"{LOG_PREFIX} [STEP 6] bones[{i}] is null, using identity matrix");
-                    bindposes[i] = UnityEngine.Matrix4x4.identity;
-                    continue;
-                }
-
-                bindposes[i] = bones[i].worldToLocalMatrix * rootBone.localToWorldMatrix;
-            }
-
-            return bindposes;
-        }
-
-        // メッシュロード用にrootBoneをキャッシュ（STEP 5）
+        // メッシュロード用にrootBoneをキャッシュ（Avatar生成用）
         private Transform cachedRootBone;
 
         /// <summary>
