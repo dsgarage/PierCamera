@@ -141,6 +141,13 @@ namespace AICam.FBXLoader
                 boneNameToTransform[rootNode.Name] = rootObject.transform;
             }
 
+            // Hipsボーンを見つけたら即座にキャッシュ
+            if (rootNode.Name.ToLower().Contains("hips") && cachedRootBone == null)
+            {
+                cachedRootBone = rootObject.transform;
+                UnityEngine.Debug.Log($"{LOG_PREFIX} Root bone cached during hierarchy build: {rootNode.Name}");
+            }
+
             // このノードがメッシュを持っている場合、即座に処理
             if (rootNode.MeshCount > 0)
             {
@@ -182,6 +189,13 @@ namespace AICam.FBXLoader
             if (!boneNameToTransform.ContainsKey(node.Name))
             {
                 boneNameToTransform[node.Name] = nodeObject.transform;
+            }
+
+            // Hipsボーンを見つけたら即座にキャッシュ（メッシュ処理で必要）
+            if (node.Name.ToLower().Contains("hips") && cachedRootBone == null)
+            {
+                cachedRootBone = nodeObject.transform;
+                UnityEngine.Debug.Log($"{LOG_PREFIX} Root bone cached during hierarchy build: {node.Name}");
             }
 
             // このノードがメッシュを持っている場合、即座に処理
