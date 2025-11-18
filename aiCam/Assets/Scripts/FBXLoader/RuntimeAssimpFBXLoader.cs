@@ -931,7 +931,7 @@ namespace AICam.FBXLoader
             }
 
             // STEP 6: BindPose（bindposes）の生成
-            UnityEngine.Matrix4x4[] bindposes = BuildBindPoses(bones);
+            UnityEngine.Matrix4x4[] bindposes = BuildBindPoses(bones, nodeTransform);
             if (bindposes == null || bindposes.Length == 0)
             {
                 UnityEngine.Debug.LogError($"{LOG_PREFIX} STEP 6 FAILED: Could not build bindposes");
@@ -1074,7 +1074,7 @@ namespace AICam.FBXLoader
         /// <summary>
         /// STEP 6: BindPose を Unity 基準で計算
         /// </summary>
-        private UnityEngine.Matrix4x4[] BuildBindPoses(Transform[] bones)
+        private UnityEngine.Matrix4x4[] BuildBindPoses(Transform[] bones, Transform meshTransform)
         {
             if (bones == null || bones.Length == 0)
             {
@@ -1082,16 +1082,16 @@ namespace AICam.FBXLoader
                 return null;
             }
 
-            if (cachedRootBone == null)
+            if (meshTransform == null)
             {
-                UnityEngine.Debug.LogError($"{LOG_PREFIX} BuildBindPoses: cachedRootBone is null, cannot build bindposes");
+                UnityEngine.Debug.LogError($"{LOG_PREFIX} BuildBindPoses: meshTransform is null, cannot build bindposes");
                 return null;
             }
 
             UnityEngine.Debug.Log($"{LOG_PREFIX} === STEP 6: Building BindPoses ===");
-            UnityEngine.Debug.Log($"{LOG_PREFIX}   RootBone: {cachedRootBone.name} at {GetTransformPath(cachedRootBone)}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Mesh Transform: {meshTransform.name} at {GetTransformPath(meshTransform)}");
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Total bones: {bones.Length}");
-            UnityEngine.Debug.Log($"{LOG_PREFIX}   Formula: bindposes[i] = bones[i].worldToLocalMatrix * rootBone.localToWorldMatrix");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Formula: bindposes[i] = bones[i].worldToLocalMatrix * meshTransform.localToWorldMatrix");
 
             UnityEngine.Matrix4x4[] bindposes = new UnityEngine.Matrix4x4[bones.Length];
             int validCount = 0;
@@ -1101,8 +1101,8 @@ namespace AICam.FBXLoader
             {
                 if (bones[i] != null)
                 {
-                    // Unity基準の正しいBindPose計算式
-                    bindposes[i] = bones[i].worldToLocalMatrix * cachedRootBone.localToWorldMatrix;
+                    // Unity基準の正しいBindPose計算式（メッシュ空間 → ボーン空間）
+                    bindposes[i] = bones[i].worldToLocalMatrix * meshTransform.localToWorldMatrix;
                     validCount++;
 
                     UnityEngine.Debug.Log($"{LOG_PREFIX}   BindPose[{i}]: {bones[i].name}");
