@@ -602,7 +602,7 @@ namespace AICam.FBXLoader
                 await UniTask.Yield();
             }
 
-            // BoneWeightsをロード（最初のメッシュのボーン構造を使用）
+            // STEP 5 (前処理): BoneWeightsをロード（最初のメッシュのボーン構造を使用）
             if (node.MeshCount > 0)
             {
                 int assimpMeshIndex = node.MeshIndices[0];
@@ -610,13 +610,20 @@ namespace AICam.FBXLoader
 
                 if (assimpMesh.HasBones)
                 {
+                    UnityEngine.Debug.Log($"{LOG_PREFIX} === STEP 5 (Pre-processing): Loading BoneWeights ===");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}   Total vertices: {combinedVertices.Count}");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}   Total bones: {assimpMesh.BoneCount}");
+
                     // 頂点数分のBoneWeight配列を初期化
                     UnityEngine.BoneWeight[] boneWeights = new UnityEngine.BoneWeight[combinedVertices.Count];
+                    int totalWeightsProcessed = 0;
+                    int skippedWeights = 0;
 
                     // 各ボーンのウェイトデータを処理
                     for (int boneIndex = 0; boneIndex < assimpMesh.BoneCount; boneIndex++)
                     {
                         Assimp.Bone bone = assimpMesh.Bones[boneIndex];
+                        int weightsForThisBone = 0;
 
                         // このボーンが影響する全頂点を処理
                         foreach (var vertexWeight in bone.VertexWeights)
@@ -626,39 +633,66 @@ namespace AICam.FBXLoader
 
                             // 頂点範囲チェック
                             if (vertexIndex >= boneWeights.Length)
+                            {
+                                skippedWeights++;
                                 continue;
+                            }
 
                             // BoneWeightに追加（最大4つまで）- async methodsではrefが使えないので直接アクセス
                             UnityEngine.BoneWeight bw = boneWeights[vertexIndex];
+                            bool added = false;
 
                             if (bw.weight0 == 0f)
                             {
                                 bw.boneIndex0 = boneIndex;
                                 bw.weight0 = weight;
+                                added = true;
                             }
                             else if (bw.weight1 == 0f)
                             {
                                 bw.boneIndex1 = boneIndex;
                                 bw.weight1 = weight;
+                                added = true;
                             }
                             else if (bw.weight2 == 0f)
                             {
                                 bw.boneIndex2 = boneIndex;
                                 bw.weight2 = weight;
+                                added = true;
                             }
                             else if (bw.weight3 == 0f)
                             {
                                 bw.boneIndex3 = boneIndex;
                                 bw.weight3 = weight;
+                                added = true;
+                            }
+
+                            if (added)
+                            {
+                                weightsForThisBone++;
+                                totalWeightsProcessed++;
+                            }
+                            else
+                            {
+                                skippedWeights++;
                             }
 
                             // 変更を配列に書き戻す
                             boneWeights[vertexIndex] = bw;
                         }
+
+                        UnityEngine.Debug.Log($"{LOG_PREFIX}   Bone[{boneIndex}] '{bone.Name}': {weightsForThisBone} weights assigned");
                     }
 
                     combinedBoneWeights.AddRange(boneWeights);
-                    UnityEngine.Debug.Log($"{LOG_PREFIX}   BoneWeights: {boneWeights.Length} vertices");
+
+                    UnityEngine.Debug.Log($"{LOG_PREFIX} === STEP 5 (Pre-processing) Complete ===");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}   Total weights processed: {totalWeightsProcessed}");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}   Vertices with weights: {boneWeights.Length}");
+                    if (skippedWeights > 0)
+                    {
+                        UnityEngine.Debug.LogWarning($"{LOG_PREFIX}   Skipped weights (>4 per vertex or out of range): {skippedWeights}");
+                    }
                 }
             }
 
@@ -858,25 +892,57 @@ namespace AICam.FBXLoader
             UnityEngine.Debug.Log($"{LOG_PREFIX} STEP 4: Bones array built: {bones.Length} bones");
 
             // STEP 5: BoneWeights の設定
+            UnityEngine.Debug.Log($"{LOG_PREFIX} === STEP 5: Assigning BoneWeights to Mesh ===");
             if (boneWeights.Count > 0)
             {
-                mesh.boneWeights = boneWeights.ToArray();
-                UnityEngine.Debug.Log($"{LOG_PREFIX} STEP 5: BoneWeights assigned: {boneWeights.Count}");
+                UnityEngine.BoneWeight[] boneWeightsArray = boneWeights.ToArray();
+                mesh.boneWeights = boneWeightsArray;
+
+                // ウェイト統計
+                int verticesWithWeights = 0;
+                int totalWeights = 0;
+                for (int i = 0; i < boneWeightsArray.Length; i++)
+                {
+                    var bw = boneWeightsArray[i];
+                    int weightsForVertex = 0;
+                    if (bw.weight0 > 0) weightsForVertex++;
+                    if (bw.weight1 > 0) weightsForVertex++;
+                    if (bw.weight2 > 0) weightsForVertex++;
+                    if (bw.weight3 > 0) weightsForVertex++;
+
+                    if (weightsForVertex > 0)
+                    {
+                        verticesWithWeights++;
+                        totalWeights += weightsForVertex;
+                    }
+                }
+
+                float avgWeightsPerVertex = verticesWithWeights > 0 ? (float)totalWeights / verticesWithWeights : 0;
+
+                UnityEngine.Debug.Log($"{LOG_PREFIX}   Assigned to mesh.boneWeights");
+                UnityEngine.Debug.Log($"{LOG_PREFIX}   Total vertices: {boneWeightsArray.Length}");
+                UnityEngine.Debug.Log($"{LOG_PREFIX}   Vertices with weights: {verticesWithWeights}");
+                UnityEngine.Debug.Log($"{LOG_PREFIX}   Average weights per vertex: {avgWeightsPerVertex:F2}");
+                UnityEngine.Debug.Log($"{LOG_PREFIX} === STEP 5 Complete ===");
             }
             else
             {
-                UnityEngine.Debug.LogWarning($"{LOG_PREFIX} No bone weights found");
+                UnityEngine.Debug.LogError($"{LOG_PREFIX} STEP 5 FAILED: No bone weights found!");
             }
 
             // STEP 6: BindPose（bindposes）の生成
             UnityEngine.Matrix4x4[] bindposes = BuildBindPoses(bones);
             if (bindposes == null || bindposes.Length == 0)
             {
-                UnityEngine.Debug.LogError($"{LOG_PREFIX} Failed to build bindposes");
+                UnityEngine.Debug.LogError($"{LOG_PREFIX} STEP 6 FAILED: Could not build bindposes");
                 return;
             }
+
+            UnityEngine.Debug.Log($"{LOG_PREFIX} === STEP 6: Assigning BindPoses to Mesh ===");
             mesh.bindposes = bindposes;
-            UnityEngine.Debug.Log($"{LOG_PREFIX} STEP 6: BindPoses built: {bindposes.Length}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Assigned to mesh.bindposes");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Total bindposes: {bindposes.Length}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX} === STEP 6 Complete ===");
 
             // STEP 7: SkinnedMeshRenderer の構築
             UnityEngine.Debug.Log($"{LOG_PREFIX} STEP 7: Creating SkinnedMeshRenderer");
@@ -965,7 +1031,13 @@ namespace AICam.FBXLoader
             if (!assimpMesh.HasBones)
                 return null;
 
+            UnityEngine.Debug.Log($"{LOG_PREFIX} === STEP 4: Building Bones Array ===");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Total bones in mesh: {assimpMesh.BoneCount}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Cached bone names: {boneNameToTransform.Count}");
+
             Transform[] bones = new Transform[assimpMesh.BoneCount];
+            int foundCount = 0;
+            int notFoundCount = 0;
 
             for (int i = 0; i < assimpMesh.BoneCount; i++)
             {
@@ -976,14 +1048,24 @@ namespace AICam.FBXLoader
                 if (boneNameToTransform.TryGetValue(boneName, out Transform boneTransform))
                 {
                     bones[i] = boneTransform;
-                    UnityEngine.Debug.Log($"{LOG_PREFIX}   Bone[{i}]: {boneName} → {GetTransformPath(boneTransform)}");
+                    foundCount++;
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}   Bone[{i}]: {boneName}");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}     → Path: {GetTransformPath(boneTransform)}");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}     → Affects: {bone.VertexWeightCount} vertices");
                 }
                 else
                 {
-                    UnityEngine.Debug.LogWarning($"{LOG_PREFIX}   Bone[{i}]: {boneName} NOT FOUND in hierarchy");
-                    // 見つからない場合は null（SkinnedMeshRenderer がエラーを出す可能性あり）
                     bones[i] = null;
+                    notFoundCount++;
+                    UnityEngine.Debug.LogError($"{LOG_PREFIX}   Bone[{i}]: {boneName} NOT FOUND in hierarchy!");
                 }
+            }
+
+            UnityEngine.Debug.Log($"{LOG_PREFIX} === STEP 4 Complete ===");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Found: {foundCount}/{assimpMesh.BoneCount}");
+            if (notFoundCount > 0)
+            {
+                UnityEngine.Debug.LogError($"{LOG_PREFIX}   NOT FOUND: {notFoundCount} bones missing!");
             }
 
             return bones;
@@ -995,15 +1077,25 @@ namespace AICam.FBXLoader
         private UnityEngine.Matrix4x4[] BuildBindPoses(Transform[] bones)
         {
             if (bones == null || bones.Length == 0)
-                return null;
-
-            if (cachedRootBone == null)
             {
-                UnityEngine.Debug.LogError($"{LOG_PREFIX} cachedRootBone is null, cannot build bindposes");
+                UnityEngine.Debug.LogError($"{LOG_PREFIX} BuildBindPoses: bones array is null or empty");
                 return null;
             }
 
+            if (cachedRootBone == null)
+            {
+                UnityEngine.Debug.LogError($"{LOG_PREFIX} BuildBindPoses: cachedRootBone is null, cannot build bindposes");
+                return null;
+            }
+
+            UnityEngine.Debug.Log($"{LOG_PREFIX} === STEP 6: Building BindPoses ===");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   RootBone: {cachedRootBone.name} at {GetTransformPath(cachedRootBone)}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Total bones: {bones.Length}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Formula: bindposes[i] = bones[i].worldToLocalMatrix * rootBone.localToWorldMatrix");
+
             UnityEngine.Matrix4x4[] bindposes = new UnityEngine.Matrix4x4[bones.Length];
+            int validCount = 0;
+            int nullCount = 0;
 
             for (int i = 0; i < bones.Length; i++)
             {
@@ -1011,14 +1103,31 @@ namespace AICam.FBXLoader
                 {
                     // Unity基準の正しいBindPose計算式
                     bindposes[i] = bones[i].worldToLocalMatrix * cachedRootBone.localToWorldMatrix;
+                    validCount++;
+
                     UnityEngine.Debug.Log($"{LOG_PREFIX}   BindPose[{i}]: {bones[i].name}");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}     → Position: {bones[i].position}");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}     → Rotation: {bones[i].rotation.eulerAngles}");
+
+                    // 行列の一部を表示（デバッグ用）
+                    UnityEngine.Vector3 pos = bindposes[i].GetPosition();
+                    UnityEngine.Quaternion rot = bindposes[i].rotation;
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}     → BindPose Matrix: pos={pos}, rot={rot.eulerAngles}");
                 }
                 else
                 {
                     // ボーンが見つからなかった場合は単位行列
                     bindposes[i] = UnityEngine.Matrix4x4.identity;
-                    UnityEngine.Debug.LogWarning($"{LOG_PREFIX}   BindPose[{i}]: null bone, using identity matrix");
+                    nullCount++;
+                    UnityEngine.Debug.LogError($"{LOG_PREFIX}   BindPose[{i}]: NULL BONE - using identity matrix");
                 }
+            }
+
+            UnityEngine.Debug.Log($"{LOG_PREFIX} === STEP 6 Complete ===");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Valid bindposes: {validCount}");
+            if (nullCount > 0)
+            {
+                UnityEngine.Debug.LogError($"{LOG_PREFIX}   Null bones: {nullCount}");
             }
 
             return bindposes;
