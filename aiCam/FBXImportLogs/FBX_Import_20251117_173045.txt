@@ -1,0 +1,317 @@
+=== FBX Import Log Session: FBX_Import_20251117_173045 ===
+Started: 2025-11-17 17:30:45
+
+[RuntimeFBXLoaderBridge] Starting FBX load: /Users/daisuketsukada/Downloads/ExtractedUnityPackage/Kyoko_20251112_090405/Kyoko/FBX/kyoko.fbx
+[RuntimeFBXLoaderBridge] Using TriLib default loader options
+[RuntimeFBXLoaderBridge] BindPose preservation: Avoiding OptimizeGraph, OptimizeMeshes, PreTransformVertices
+[WARN] [RuntimeFBXLoaderBridge] No HumanoidAvatarMapper assigned. Using TriLib defaults.
+[RuntimeFBXLoaderBridge] FBX meshes loaded
+[RuntimeFBXLoaderBridge] FBX materials loaded
+[RuntimeFBXLoaderBridge] FBX root: kyoko
+[RuntimeFBXLoaderBridge] Model placed at World Position: (0.00, 0.00, 0.00)
+[RuntimeFBXLoaderBridge] Model Rotation: (0.00, 180.00, 0.00)
+[RuntimeFBXLoaderBridge] Model Scale: (1.00, 1.00, 1.00)
+[RuntimeFBXLoaderBridge] Parent: RuntimeManager
+[RuntimeFBXLoaderBridge] Found 16 renderers
+[RuntimeFBXLoaderBridge] Renderer: Body, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Ear, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Hair, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Hat, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Inner, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Karada_new, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Loungewear_kyoko, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Loungewear_kyoko_Underwear, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Loungewear_saneko, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Nail, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Outer, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Shoes, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Socks, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Swimwear, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Tail, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Underwear, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] TriLib generated Animator. Avatar: null
+[RuntimeFBXLoaderBridge] Found 16 SkinnedMeshRenderer(s)
+[RuntimeFBXLoaderBridge]   - SMR: Body, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Ear, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Hair, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Hat, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Inner, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Karada_new, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Loungewear_kyoko, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Loungewear_kyoko_Underwear, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Loungewear_saneko, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Nail, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Outer, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Shoes, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Socks, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Swimwear, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Tail, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Underwear, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge] Using RuntimeHumanoidAvatarBuilder for Avatar generation
+[RuntimeHumanoidAvatarBuilder] === Bone Mapping Start for 'kyoko' ===
+[RuntimeHumanoidAvatarBuilder] Total transforms found: 152
+[RuntimeHumanoidAvatarBuilder] Bone mapping completed. Mapped 53 bones:
+[RuntimeHumanoidAvatarBuilder] === Bone Mapping End ===
+[RuntimeHumanoidAvatarBuilder] === Left/Right Correction Start ===
+[RuntimeHumanoidAvatarBuilder] Hips transform: Hips
+[RuntimeHumanoidAvatarBuilder] Checking UpperLeg:
+[RuntimeHumanoidAvatarBuilder] Checking LowerLeg:
+[RuntimeHumanoidAvatarBuilder] Checking Foot:
+[RuntimeHumanoidAvatarBuilder] Checking Shoulder:
+[RuntimeHumanoidAvatarBuilder] Checking UpperArm:
+[RuntimeHumanoidAvatarBuilder] Checking LowerArm:
+[RuntimeHumanoidAvatarBuilder] Checking Hand:
+[RuntimeHumanoidAvatarBuilder] Checking Toes:
+[RuntimeHumanoidAvatarBuilder] Checking Eye:
+[RuntimeHumanoidAvatarBuilder] Checking ThumbProximal:
+[RuntimeHumanoidAvatarBuilder] Checking ThumbIntermediate:
+[RuntimeHumanoidAvatarBuilder] Checking ThumbDistal:
+[RuntimeHumanoidAvatarBuilder] Checking IndexProximal:
+[RuntimeHumanoidAvatarBuilder] Checking IndexIntermediate:
+[RuntimeHumanoidAvatarBuilder] Checking IndexDistal:
+[RuntimeHumanoidAvatarBuilder] Checking MiddleProximal:
+[RuntimeHumanoidAvatarBuilder] Checking MiddleIntermediate:
+[RuntimeHumanoidAvatarBuilder] Checking MiddleDistal:
+[RuntimeHumanoidAvatarBuilder] Checking RingProximal:
+[RuntimeHumanoidAvatarBuilder] Checking RingIntermediate:
+[RuntimeHumanoidAvatarBuilder] Checking RingDistal:
+[RuntimeHumanoidAvatarBuilder] Checking LittleProximal:
+[RuntimeHumanoidAvatarBuilder] Checking LittleIntermediate:
+[RuntimeHumanoidAvatarBuilder] Checking LittleDistal:
+[RuntimeHumanoidAvatarBuilder] Left/Right correction: 0 pairs swapped
+[RuntimeHumanoidAvatarBuilder] === Left/Right Correction End ===
+[WARN] [kyoko] L-Arm off T-Pose by 17.3°
+[WARN] [kyoko] R-Arm off T-Pose by 17.3°
+[WARN] [kyoko] L-Leg off T-Pose by 28.2°
+[WARN] [kyoko] R-Leg off T-Pose by 28.2°
+[RuntimeHumanoidAvatarBuilder] === Root Coordinate System Conversion ===
+[RuntimeHumanoidAvatarBuilder] Root before: localRot=(0.00000, 1.00000, 0.00000, 0.00000) (Euler: (0.00, 180.00, 0.00))
+[RuntimeHumanoidAvatarBuilder] Root after:  localRot=(0.00000, 0.70711, 0.70711, 0.00000) (Euler: (270.00, 180.00, 0.00))
+[RuntimeHumanoidAvatarBuilder] === Root Coordinate System Conversion Complete ===
+[FixJointOrientation] Called with boneType: Hips
+[FixJointOrientation] Hips - HIT HIPS CASE! Returning Euler(90, 0, 0)
+[FixJointOrientation] Hips - quaternion value: (0.70711, 0.00000, 0.00000, 0.70711) (Euler: (90.00, 0.00, 0.00))
+[SkeletonBone] Hips (Hips) - After FixJointOrientation returned: (0.70711, 0.00000, 0.00000, 0.70711) (Euler: (90.00, 0.00, 0.00))
+[SkeletonBone] Hips (Hips):
+[FixJointOrientation] Called with boneType: Spine
+[SkeletonBone] Spine (Spine) - After FixJointOrientation returned: (0.08881, 0.00000, 0.00000, 0.99605) (Euler: (10.19, 0.00, 0.00))
+[SkeletonBone] Spine (Spine):
+[FixJointOrientation] Called with boneType: Chest
+[SkeletonBone] Chest (Chest) - After FixJointOrientation returned: (-0.17836, 0.00000, 0.00000, 0.98397) (Euler: (339.45, 0.00, 0.00))
+[SkeletonBone] Chest (Chest):
+[FixJointOrientation] Called with boneType: Neck
+[SkeletonBone] Neck (Neck) - After FixJointOrientation returned: (0.19726, 0.00000, 0.00000, 0.98035) (Euler: (22.75, 0.00, 0.00))
+[SkeletonBone] Neck (Neck):
+[FixJointOrientation] Called with boneType: Head
+[SkeletonBone] Head (Head) - After FixJointOrientation returned: (-0.10796, 0.00000, 0.00000, 0.99416) (Euler: (347.60, 0.00, 0.00))
+[SkeletonBone] Head (Head):
+[FixJointOrientation] Called with boneType: LeftEye
+[FixJointOrientation] Hit DEFAULT case for LeftEye
+[SkeletonBone] LeftEye (LeftEye) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] LeftEye (LeftEye):
+[FixJointOrientation] Called with boneType: RightEye
+[FixJointOrientation] Hit DEFAULT case for RightEye
+[SkeletonBone] RightEye (RightEye) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] RightEye (RightEye):
+[FixJointOrientation] Called with boneType: LeftShoulder
+[FixJointOrientation] Hit DEFAULT case for LeftShoulder
+[SkeletonBone] LeftShoulder (Shoulder.L) - After FixJointOrientation returned: (-0.47466, 0.47466, 0.52412, 0.52412) (Euler: (275.67, 0.00, 90.00))
+[SkeletonBone] LeftShoulder (Shoulder.L):
+[FixJointOrientation] Called with boneType: LeftUpperArm
+[SkeletonBone] LeftUpperArm (Upper Arm.L) - After FixJointOrientation returned: (-0.05295, 0.00000, 0.99860, 0.00000) (Euler: (0.00, 353.93, 180.00))
+[SkeletonBone] LeftUpperArm (Upper Arm.L):
+[FixJointOrientation] Called with boneType: LeftLowerArm
+[SkeletonBone] LeftLowerArm (Lower Arm.L) - After FixJointOrientation returned: (0.01207, 0.00000, 0.99993, 0.00000) (Euler: (0.00, 1.38, 180.00))
+[SkeletonBone] LeftLowerArm (Lower Arm.L):
+[FixJointOrientation] Called with boneType: LeftHand
+[SkeletonBone] LeftHand (Hand.L) - After FixJointOrientation returned: (0.00000, 0.00000, 1.00000, 0.00000) (Euler: (0.00, 0.00, 180.00))
+[SkeletonBone] LeftHand (Hand.L):
+[FixJointOrientation] Called with boneType: LeftIndexProximal
+[FixJointOrientation] Hit DEFAULT case for LeftIndexProximal
+[SkeletonBone] LeftIndexProximal (Proximal Index.L) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] LeftIndexProximal (Proximal Index.L):
+[FixJointOrientation] Called with boneType: LeftIndexIntermediate
+[FixJointOrientation] Hit DEFAULT case for LeftIndexIntermediate
+[SkeletonBone] LeftIndexIntermediate (Intermediate Index.L) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] LeftIndexIntermediate (Intermediate Index.L):
+[FixJointOrientation] Called with boneType: LeftIndexDistal
+[FixJointOrientation] Hit DEFAULT case for LeftIndexDistal
+[SkeletonBone] LeftIndexDistal (Distal Index.L) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] LeftIndexDistal (Distal Index.L):
+[FixJointOrientation] Called with boneType: LeftLittleProximal
+[FixJointOrientation] Hit DEFAULT case for LeftLittleProximal
+[SkeletonBone] LeftLittleProximal (Proximal Little.L) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] LeftLittleProximal (Proximal Little.L):
+[FixJointOrientation] Called with boneType: LeftLittleIntermediate
+[FixJointOrientation] Hit DEFAULT case for LeftLittleIntermediate
+[SkeletonBone] LeftLittleIntermediate (Intermediate Little.L) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] LeftLittleIntermediate (Intermediate Little.L):
+[FixJointOrientation] Called with boneType: LeftLittleDistal
+[FixJointOrientation] Hit DEFAULT case for LeftLittleDistal
+[SkeletonBone] LeftLittleDistal (Distal Little.L) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] LeftLittleDistal (Distal Little.L):
+[FixJointOrientation] Called with boneType: LeftMiddleProximal
+[FixJointOrientation] Hit DEFAULT case for LeftMiddleProximal
+[SkeletonBone] LeftMiddleProximal (Proximal Middle.L) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] LeftMiddleProximal (Proximal Middle.L):
+[FixJointOrientation] Called with boneType: LeftMiddleIntermediate
+[FixJointOrientation] Hit DEFAULT case for LeftMiddleIntermediate
+[SkeletonBone] LeftMiddleIntermediate (Intermediate Middle.L) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] LeftMiddleIntermediate (Intermediate Middle.L):
+[FixJointOrientation] Called with boneType: LeftMiddleDistal
+[FixJointOrientation] Hit DEFAULT case for LeftMiddleDistal
+[SkeletonBone] LeftMiddleDistal (Distal Middle.L) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] LeftMiddleDistal (Distal Middle.L):
+[FixJointOrientation] Called with boneType: LeftRingProximal
+[FixJointOrientation] Hit DEFAULT case for LeftRingProximal
+[SkeletonBone] LeftRingProximal (Proximal Ring.L) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] LeftRingProximal (Proximal Ring.L):
+[FixJointOrientation] Called with boneType: LeftRingIntermediate
+[FixJointOrientation] Hit DEFAULT case for LeftRingIntermediate
+[SkeletonBone] LeftRingIntermediate (Intermediate Ring.L) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] LeftRingIntermediate (Intermediate Ring.L):
+[FixJointOrientation] Called with boneType: LeftRingDistal
+[FixJointOrientation] Hit DEFAULT case for LeftRingDistal
+[SkeletonBone] LeftRingDistal (Distal Ring.L) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] LeftRingDistal (Distal Ring.L):
+[FixJointOrientation] Called with boneType: LeftThumbProximal
+[FixJointOrientation] Hit DEFAULT case for LeftThumbProximal
+[SkeletonBone] LeftThumbProximal (Proximal Thumb.L) - After FixJointOrientation returned: (-0.24840, 0.13926, 0.23703, 0.92883) (Euler: (328.17, 9.55, 25.90))
+[SkeletonBone] LeftThumbProximal (Proximal Thumb.L):
+[FixJointOrientation] Called with boneType: LeftThumbIntermediate
+[FixJointOrientation] Hit DEFAULT case for LeftThumbIntermediate
+[SkeletonBone] LeftThumbIntermediate (Intermediate Thumb.L) - After FixJointOrientation returned: (0.06718, 0.02543, -0.00034, 0.99742) (Euler: (7.70, 2.93, 0.16))
+[SkeletonBone] LeftThumbIntermediate (Intermediate Thumb.L):
+[FixJointOrientation] Called with boneType: LeftThumbDistal
+[FixJointOrientation] Hit DEFAULT case for LeftThumbDistal
+[SkeletonBone] LeftThumbDistal (Distal Thumb.L) - After FixJointOrientation returned: (-0.00375, -0.01057, 0.03508, 0.99932) (Euler: (359.61, 358.77, 4.03))
+[SkeletonBone] LeftThumbDistal (Distal Thumb.L):
+[FixJointOrientation] Called with boneType: RightShoulder
+[FixJointOrientation] Hit DEFAULT case for RightShoulder
+[SkeletonBone] RightShoulder (Shoulder.R) - After FixJointOrientation returned: (-0.47466, -0.47466, -0.52412, 0.52412) (Euler: (275.67, 0.00, 270.00))
+[SkeletonBone] RightShoulder (Shoulder.R):
+[FixJointOrientation] Called with boneType: RightUpperArm
+[SkeletonBone] RightUpperArm (Upper Arm.R) - After FixJointOrientation returned: (0.05295, 0.00000, 0.99860, 0.00000) (Euler: (0.00, 6.07, 180.00))
+[SkeletonBone] RightUpperArm (Upper Arm.R):
+[FixJointOrientation] Called with boneType: RightLowerArm
+[SkeletonBone] RightLowerArm (Lower Arm.R) - After FixJointOrientation returned: (-0.01207, 0.00000, 0.99993, 0.00000) (Euler: (0.00, 358.62, 180.00))
+[SkeletonBone] RightLowerArm (Lower Arm.R):
+[FixJointOrientation] Called with boneType: RightHand
+[SkeletonBone] RightHand (Hand.R) - After FixJointOrientation returned: (0.00000, 0.00000, 1.00000, 0.00000) (Euler: (0.00, 0.00, 180.00))
+[SkeletonBone] RightHand (Hand.R):
+[FixJointOrientation] Called with boneType: RightIndexProximal
+[FixJointOrientation] Hit DEFAULT case for RightIndexProximal
+[SkeletonBone] RightIndexProximal (Proximal Index.R) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] RightIndexProximal (Proximal Index.R):
+[FixJointOrientation] Called with boneType: RightIndexIntermediate
+[FixJointOrientation] Hit DEFAULT case for RightIndexIntermediate
+[SkeletonBone] RightIndexIntermediate (Intermediate Index.R) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] RightIndexIntermediate (Intermediate Index.R):
+[FixJointOrientation] Called with boneType: RightIndexDistal
+[FixJointOrientation] Hit DEFAULT case for RightIndexDistal
+[SkeletonBone] RightIndexDistal (Distal Index.R) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] RightIndexDistal (Distal Index.R):
+[FixJointOrientation] Called with boneType: RightLittleProximal
+[FixJointOrientation] Hit DEFAULT case for RightLittleProximal
+[SkeletonBone] RightLittleProximal (Proximal Little.R) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] RightLittleProximal (Proximal Little.R):
+[FixJointOrientation] Called with boneType: RightLittleIntermediate
+[FixJointOrientation] Hit DEFAULT case for RightLittleIntermediate
+[SkeletonBone] RightLittleIntermediate (Intermediate Little.R) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] RightLittleIntermediate (Intermediate Little.R):
+[FixJointOrientation] Called with boneType: RightLittleDistal
+[FixJointOrientation] Hit DEFAULT case for RightLittleDistal
+[SkeletonBone] RightLittleDistal (Distal Little.R) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] RightLittleDistal (Distal Little.R):
+[FixJointOrientation] Called with boneType: RightMiddleProximal
+[FixJointOrientation] Hit DEFAULT case for RightMiddleProximal
+[SkeletonBone] RightMiddleProximal (Proximal Middle.R) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] RightMiddleProximal (Proximal Middle.R):
+[FixJointOrientation] Called with boneType: RightMiddleIntermediate
+[FixJointOrientation] Hit DEFAULT case for RightMiddleIntermediate
+[SkeletonBone] RightMiddleIntermediate (Intermediate Middle.R) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] RightMiddleIntermediate (Intermediate Middle.R):
+[FixJointOrientation] Called with boneType: RightMiddleDistal
+[FixJointOrientation] Hit DEFAULT case for RightMiddleDistal
+[SkeletonBone] RightMiddleDistal (Distal Middle.R) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] RightMiddleDistal (Distal Middle.R):
+[FixJointOrientation] Called with boneType: RightRingProximal
+[FixJointOrientation] Hit DEFAULT case for RightRingProximal
+[SkeletonBone] RightRingProximal (Proximal Ring.R) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] RightRingProximal (Proximal Ring.R):
+[FixJointOrientation] Called with boneType: RightRingIntermediate
+[FixJointOrientation] Hit DEFAULT case for RightRingIntermediate
+[SkeletonBone] RightRingIntermediate (Intermediate Ring.R) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] RightRingIntermediate (Intermediate Ring.R):
+[FixJointOrientation] Called with boneType: RightRingDistal
+[FixJointOrientation] Hit DEFAULT case for RightRingDistal
+[SkeletonBone] RightRingDistal (Distal Ring.R) - After FixJointOrientation returned: (0.00000, 0.00000, 0.00000, 1.00000) (Euler: (0.00, 0.00, 0.00))
+[SkeletonBone] RightRingDistal (Distal Ring.R):
+[FixJointOrientation] Called with boneType: RightThumbProximal
+[FixJointOrientation] Hit DEFAULT case for RightThumbProximal
+[SkeletonBone] RightThumbProximal (Proximal Thumb.R) - After FixJointOrientation returned: (-0.24840, -0.13926, -0.23703, 0.92883) (Euler: (328.17, 350.45, 334.10))
+[SkeletonBone] RightThumbProximal (Proximal Thumb.R):
+[FixJointOrientation] Called with boneType: RightThumbIntermediate
+[FixJointOrientation] Hit DEFAULT case for RightThumbIntermediate
+[SkeletonBone] RightThumbIntermediate (Intermediate Thumb.R) - After FixJointOrientation returned: (0.06718, -0.02543, 0.00034, 0.99742) (Euler: (7.70, 357.07, 359.84))
+[SkeletonBone] RightThumbIntermediate (Intermediate Thumb.R):
+[FixJointOrientation] Called with boneType: RightThumbDistal
+[FixJointOrientation] Hit DEFAULT case for RightThumbDistal
+[SkeletonBone] RightThumbDistal (Distal Thumb.R) - After FixJointOrientation returned: (-0.00375, 0.01057, -0.03508, 0.99932) (Euler: (359.61, 1.23, 355.97))
+[SkeletonBone] RightThumbDistal (Distal Thumb.R):
+[FixJointOrientation] Called with boneType: LeftUpperLeg
+[SkeletonBone] LeftUpperLeg (Upper Leg.L) - After FixJointOrientation returned: (0.99988, 0.00001, 0.00045, 0.01524) (Euler: (1.75, 179.95, 180.00))
+[SkeletonBone] LeftUpperLeg (Upper Leg.L):
+[FixJointOrientation] Called with boneType: LeftLowerLeg
+[SkeletonBone] LeftLowerLeg (Lower Leg.L) - After FixJointOrientation returned: (0.10041, -0.00054, 0.00004, 0.99495) (Euler: (11.53, 359.94, 0.00))
+[SkeletonBone] LeftLowerLeg (Lower Leg.L):
+[FixJointOrientation] Called with boneType: LeftFoot
+[SkeletonBone] LeftFoot (Foot.L) - After FixJointOrientation returned: (-0.55603, 0.00082, -0.00045, 0.83116) (Euler: (292.44, 0.28, 359.75))
+[SkeletonBone] LeftFoot (Foot.L):
+[FixJointOrientation] Called with boneType: LeftToes
+[SkeletonBone] LeftToes (Toes.L) - After FixJointOrientation returned: (-0.05637, 0.94035, -0.27166, 0.19687) (Euler: (29.26, 152.65, 345.87))
+[SkeletonBone] LeftToes (Toes.L):
+[FixJointOrientation] Called with boneType: RightUpperLeg
+[SkeletonBone] RightUpperLeg (Upper Leg.R) - After FixJointOrientation returned: (0.99988, -0.00001, -0.00045, 0.01524) (Euler: (1.75, 180.05, 180.00))
+[SkeletonBone] RightUpperLeg (Upper Leg.R):
+[FixJointOrientation] Called with boneType: RightLowerLeg
+[SkeletonBone] RightLowerLeg (Lower Leg.R) - After FixJointOrientation returned: (0.10041, 0.00054, -0.00004, 0.99495) (Euler: (11.53, 0.06, 0.00))
+[SkeletonBone] RightLowerLeg (Lower Leg.R):
+[FixJointOrientation] Called with boneType: RightFoot
+[SkeletonBone] RightFoot (Foot.R) - After FixJointOrientation returned: (-0.55603, -0.00082, 0.00045, 0.83116) (Euler: (292.44, 359.72, 0.25))
+[SkeletonBone] RightFoot (Foot.R):
+[FixJointOrientation] Called with boneType: RightToes
+[SkeletonBone] RightToes (Toes.R) - After FixJointOrientation returned: (0.05637, 0.94035, -0.27166, -0.19687) (Euler: (29.26, 207.35, 14.13))
+[SkeletonBone] RightToes (Toes.R):
+[RuntimeHumanoidAvatarBuilder] Generated 152 SkeletonBones (with Joint Orientation corrections)
+[RuntimeHumanoidAvatarBuilder] HumanDescription configured:
+[RuntimeHumanoidAvatarBuilder] Successfully built Avatar for kyoko. IsValid: True, IsHuman: True
+[RuntimeHumanoidAvatarBuilder] Validating 16 SkinnedMeshRenderer(s)
+[RuntimeHumanoidAvatarBuilder] Preserving original BindPoses for Body
+[RuntimeHumanoidAvatarBuilder] Preserving original BindPoses for Ear
+[RuntimeHumanoidAvatarBuilder] Preserving original BindPoses for Hair
+[RuntimeHumanoidAvatarBuilder] Preserving original BindPoses for Hat
+[RuntimeHumanoidAvatarBuilder] Preserving original BindPoses for Inner
+[RuntimeHumanoidAvatarBuilder] Preserving original BindPoses for Karada_new
+[RuntimeHumanoidAvatarBuilder] Preserving original BindPoses for Loungewear_kyoko
+[RuntimeHumanoidAvatarBuilder] Preserving original BindPoses for Loungewear_kyoko_Underwear
+[RuntimeHumanoidAvatarBuilder] Preserving original BindPoses for Loungewear_saneko
+[RuntimeHumanoidAvatarBuilder] Preserving original BindPoses for Nail
+[RuntimeHumanoidAvatarBuilder] Preserving original BindPoses for Outer
+[RuntimeHumanoidAvatarBuilder] Preserving original BindPoses for Shoes
+[RuntimeHumanoidAvatarBuilder] Preserving original BindPoses for Socks
+[RuntimeHumanoidAvatarBuilder] Preserving original BindPoses for Swimwear
+[RuntimeHumanoidAvatarBuilder] Preserving original BindPoses for Tail
+[RuntimeHumanoidAvatarBuilder] Preserving original BindPoses for Underwear
+[RuntimeFBXLoaderBridge] ✓ Avatar ready from RuntimeHumanoidAvatarBuilder. IsValid: True, IsHuman: True
+[RuntimeFBXLoaderBridge] SetupAnimator called for model: kyoko
+[RuntimeFBXLoaderBridge] Found existing Animator component. Current controller: null
+[RuntimeFBXLoaderBridge] Avatar is assigned: , IsValid: True, IsHuman: True
+[RuntimeFBXLoaderBridge] animatorController field is: UnityChanLocomotions
+[RuntimeFBXLoaderBridge] ✓ Set animator controller: UnityChanLocomotions
+[RuntimeFBXLoaderBridge] ✓ Animator controller successfully applied
+[RuntimeFBXLoaderBridge] Playing initial state: Idle
+[RuntimeFBXLoaderBridge] FBX load completed. Success: True
+
+Ended: 2025-11-17 17:30:47
+=== End of Log ===

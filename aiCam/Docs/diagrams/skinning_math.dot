@@ -1,0 +1,47 @@
+digraph SkinningMath {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    // Input
+    LocalVertex [label="ローカル頂点座標\nv_local", fillcolor=lightyellow];
+
+    // Bone Transform Components
+    subgraph cluster_bone_data {
+        label="ボーンデータ (ボーンi)";
+        style=filled;
+        fillcolor=lightcyan;
+
+        WorldMatrix [label="現在のワールド行列\nMᵢ = bones[i].localToWorldMatrix"];
+        BindPose [label="BindPose行列\nBᵢ⁻¹ = mesh.bindposes[i]"];
+        BoneWeight [label="ボーンウェイト\nwᵢ = boneWeights[v].weightᵢ"];
+    }
+
+    // Calculation
+    BoneTransform [label="ボーン変換行列\nTᵢ = Mᵢ · Bᵢ⁻¹", fillcolor=orange];
+    WeightedTransform [label="重み付き変換\nwᵢ · Tᵢ · v_local", fillcolor=orange];
+
+    // Linear Blend
+    LinearBlend [label="線形ブレンドスキニング (LBS)\n\nv_final = Σᵢ₌₀ⁿ⁻¹ wᵢ · Tᵢ · v_local\n\n制約:\n• n ≤ 4 (最大4ボーン)\n• Σwᵢ = 1.0 (正規化)",
+                 fillcolor=pink, shape=component];
+
+    // Output
+    FinalVertex [label="最終頂点座標\nv_final\n(ワールド空間)", fillcolor=lightgreen];
+
+    // Detailed Explanation
+    Explanation [label="数学的意味:\n\n1. Bᵢ⁻¹: 頂点をボーンローカル空間に変換\n2. Mᵢ: ボーンローカル → 現在のワールド空間\n3. wᵢ: 複数ボーンの影響をブレンド\n\n結果: ボーンの動きに頂点が追従",
+                 shape=note, fillcolor=lavender];
+
+    // Flow
+    LocalVertex -> BoneTransform;
+    WorldMatrix -> BoneTransform;
+    BindPose -> BoneTransform;
+
+    BoneTransform -> WeightedTransform;
+    BoneWeight -> WeightedTransform;
+
+    WeightedTransform -> LinearBlend;
+    LinearBlend -> FinalVertex;
+
+    Explanation -> LinearBlend [style=dashed, label="解説"];
+}

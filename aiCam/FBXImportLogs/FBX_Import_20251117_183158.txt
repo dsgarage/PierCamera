@@ -1,0 +1,80 @@
+=== FBX Import Log Session: FBX_Import_20251117_183158 ===
+Started: 2025-11-17 18:31:58
+
+[RuntimeFBXLoaderBridge] Starting FBX load: /Users/daisuketsukada/Downloads/ExtractedUnityPackage/Kyoko_20251112_090405/Kyoko/FBX/kyoko.fbx
+[RuntimeFBXLoaderBridge] Using TriLib default loader options
+[RuntimeFBXLoaderBridge] BindPose preservation: Avoiding OptimizeGraph, OptimizeMeshes, PreTransformVertices
+[WARN] [RuntimeFBXLoaderBridge] No HumanoidAvatarMapper assigned. Using TriLib defaults.
+[RuntimeFBXLoaderBridge] FBX meshes loaded
+[RuntimeFBXLoaderBridge] FBX materials loaded
+[RuntimeFBXLoaderBridge] FBX root: kyoko
+[RuntimeFBXLoaderBridge] Model placed at World Position: (0.00, 0.00, 0.00)
+[RuntimeFBXLoaderBridge] Model Rotation: (0.00, 180.00, 0.00)
+[RuntimeFBXLoaderBridge] Model Scale: (1.00, 1.00, 1.00)
+[RuntimeFBXLoaderBridge] Parent: RuntimeManager
+[RuntimeFBXLoaderBridge] Found 16 renderers
+[RuntimeFBXLoaderBridge] Renderer: Body, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Ear, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Hair, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Hat, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Inner, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Karada_new, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Loungewear_kyoko, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Loungewear_kyoko_Underwear, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Loungewear_saneko, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Nail, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Outer, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Shoes, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Socks, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Swimwear, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Tail, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] Renderer: Underwear, Enabled: True, Layer: 0
+[RuntimeFBXLoaderBridge] TriLib generated Animator. Avatar: null
+[RuntimeFBXLoaderBridge] Found 16 SkinnedMeshRenderer(s)
+[RuntimeFBXLoaderBridge]   - SMR: Body, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Ear, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Hair, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Hat, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Inner, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Karada_new, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Loungewear_kyoko, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Loungewear_kyoko_Underwear, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Loungewear_saneko, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Nail, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Outer, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Shoes, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Socks, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Swimwear, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Tail, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge]   - SMR: Underwear, bones: 98, rootBone: Hips
+[RuntimeFBXLoaderBridge] Using TriLib-generated Avatar
+[ERROR] [RuntimeFBXLoaderBridge] ✗ Failed to create valid Avatar. Source: TriLib, Avatar: null, IsValid: , IsHuman: 
+UnityEngine.Debug:LogError (object)
+AICam.FBXLoader.RuntimeFBXLoaderBridge/<>c__DisplayClass15_1:<LoadFBXFile>b__1 (TriLibCore.AssetLoaderContext) (at Assets/Scripts/FBXLoader/RuntimeFBXLoaderBridge.cs:325)
+TriLibCore.AssetLoader:FinishLoading (TriLibCore.AssetLoaderContext) (at Assets/TriLib/TriLibCore/Scripts/AssetLoaders/AssetLoader.cs:1342)
+TriLibCore.AssetLoader/<ProcessMaterialRenderers>d__34:MoveNext () (at Assets/TriLib/TriLibCore/Scripts/AssetLoaders/AssetLoader.cs:1662)
+TriLibCore.AssetLoader/<ProcessMaterials>d__35:MoveNext () (at Assets/TriLib/TriLibCore/Scripts/AssetLoaders/AssetLoader.cs:1692)
+TriLibCore.AssetLoader/<CreateRootModel>d__23:MoveNext () (at Assets/TriLib/TriLibCore/Scripts/AssetLoaders/AssetLoader.cs:1265)
+TriLibCore.CoroutineHelper:RunMethod (System.Collections.IEnumerator) (at Assets/TriLib/TriLibCore/Scripts/AssetLoaders/CoroutineHelper.cs:52)
+TriLibCore.AssetLoader:ProcessRootModel (TriLibCore.AssetLoaderContext) (at Assets/TriLib/TriLibCore/Scripts/AssetLoaders/AssetLoader.cs:1738)
+TriLibCore.General.ContextualizedAction`1<TriLibCore.AssetLoaderContext>:Invoke ()
+TriLibCore.Utils.Dispatcher:Update ()
+
+
+[ERROR] [RuntimeFBXLoaderBridge] No valid Avatar available
+UnityEngine.Debug:LogError (object)
+AICam.FBXLoader.RuntimeFBXLoaderBridge/<>c__DisplayClass15_1:<LoadFBXFile>b__1 (TriLibCore.AssetLoaderContext) (at Assets/Scripts/FBXLoader/RuntimeFBXLoaderBridge.cs:343)
+TriLibCore.AssetLoader:FinishLoading (TriLibCore.AssetLoaderContext) (at Assets/TriLib/TriLibCore/Scripts/AssetLoaders/AssetLoader.cs:1342)
+TriLibCore.AssetLoader/<ProcessMaterialRenderers>d__34:MoveNext () (at Assets/TriLib/TriLibCore/Scripts/AssetLoaders/AssetLoader.cs:1662)
+TriLibCore.AssetLoader/<ProcessMaterials>d__35:MoveNext () (at Assets/TriLib/TriLibCore/Scripts/AssetLoaders/AssetLoader.cs:1692)
+TriLibCore.AssetLoader/<CreateRootModel>d__23:MoveNext () (at Assets/TriLib/TriLibCore/Scripts/AssetLoaders/AssetLoader.cs:1265)
+TriLibCore.CoroutineHelper:RunMethod (System.Collections.IEnumerator) (at Assets/TriLib/TriLibCore/Scripts/AssetLoaders/CoroutineHelper.cs:52)
+TriLibCore.AssetLoader:ProcessRootModel (TriLibCore.AssetLoaderContext) (at Assets/TriLib/TriLibCore/Scripts/AssetLoaders/AssetLoader.cs:1738)
+TriLibCore.General.ContextualizedAction`1<TriLibCore.AssetLoaderContext>:Invoke ()
+TriLibCore.Utils.Dispatcher:Update ()
+
+
+[RuntimeFBXLoaderBridge] FBX load completed. Success: False
+
+Ended: 2025-11-17 18:31:59
+=== End of Log ===

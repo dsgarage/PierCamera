@@ -531,6 +531,56 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1187949042
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1187949044}
+  - component: {fileID: 1187949043}
+  m_Layer: 0
+  m_Name: AvatarComparison
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1187949043
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1187949042}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 065592fca4420746342e505db09d05fe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::dsgarage.Avatar.AvatarComparison
+  referenceAvatar: {fileID: 9000000, guid: e0ef31baa7cfd6f4288bdb9a78484801, type: 3}
+  targetAvatar: {fileID: 9000000, guid: 516a9ec1570e14c79b15b91e8d22ba91, type: 2}
+  referenceAnimator: {fileID: 5866666021909216657, guid: e0ef31baa7cfd6f4288bdb9a78484801, type: 3}
+  targetAnimator: {fileID: 0}
+  outputToFile: 1
+  outputPath: /tmp/avatar_comparison_detailed.txt
+--- !u!4 &1187949044
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1187949042}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -46.65794, y: 0, z: -156.0454}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1591517477
 GameObject:
   m_ObjectHideFlags: 0
@@ -674,3 +724,4 @@ SceneRoots:
   - {fileID: 604712594}
   - {fileID: 1591517480}
   - {fileID: 871856095}
+  - {fileID: 1187949044}

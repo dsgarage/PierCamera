@@ -1,0 +1,61 @@
+digraph ArchitectureOverview {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial"];
+    edge [fontname="Arial"];
+
+    // Input/Output
+    FBX [label="FBXファイル", fillcolor=lightyellow];
+    UnityScene [label="Unity Scene\n(GameObject with\nSkinnedMeshRenderer)", fillcolor=lightgreen];
+
+    // Main Flow
+    AssimpImport [label="Assimp Import\n(PostProcessSteps.Triangulate)"];
+    GlobalDetect [label="GlobalSettings検出\nFBXProfile判定"];
+    ConvMatrix [label="座標変換行列生成\nM_conv"];
+
+    // 4 Steps
+    Step1 [label="STEP 1\nTransform階層構築\n(TransformBuilder)", fillcolor=pink];
+    Step2 [label="STEP 2\nメッシュデータ収集\n(MeshDataCollector)", fillcolor=pink];
+    Step3 [label="STEP 3\nボーンデータ収集\n(BoneDataCollector)", fillcolor=pink];
+    Step4 [label="STEP 4\nSkinnedMeshRenderer構築\n(SkinnedMeshBuilder)", fillcolor=pink];
+
+    // Profile Types
+    subgraph cluster_profiles {
+        label="FBX Profiles";
+        style=dashed;
+
+        UnityStyle [label="UnityStyle\n(identity)"];
+        BlenderStyle [label="BlenderStyle\n(X・Z反転)"];
+        VRMStyle [label="VRMStyle\n(X・Z反転)"];
+        MixamoStyle [label="MixamoStyle\n(Z反転)"];
+        MaxStyle [label="MaxStyle\n(Z-up→Y-up)"];
+    }
+
+    // Connections
+    FBX -> AssimpImport;
+    AssimpImport -> GlobalDetect;
+
+    GlobalDetect -> UnityStyle;
+    GlobalDetect -> BlenderStyle;
+    GlobalDetect -> VRMStyle;
+    GlobalDetect -> MixamoStyle;
+    GlobalDetect -> MaxStyle;
+
+    UnityStyle -> ConvMatrix;
+    BlenderStyle -> ConvMatrix;
+    VRMStyle -> ConvMatrix;
+    MixamoStyle -> ConvMatrix;
+    MaxStyle -> ConvMatrix;
+
+    ConvMatrix -> Step1;
+    Step1 -> Step2;
+    Step2 -> Step3;
+    Step3 -> Step4;
+    Step4 -> UnityScene;
+
+    // Labels
+    GlobalDetect -> ConvMatrix [label="M_conv"];
+    ConvMatrix -> Step1 [label="座標変換行列"];
+    Step1 -> Step2 [label="boneNameToTransform辞書"];
+    Step2 -> Step3 [label="MeshData"];
+    Step3 -> Step4 [label="BoneData"];
+}

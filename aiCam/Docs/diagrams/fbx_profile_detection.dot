@@ -1,0 +1,38 @@
+digraph FBXProfileDetection {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue, fontname="Arial"];
+    edge [fontname="Arial"];
+
+    Start [label="FBX Import完了", shape=ellipse, fillcolor=lightyellow];
+
+    // Decision nodes
+    CheckRootY [label="RootNode.Y軸回転\n= 180°?", shape=diamond, fillcolor=orange];
+    CheckArmature [label="Armatureノード\n検出?", shape=diamond, fillcolor=orange];
+    CheckArmX [label="Armature.X軸回転\n= 270°?", shape=diamond, fillcolor=orange];
+    CheckHipsX [label="Hips.X軸回転\n= 90°?", shape=diamond, fillcolor=orange];
+    CheckHipsZ [label="Hips.Z軸回転\n= ±90°?", shape=diamond, fillcolor=orange];
+
+    // Profile results
+    UnityStyle [label="UnityStyle\nM_conv = I", fillcolor=lightgreen];
+    BlenderStyle [label="BlenderStyle\nM_conv = diag(-1,1,-1,1)", fillcolor=lightgreen];
+    VRMStyle [label="VRMStyle\nM_conv = diag(-1,1,-1,1)", fillcolor=lightgreen];
+    MixamoStyle [label="MixamoStyle\nM_conv = diag(1,1,-1,1)", fillcolor=lightgreen];
+
+    // Flow
+    Start -> CheckRootY;
+
+    CheckRootY -> CheckArmature [label="YES"];
+    CheckRootY -> CheckHipsZ [label="NO"];
+
+    CheckArmature -> CheckArmX [label="YES"];
+    CheckArmature -> VRMStyle [label="NO"];
+
+    CheckArmX -> CheckHipsX [label="YES"];
+    CheckArmX -> VRMStyle [label="NO"];
+
+    CheckHipsX -> BlenderStyle [label="YES"];
+    CheckHipsX -> VRMStyle [label="NO"];
+
+    CheckHipsZ -> MixamoStyle [label="YES"];
+    CheckHipsZ -> UnityStyle [label="NO"];
+}

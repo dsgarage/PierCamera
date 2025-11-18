@@ -1,8 +1,8 @@
 {
     "projectName": "UnityProject",
-    "websocketPort": 5052,
-    "httpPort": 5053,
-    "processId": 31387,
-    "startTime": "2025-11-17T11:15:20.3612990+09:00",
+    "websocketPort": 5050,
+    "httpPort": 5051,
+    "processId": 75254,
+    "startTime": "2025-11-17T23:06:51.7501560+09:00",
     "unityVersion": "6000.2.8f1"
 }
