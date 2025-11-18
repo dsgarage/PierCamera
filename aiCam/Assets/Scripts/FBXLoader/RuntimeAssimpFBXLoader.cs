@@ -481,17 +481,22 @@ namespace AICam.FBXLoader
 
         /// <summary>
         /// 特定のノードに含まれる全メッシュをロードしてSkinnedMeshRendererを作成（非同期版）
+        /// 必ずレンダラーコンポーネントを作成することを保証
         /// </summary>
         private async UniTask LoadMeshesForNodeAsync(Node node, Transform nodeTransform)
         {
-            // 複数のメッシュがある場合はサブメッシュとして結合
-            List<UnityEngine.Vector3> combinedVertices = new List<UnityEngine.Vector3>();
-            List<UnityEngine.Vector3> combinedNormals = new List<UnityEngine.Vector3>();
-            List<UnityEngine.Vector2> combinedUVs = new List<UnityEngine.Vector2>();
-            List<int> combinedTriangles = new List<int>();
-            List<UnityEngine.BoneWeight> combinedBoneWeights = new List<UnityEngine.BoneWeight>();
-            int vertexOffset = 0;
-            bool hasNormals = false;
+            try
+            {
+                UnityEngine.Debug.Log($"{LOG_PREFIX} [LoadMeshesForNode] START for node: {node.Name}");
+
+                // 複数のメッシュがある場合はサブメッシュとして結合
+                List<UnityEngine.Vector3> combinedVertices = new List<UnityEngine.Vector3>();
+                List<UnityEngine.Vector3> combinedNormals = new List<UnityEngine.Vector3>();
+                List<UnityEngine.Vector2> combinedUVs = new List<UnityEngine.Vector2>();
+                List<int> combinedTriangles = new List<int>();
+                List<UnityEngine.BoneWeight> combinedBoneWeights = new List<UnityEngine.BoneWeight>();
+                int vertexOffset = 0;
+                bool hasNormals = false;
 
             for (int meshIndex = 0; meshIndex < node.MeshCount; meshIndex++)
             {
@@ -663,11 +668,39 @@ namespace AICam.FBXLoader
             // バウンディングボックスを再計算
             unityMesh.RecalculateBounds();
 
-            // STEP 3: BlendShapeを追加（SMR.sharedMeshをセットする前に必須）
-            await AddBlendShapesToMesh(node, unityMesh);
+                // STEP 3: BlendShapeを追加（SMR.sharedMeshをセットする前に必須）
+                await AddBlendShapesToMesh(node, unityMesh);
 
-            // STEP 4-7: SkinnedMeshRenderer のセットアップ
-            await SetupSkinnedMeshRenderer(node, nodeTransform, unityMesh, combinedBoneWeights);
+                // STEP 4-7: SkinnedMeshRenderer のセットアップ
+                await SetupSkinnedMeshRenderer(node, nodeTransform, unityMesh, combinedBoneWeights);
+
+                UnityEngine.Debug.Log($"{LOG_PREFIX} [LoadMeshesForNode] SUCCESS for node: {node.Name}");
+            }
+            catch (System.Exception ex)
+            {
+                UnityEngine.Debug.LogError($"{LOG_PREFIX} [LoadMeshesForNode] FAILED for node: {node.Name}");
+                UnityEngine.Debug.LogError($"{LOG_PREFIX} Exception: {ex.Message}");
+                UnityEngine.Debug.LogError($"{LOG_PREFIX} StackTrace: {ex.StackTrace}");
+
+                // エラーが発生してもフォールバック：最低限のレンダラーを作成
+                try
+                {
+                    UnityEngine.Debug.LogWarning($"{LOG_PREFIX} Creating fallback renderer for node: {node.Name}");
+
+                    // 簡易メッシュを作成
+                    UnityEngine.Mesh fallbackMesh = new UnityEngine.Mesh();
+                    fallbackMesh.name = $"{node.Name}_Fallback";
+                    fallbackMesh.vertices = new UnityEngine.Vector3[] { UnityEngine.Vector3.zero };
+                    fallbackMesh.triangles = new int[] { };
+
+                    CreateStaticMeshRenderer(nodeTransform, fallbackMesh);
+                    UnityEngine.Debug.LogWarning($"{LOG_PREFIX} Fallback renderer created for node: {node.Name}");
+                }
+                catch (System.Exception fallbackEx)
+                {
+                    UnityEngine.Debug.LogError($"{LOG_PREFIX} Even fallback renderer failed: {fallbackEx.Message}");
+                }
+            }
         }
 
         /// <summary>
@@ -837,6 +870,12 @@ namespace AICam.FBXLoader
             // SkinnedMeshRenderer を追加
             SkinnedMeshRenderer smr = nodeTransform.gameObject.AddComponent<SkinnedMeshRenderer>();
 
+            if (smr == null)
+            {
+                UnityEngine.Debug.LogError($"{LOG_PREFIX} Failed to add SkinnedMeshRenderer component!");
+                return;
+            }
+
             // 正しい適用順序
             smr.bones = bones;                          // 1. bones設定
             smr.sharedMesh = mesh;                      // 2. mesh設定（bindposes, boneWeights含む）
@@ -849,6 +888,8 @@ namespace AICam.FBXLoader
 
             // ログ出力
             UnityEngine.Debug.Log($"{LOG_PREFIX} === SkinnedMeshRenderer Setup Complete ===");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   GameObject: {nodeTransform.name}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Component: SkinnedMeshRenderer (verified: {smr != null})");
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Mesh: {mesh.name}");
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Vertices: {mesh.vertexCount}");
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Triangles: {mesh.triangles.Length / 3}");
@@ -868,13 +909,24 @@ namespace AICam.FBXLoader
         private void CreateStaticMeshRenderer(Transform nodeTransform, UnityEngine.Mesh mesh)
         {
             UnityEngine.Debug.Log($"{LOG_PREFIX} === Creating Static Mesh Renderer ===");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   GameObject: {nodeTransform.name}");
 
             // MeshFilterを追加
             MeshFilter meshFilter = nodeTransform.gameObject.AddComponent<MeshFilter>();
+            if (meshFilter == null)
+            {
+                UnityEngine.Debug.LogError($"{LOG_PREFIX} Failed to add MeshFilter component!");
+                return;
+            }
             meshFilter.sharedMesh = mesh;
 
             // MeshRendererを追加
             MeshRenderer meshRenderer = nodeTransform.gameObject.AddComponent<MeshRenderer>();
+            if (meshRenderer == null)
+            {
+                UnityEngine.Debug.LogError($"{LOG_PREFIX} Failed to add MeshRenderer component!");
+                return;
+            }
 
             // マテリアル設定
             UnityEngine.Material material = CreateLilToonMaterial(nodeTransform.name);
@@ -882,7 +934,8 @@ namespace AICam.FBXLoader
 
             // ログ出力
             UnityEngine.Debug.Log($"{LOG_PREFIX} === Static Mesh Renderer Complete ===");
-            UnityEngine.Debug.Log($"{LOG_PREFIX}   Node: {nodeTransform.name}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Component: MeshFilter (verified: {meshFilter != null})");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   Component: MeshRenderer (verified: {meshRenderer != null})");
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Mesh: {mesh.name}");
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Vertices: {mesh.vertexCount}");
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Triangles: {mesh.triangles.Length / 3}");
