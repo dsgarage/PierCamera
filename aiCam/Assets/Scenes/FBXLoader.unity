@@ -306,8 +306,8 @@ MonoBehaviour:
   m_GameObject: {fileID: 871856092}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dd3a9a89e9e9749c9af8a4d7021d837e, type: 3}
-  m_Name: 
+  m_Script: {fileID: 11500000, guid: aef101114c89c4e1eb44d26754c7d1c4, type: 3}
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::AICam.FBXLoader.RuntimeFBXLoaderBridge
   browser: {fileID: 871856094}
   modelParent: {fileID: 0}
@@ -327,8 +327,8 @@ MonoBehaviour:
   m_GameObject: {fileID: 871856092}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c2c2533664f6d42aebe122ef6a7cb596, type: 3}
-  m_Name: 
+  m_Script: {fileID: 11500000, guid: 4577ce403bd504d9395625793e237363, type: 3}
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::AICam.FBXLoader.FileBrowserController
 --- !u!4 &871856095
 Transform:
@@ -558,8 +558,8 @@ MonoBehaviour:
   m_GameObject: {fileID: 1591517477}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4b2ee6e8fb51c4ae38918233bb3dfcb0, type: 3}
-  m_Name: 
+  m_Script: {fileID: 11500000, guid: 51322806b99a1451eab782b004993ffe, type: 3}
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::AICam.FBXLoader.FileBrowserUIController
   uiDocument: {fileID: 1591517479}
 --- !u!114 &1591517479
