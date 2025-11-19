@@ -203,13 +203,6 @@ namespace AICam.FBXLoader
                 await loader.LoadMeshes(currentModel);
                 onProgress?.Invoke(50f);
 
-                // マテリアルを適用（UnityPackageから抽出されたマテリアル情報を使用）
-                Debug.Log("[RuntimeFBXLoaderBridge] Assigning materials from MaterialCacheDatabase...");
-                var materialManager = new RuntimeMaterialManager();
-                var meshNodeToMaterialNames = loader.GetMeshNodeToMaterialNames();
-                await materialManager.AssignMaterials(currentModel, browser.SelectedPath, meshNodeToMaterialNames);
-                onProgress?.Invoke(55f);
-
                 // デバッグビジュアライザーをアタッチ
                 var visualizer = currentModel.AddComponent<AICam.DebugTools.BoneDebugVisualizer>();
                 Debug.Log("[RuntimeFBXLoaderBridge] BoneDebugVisualizer attached");
@@ -256,6 +249,13 @@ namespace AICam.FBXLoader
                     animator.avatar = newAvatar;
                     animator.applyRootMotion = true;
 
+                    onProgress?.Invoke(85f);
+
+                    // マテリアルを適用（Avatar生成後、SkinnedMeshRendererが確実に存在するタイミング）
+                    Debug.Log("[RuntimeFBXLoaderBridge] Assigning materials from MaterialCacheDatabase...");
+                    var materialManager = new RuntimeMaterialManager();
+                    var meshNodeToMaterialNames = loader.GetMeshNodeToMaterialNames();
+                    await materialManager.AssignMaterials(currentModel, browser.SelectedPath, meshNodeToMaterialNames);
                     onProgress?.Invoke(90f);
 
                     // アニメーションの設定
