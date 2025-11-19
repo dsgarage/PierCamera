@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
+using UniSIL.ShaderInference;
+using UniSIL.ShaderInference.MaterialReconstruction;
 
 namespace AICam.FBXLoader
 {
@@ -466,6 +468,7 @@ namespace AICam.FBXLoader
 
         /// <summary>
         /// 親ディレクトリからテクスチャファイルを検索してMaterialを作成
+        /// UniSIL統合: .matファイルがあればYAMLパースとShader推論を使用
         /// </summary>
         /// <param name="extractedPath">FBXファイルのパス</param>
         /// <param name="searchNames">検索するファイル名のリスト</param>
@@ -483,9 +486,37 @@ namespace AICam.FBXLoader
                 return materials;
             }
 
-            // サポートする画像拡張子
-            string[] imageExtensions = { ".png", ".jpg", ".jpeg", ".tga", ".bmp" };
+            Debug.Log($"[RuntimeMaterialManager] Searching in directory: {parentDir}");
+            materialSearchLog.AppendLine($"    Searching in: {parentDir}");
 
+            foreach (var searchName in searchNames)
+            {
+                // 戦略1: .matファイルを探してUniSILで再構築
+                string matPath = Path.Combine(parentDir, searchName + ".mat");
+                if (File.Exists(matPath))
+                {
+                    Debug.Log($"[UniSIL] .mat file found: {matPath}");
+                    materialSearchLog.AppendLine($"    [UniSIL] Found .mat file: {searchName}.mat");
+
+                    var material = await CreateMaterialFromMatFile(matPath, parentDir);
+                    if (material != null)
+                    {
+                        materials.Add(material);
+                        materialSearchLog.AppendLine($"    [UniSIL] Material reconstructed successfully");
+                        return materials;
+                    }
+                    else
+                    {
+                        materialSearchLog.AppendLine($"    [UniSIL] Failed to reconstruct material from .mat");
+                    }
+                }
+            }
+
+            // 戦略2（フォールバック）: テクスチャファイルのみからStandardシェーダーで作成
+            Debug.Log($"[RuntimeMaterialManager] No .mat files found, falling back to texture-only search");
+            materialSearchLog.AppendLine($"    [Fallback] No .mat files found, searching for texture files only");
+
+            string[] imageExtensions = { ".png", ".jpg", ".jpeg", ".tga", ".bmp" };
             foreach (var searchName in searchNames)
             {
                 foreach (var ext in imageExtensions)
@@ -500,7 +531,7 @@ namespace AICam.FBXLoader
                         {
                             materials.Add(material);
                             materialSearchLog.AppendLine($"    Material created successfully from texture");
-                            return materials; // 最初に見つかったテクスチャで作成
+                            return materials;
                         }
                         else
                         {
@@ -511,6 +542,69 @@ namespace AICam.FBXLoader
             }
 
             return materials;
+        }
+
+        /// <summary>
+        /// .matファイルからUniSILを使用してMaterialを再構築
+        /// </summary>
+        private async UniTask<Material> CreateMaterialFromMatFile(string matPath, string textureDirectory)
+        {
+            try
+            {
+                // .matファイルを読み込み
+                string yamlText = await File.ReadAllTextAsync(matPath);
+
+                // YAMLパースしてMaterialDataに変換
+                var materialData = YAMLMaterialParser.Parse(yamlText);
+                if (materialData == null || !materialData.IsValid())
+                {
+                    Debug.LogWarning($"[UniSIL] Failed to parse .mat file: {matPath}");
+                    materialSearchLog.AppendLine($"      ERROR: Failed to parse .mat file");
+                    return null;
+                }
+
+                Debug.Log($"[UniSIL] Parsed material: {materialData.name}");
+                materialSearchLog.AppendLine($"      Parsed material: {materialData.name}");
+                materialSearchLog.AppendLine($"      Shader GUID: {materialData.shaderGuid}");
+                materialSearchLog.AppendLine($"      Keywords: {string.Join(", ", materialData.keywords)}");
+
+                // ShaderDatabaseをロード
+                var shaderDB = ShaderDBLoader.LoadDatabase();
+                if (shaderDB == null)
+                {
+                    Debug.LogError("[UniSIL] Failed to load ShaderDatabase");
+                    materialSearchLog.AppendLine($"      ERROR: ShaderDatabase not found");
+                    return null;
+                }
+
+                // ShaderInferenceEngineで推論
+                var inferenceEngine = new ShaderInferenceEngine(shaderDB);
+                var inferenceResult = inferenceEngine.InferShader(materialData);
+
+                Debug.Log($"[UniSIL] Inferred shader: {inferenceResult.inferredShader} (confidence: {inferenceResult.confidence:P2})");
+                materialSearchLog.AppendLine($"      Inferred shader: {inferenceResult.inferredShader}");
+                materialSearchLog.AppendLine($"      Confidence: {inferenceResult.confidence:P2}");
+
+                // MaterialReconstructorで再構築
+                var reconstructor = new MaterialReconstructor();
+                var material = reconstructor.ReconstructMaterial(materialData, inferenceResult);
+
+                if (material != null)
+                {
+                    Debug.Log($"[UniSIL] Material reconstructed: {material.name} with shader {material.shader.name}");
+                    materialSearchLog.AppendLine($"      ✓ Material reconstructed successfully");
+                    materialSearchLog.AppendLine($"      Final shader: {material.shader.name}");
+                }
+
+                await UniTask.Yield();
+                return material;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[UniSIL] Error reconstructing material from {matPath}: {ex.Message}");
+                materialSearchLog.AppendLine($"      ERROR: {ex.Message}");
+                return null;
+            }
         }
 
         /// <summary>
