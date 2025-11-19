@@ -477,37 +477,63 @@ namespace AICam.FBXLoader
         {
             var materials = new List<Material>();
 
-            // FBXの親ディレクトリを取得
-            string parentDir = Path.GetDirectoryName(extractedPath);
-            if (string.IsNullOrEmpty(parentDir) || !Directory.Exists(parentDir))
+            // FBXの親ディレクトリを取得（例: /path/to/FBX/）
+            string fbxDir = Path.GetDirectoryName(extractedPath);
+            if (string.IsNullOrEmpty(fbxDir) || !Directory.Exists(fbxDir))
             {
-                Debug.LogWarning($"親ディレクトリが見つかりません: {extractedPath}");
-                materialSearchLog.AppendLine($"    ERROR: Parent directory not found: {extractedPath}");
+                Debug.LogWarning($"FBXディレクトリが見つかりません: {extractedPath}");
+                materialSearchLog.AppendLine($"    ERROR: FBX directory not found: {extractedPath}");
                 return materials;
             }
 
-            Debug.Log($"[RuntimeMaterialManager] Searching in directory: {parentDir}");
-            materialSearchLog.AppendLine($"    Searching in: {parentDir}");
+            // FBXの親の親ディレクトリを取得（例: /path/to/Assets/Kyoko/）
+            string assetDir = Path.GetDirectoryName(fbxDir);
+            if (string.IsNullOrEmpty(assetDir) || !Directory.Exists(assetDir))
+            {
+                Debug.LogWarning($"アセットディレクトリが見つかりません: {fbxDir}");
+                materialSearchLog.AppendLine($"    ERROR: Asset directory not found: {fbxDir}");
+                return materials;
+            }
+
+            Debug.Log($"[RuntimeMaterialManager] FBX directory: {fbxDir}");
+            Debug.Log($"[RuntimeMaterialManager] Asset directory: {assetDir}");
+            materialSearchLog.AppendLine($"    FBX directory: {fbxDir}");
+            materialSearchLog.AppendLine($"    Asset directory: {assetDir}");
+
+            // 検索対象ディレクトリ（優先順位順）
+            string[] searchDirectories = new string[]
+            {
+                Path.Combine(assetDir, "Material"),   // ../Material/
+                Path.Combine(assetDir, "Materials"),  // ../Materials/
+                fbxDir,                                // FBXと同じディレクトリ
+                assetDir                               // アセットルート
+            };
 
             foreach (var searchName in searchNames)
             {
-                // 戦略1: .matファイルを探してUniSILで再構築
-                string matPath = Path.Combine(parentDir, searchName + ".mat");
-                if (File.Exists(matPath))
+                // 戦略1: .matファイルを複数のディレクトリから探してUniSILで再構築
+                foreach (var searchDir in searchDirectories)
                 {
-                    Debug.Log($"[UniSIL] .mat file found: {matPath}");
-                    materialSearchLog.AppendLine($"    [UniSIL] Found .mat file: {searchName}.mat");
+                    if (!Directory.Exists(searchDir))
+                        continue;
 
-                    var material = await CreateMaterialFromMatFile(matPath, parentDir);
-                    if (material != null)
+                    string matPath = Path.Combine(searchDir, searchName + ".mat");
+                    if (File.Exists(matPath))
                     {
-                        materials.Add(material);
-                        materialSearchLog.AppendLine($"    [UniSIL] Material reconstructed successfully");
-                        return materials;
-                    }
-                    else
-                    {
-                        materialSearchLog.AppendLine($"    [UniSIL] Failed to reconstruct material from .mat");
+                        Debug.Log($"[UniSIL] .mat file found: {matPath}");
+                        materialSearchLog.AppendLine($"    [UniSIL] Found .mat file: {searchName}.mat in {Path.GetFileName(searchDir)}/");
+
+                        var material = await CreateMaterialFromMatFile(matPath, assetDir);
+                        if (material != null)
+                        {
+                            materials.Add(material);
+                            materialSearchLog.AppendLine($"    [UniSIL] Material reconstructed successfully");
+                            return materials;
+                        }
+                        else
+                        {
+                            materialSearchLog.AppendLine($"    [UniSIL] Failed to reconstruct material from .mat");
+                        }
                     }
                 }
             }
@@ -516,26 +542,43 @@ namespace AICam.FBXLoader
             Debug.Log($"[RuntimeMaterialManager] No .mat files found, falling back to texture-only search");
             materialSearchLog.AppendLine($"    [Fallback] No .mat files found, searching for texture files only");
 
+            // テクスチャ検索用ディレクトリ（Material/, Texture/, Textures/ なども探す）
+            string[] textureSearchDirs = new string[]
+            {
+                Path.Combine(assetDir, "Texture"),
+                Path.Combine(assetDir, "Textures"),
+                Path.Combine(assetDir, "Material"),
+                Path.Combine(assetDir, "Materials"),
+                fbxDir,
+                assetDir
+            };
+
             string[] imageExtensions = { ".png", ".jpg", ".jpeg", ".tga", ".bmp" };
             foreach (var searchName in searchNames)
             {
-                foreach (var ext in imageExtensions)
+                foreach (var searchDir in textureSearchDirs)
                 {
-                    string texturePath = Path.Combine(parentDir, searchName + ext);
-                    if (File.Exists(texturePath))
+                    if (!Directory.Exists(searchDir))
+                        continue;
+
+                    foreach (var ext in imageExtensions)
                     {
-                        Debug.Log($"  テクスチャ見つかりました: {texturePath}");
-                        materialSearchLog.AppendLine($"    Found texture: {searchName}{ext}");
-                        var material = await CreateMaterialFromTexturePath(searchName, texturePath);
-                        if (material != null)
+                        string texturePath = Path.Combine(searchDir, searchName + ext);
+                        if (File.Exists(texturePath))
                         {
-                            materials.Add(material);
-                            materialSearchLog.AppendLine($"    Material created successfully from texture");
-                            return materials;
-                        }
-                        else
-                        {
-                            materialSearchLog.AppendLine($"    Failed to create material from texture");
+                            Debug.Log($"  テクスチャ見つかりました: {texturePath}");
+                            materialSearchLog.AppendLine($"    Found texture: {searchName}{ext} in {Path.GetFileName(searchDir)}/");
+                            var material = await CreateMaterialFromTexturePath(searchName, texturePath);
+                            if (material != null)
+                            {
+                                materials.Add(material);
+                                materialSearchLog.AppendLine($"    Material created successfully from texture");
+                                return materials;
+                            }
+                            else
+                            {
+                                materialSearchLog.AppendLine($"    Failed to create material from texture");
+                            }
                         }
                     }
                 }
