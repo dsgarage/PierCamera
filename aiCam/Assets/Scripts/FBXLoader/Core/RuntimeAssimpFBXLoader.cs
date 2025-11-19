@@ -24,6 +24,9 @@ namespace AICam.FBXLoader
         // Assimp Scene
         private Scene currentScene;
 
+        // FBXファイルのディレクトリパス（テクスチャ検索用）
+        private string fbxDirectory;
+
         // ボーン名 → Transform のマップ（STEP 4: SkinnedMeshRenderer.bones構築用）
         private Dictionary<string, Transform> boneNameToTransform = new Dictionary<string, Transform>();
 
@@ -56,6 +59,9 @@ namespace AICam.FBXLoader
 
             // シーンを保存（メッシュロード時に使用）
             currentScene = scene;
+
+            // FBXディレクトリパスを保存（テクスチャ検索用）
+            fbxDirectory = Path.GetDirectoryName(fbxPath);
 
             UnityEngine.Debug.Log($"{LOG_PREFIX} Scene loaded successfully");
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Meshes: {scene.MeshCount}");
@@ -505,8 +511,24 @@ namespace AICam.FBXLoader
                 // rootBone名を決定（Hipsまたは最初のボーン）
                 string rootBoneName = cachedRootBone != null ? cachedRootBone.name : (boneData.allUniqueBoneNames.Count > 0 ? boneData.allUniqueBoneNames[0] : null);
 
-                // マテリアル作成
-                UnityEngine.Material material = CreateLilToonMaterial(node.Name);
+                // マテリアル作成（メッシュのマテリアルインデックスを取得）
+                int materialIndex = -1;
+                Assimp.Material assimpMaterial = null;
+                if (node.MeshCount > 0)
+                {
+                    int assimpMeshIndex = node.MeshIndices[0];
+                    Assimp.Mesh assimpMesh = currentScene.Meshes[assimpMeshIndex];
+                    materialIndex = assimpMesh.MaterialIndex;
+
+                    if (materialIndex >= 0 && materialIndex < currentScene.MaterialCount)
+                    {
+                        assimpMaterial = currentScene.Materials[materialIndex];
+                        UnityEngine.Debug.Log($"{LOG_PREFIX}   Mesh material index: {materialIndex}, Material name: {assimpMaterial.Name}");
+                    }
+                }
+
+                // RuntimeMaterialManagerを使用してマテリアルを作成（ShaderDB対応）
+                UnityEngine.Material material = CreateMaterialWithShaderDB(node.Name, assimpMaterial, materialIndex);
                 UnityEngine.Material[] materials = new UnityEngine.Material[] { material };
 
                 // SkinnedMeshRenderer 構築
@@ -925,9 +947,464 @@ namespace AICam.FBXLoader
         }
 
         /// <summary>
-        /// lilToonシェーダーを使用したマテリアルを作成
+        /// AssimpのMaterial情報からテクスチャを抽出（FBX埋め込みテクスチャ対応）
         /// </summary>
-        private UnityEngine.Material CreateLilToonMaterial(string nodeName)
+        private UnityEngine.Texture2D ExtractTextureFromAssimpMaterial(Assimp.Material assimpMaterial, Assimp.TextureType textureType)
+        {
+            UnityEngine.Debug.Log($"{LOG_PREFIX}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX} ╔══════════════════════════════════════════════════════════");
+            UnityEngine.Debug.Log($"{LOG_PREFIX} ║ TEXTURE EXTRACTION from Material: {assimpMaterial?.Name ?? "null"}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX} ╚══════════════════════════════════════════════════════════");
+
+            if (assimpMaterial == null || currentScene == null)
+            {
+                UnityEngine.Debug.LogWarning($"{LOG_PREFIX}   ✗ Material or Scene is null - aborting");
+                return null;
+            }
+
+            // マテリアルのテクスチャ情報をデバッグ出力
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   📊 Material Texture Info:");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}      HasTextureDiffuse: {assimpMaterial.HasTextureDiffuse}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}      Diffuse Count: {assimpMaterial.GetMaterialTextureCount(Assimp.TextureType.Diffuse)}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}      Emissive Count: {assimpMaterial.GetMaterialTextureCount(Assimp.TextureType.Emissive)}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}      Unknown Count: {assimpMaterial.GetMaterialTextureCount(Assimp.TextureType.Unknown)}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}      Scene TextureCount: {currentScene.TextureCount}");
+
+            // テクスチャパスを取得
+            Assimp.TextureSlot textureSlot;
+            bool hasTexture = assimpMaterial.GetMaterialTexture(textureType, 0, out textureSlot);
+
+            if (!hasTexture)
+            {
+                UnityEngine.Debug.Log($"{LOG_PREFIX}   ℹ No texture found in texture slot");
+                return null;
+            }
+
+            string texturePath = textureSlot.FilePath;
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   📄 Texture Path: {texturePath}");
+
+            // FBX埋め込みテクスチャの場合、パスは "*0", "*1" などの形式
+            if (texturePath.StartsWith("*"))
+            {
+                // 埋め込みテクスチャのインデックスを取得
+                if (int.TryParse(texturePath.Substring(1), out int textureIndex))
+                {
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}   🔍 EMBEDDED TEXTURE DETECTED");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}      Index: {textureIndex}");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}      Available textures in scene: {currentScene.TextureCount}");
+
+                    // Assimp Scene から埋め込みテクスチャを取得
+                    if (textureIndex >= 0 && textureIndex < currentScene.TextureCount)
+                    {
+                        Assimp.EmbeddedTexture embeddedTexture = currentScene.Textures[textureIndex];
+
+                        if (embeddedTexture != null)
+                        {
+                            return LoadEmbeddedTexture(embeddedTexture, textureIndex);
+                        }
+                        else
+                        {
+                            UnityEngine.Debug.LogError($"{LOG_PREFIX}   ✗ EmbeddedTexture at index {textureIndex} is null!");
+                        }
+                    }
+                    else
+                    {
+                        UnityEngine.Debug.LogError($"{LOG_PREFIX}   ✗ TEXTURE INDEX OUT OF RANGE!");
+                        UnityEngine.Debug.LogError($"{LOG_PREFIX}      Requested: {textureIndex}");
+                        UnityEngine.Debug.LogError($"{LOG_PREFIX}      Available: 0-{currentScene.TextureCount - 1}");
+                    }
+                }
+            }
+            else
+            {
+                UnityEngine.Debug.Log($"{LOG_PREFIX}   ℹ External texture file (not embedded): {texturePath}");
+                return LoadExternalTexture(texturePath);
+            }
+
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   ✗ Texture extraction failed");
+            return null;
+        }
+
+        /// <summary>
+        /// Assimpの埋め込みテクスチャをUnity Texture2Dに変換
+        /// </summary>
+        private UnityEngine.Texture2D LoadEmbeddedTexture(Assimp.EmbeddedTexture embeddedTexture, int textureIndex)
+        {
+            UnityEngine.Debug.Log($"{LOG_PREFIX}      ┌────────────────────────────────────────────────");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}      │ 🖼 LOADING EMBEDDED TEXTURE [{textureIndex}]");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}      ├────────────────────────────────────────────────");
+
+            try
+            {
+                // テクスチャ基本情報を表示
+                UnityEngine.Debug.Log($"{LOG_PREFIX}      │ ℹ Basic Information:");
+                UnityEngine.Debug.Log($"{LOG_PREFIX}      │   Width:  {embeddedTexture.Width}");
+                UnityEngine.Debug.Log($"{LOG_PREFIX}      │   Height: {embeddedTexture.Height}");
+                UnityEngine.Debug.Log($"{LOG_PREFIX}      │   Format: {embeddedTexture.CompressedFormatHint}");
+                UnityEngine.Debug.Log($"{LOG_PREFIX}      │   Compressed: {embeddedTexture.IsCompressed}");
+
+                // 圧縮されたテクスチャ（PNG, JPGなど）の場合
+                if (embeddedTexture.IsCompressed)
+                {
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}      ├────────────────────────────────────────────────");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}      │ 🔄 Processing COMPRESSED texture");
+
+                    // 圧縮データを取得
+                    byte[] compressedData = embeddedTexture.CompressedData;
+
+                    if (compressedData != null && compressedData.Length > 0)
+                    {
+                        UnityEngine.Debug.Log($"{LOG_PREFIX}      │   Data size: {compressedData.Length} bytes ({compressedData.Length / 1024.0:F2} KB)");
+
+                        // Unity Texture2D を作成
+                        UnityEngine.Texture2D texture = new UnityEngine.Texture2D(2, 2);
+
+                        // LoadImage でバイトデータから画像をロード
+                        UnityEngine.Debug.Log($"{LOG_PREFIX}      │   Calling Texture2D.LoadImage()...");
+                        bool loadSuccess = texture.LoadImage(compressedData);
+
+                        if (loadSuccess)
+                        {
+                            texture.name = $"EmbeddedTexture_{textureIndex}";
+                            UnityEngine.Debug.Log($"{LOG_PREFIX}      │");
+                            UnityEngine.Debug.Log($"{LOG_PREFIX}      │ ✓ SUCCESS - Compressed texture loaded!");
+                            UnityEngine.Debug.Log($"{LOG_PREFIX}      │   Name: {texture.name}");
+                            UnityEngine.Debug.Log($"{LOG_PREFIX}      │   Final dimensions: {texture.width}x{texture.height}");
+                            UnityEngine.Debug.Log($"{LOG_PREFIX}      │   Format: {texture.format}");
+                            UnityEngine.Debug.Log($"{LOG_PREFIX}      └────────────────────────────────────────────────");
+                            return texture;
+                        }
+                        else
+                        {
+                            UnityEngine.Debug.LogError($"{LOG_PREFIX}      │");
+                            UnityEngine.Debug.LogError($"{LOG_PREFIX}      │ ✗ FAILED - Texture2D.LoadImage() returned false");
+                            UnityEngine.Debug.LogError($"{LOG_PREFIX}      │   Data size was: {compressedData.Length} bytes");
+                            UnityEngine.Debug.LogError($"{LOG_PREFIX}      │   Format hint: {embeddedTexture.CompressedFormatHint}");
+                            UnityEngine.Debug.LogError($"{LOG_PREFIX}      └────────────────────────────────────────────────");
+                        }
+                    }
+                    else
+                    {
+                        UnityEngine.Debug.LogError($"{LOG_PREFIX}      │");
+                        UnityEngine.Debug.LogError($"{LOG_PREFIX}      │ ✗ FAILED - Compressed data is null or empty");
+                        UnityEngine.Debug.LogError($"{LOG_PREFIX}      │   CompressedData: {(compressedData == null ? "null" : $"{compressedData.Length} bytes")}");
+                        UnityEngine.Debug.LogError($"{LOG_PREFIX}      └────────────────────────────────────────────────");
+                    }
+                }
+                else
+                {
+                    // 非圧縮テクスチャ（RAWデータ）の場合
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}      ├────────────────────────────────────────────────");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}      │ 🔄 Processing UNCOMPRESSED (RAW) texture");
+
+                    if (embeddedTexture.HasNonCompressedData)
+                    {
+                        int width = (int)embeddedTexture.Width;
+                        int height = (int)embeddedTexture.Height;
+                        int expectedPixels = width * height;
+
+                        UnityEngine.Debug.Log($"{LOG_PREFIX}      │   Dimensions: {width}x{height}");
+                        UnityEngine.Debug.Log($"{LOG_PREFIX}      │   Expected pixels: {expectedPixels}");
+
+                        UnityEngine.Texture2D texture = new UnityEngine.Texture2D(width, height, UnityEngine.TextureFormat.RGBA32, false);
+
+                        // Assimpのテクセルデータを取得
+                        var texels = embeddedTexture.NonCompressedData;
+
+                        if (texels != null && texels.Length == expectedPixels)
+                        {
+                            UnityEngine.Debug.Log($"{LOG_PREFIX}      │   Texel array length: {texels.Length} (✓ matches expected)");
+                            UnityEngine.Debug.Log($"{LOG_PREFIX}      │   Converting texels to Unity Color32...");
+
+                            UnityEngine.Color32[] pixels = new UnityEngine.Color32[expectedPixels];
+
+                            for (int i = 0; i < texels.Length; i++)
+                            {
+                                var texel = texels[i];
+                                pixels[i] = new UnityEngine.Color32(texel.R, texel.G, texel.B, texel.A);
+                            }
+
+                            UnityEngine.Debug.Log($"{LOG_PREFIX}      │   Applying pixels to texture...");
+                            texture.SetPixels32(pixels);
+                            texture.Apply();
+                            texture.name = $"EmbeddedTexture_{textureIndex}";
+
+                            UnityEngine.Debug.Log($"{LOG_PREFIX}      │");
+                            UnityEngine.Debug.Log($"{LOG_PREFIX}      │ ✓ SUCCESS - Uncompressed texture loaded!");
+                            UnityEngine.Debug.Log($"{LOG_PREFIX}      │   Name: {texture.name}");
+                            UnityEngine.Debug.Log($"{LOG_PREFIX}      │   Dimensions: {width}x{height}");
+                            UnityEngine.Debug.Log($"{LOG_PREFIX}      │   Format: {texture.format}");
+                            UnityEngine.Debug.Log($"{LOG_PREFIX}      └────────────────────────────────────────────────");
+                            return texture;
+                        }
+                        else
+                        {
+                            UnityEngine.Debug.LogError($"{LOG_PREFIX}      │");
+                            UnityEngine.Debug.LogError($"{LOG_PREFIX}      │ ✗ FAILED - Invalid texel data");
+                            UnityEngine.Debug.LogError($"{LOG_PREFIX}      │   Texels: {(texels == null ? "null" : $"{texels.Length} elements")}");
+                            UnityEngine.Debug.LogError($"{LOG_PREFIX}      │   Expected: {expectedPixels} elements");
+                            UnityEngine.Debug.LogError($"{LOG_PREFIX}      └────────────────────────────────────────────────");
+                        }
+                    }
+                    else
+                    {
+                        UnityEngine.Debug.LogError($"{LOG_PREFIX}      │");
+                        UnityEngine.Debug.LogError($"{LOG_PREFIX}      │ ✗ FAILED - No uncompressed data available");
+                        UnityEngine.Debug.LogError($"{LOG_PREFIX}      │   HasNonCompressedData: {embeddedTexture.HasNonCompressedData}");
+                        UnityEngine.Debug.LogError($"{LOG_PREFIX}      └────────────────────────────────────────────────");
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                UnityEngine.Debug.LogError($"{LOG_PREFIX}      │");
+                UnityEngine.Debug.LogError($"{LOG_PREFIX}      │ ✗ EXCEPTION occurred during texture loading");
+                UnityEngine.Debug.LogError($"{LOG_PREFIX}      │   Message: {ex.Message}");
+                UnityEngine.Debug.LogError($"{LOG_PREFIX}      │   Type: {ex.GetType().Name}");
+                UnityEngine.Debug.LogError($"{LOG_PREFIX}      └────────────────────────────────────────────────");
+            }
+
+            UnityEngine.Debug.LogError($"{LOG_PREFIX}      ✗ Texture loading FAILED - returning null");
+            return null;
+        }
+
+        /// <summary>
+        /// 外部テクスチャファイルをロード（FBXファイルと同じディレクトリから検索）
+        /// </summary>
+        private UnityEngine.Texture2D LoadExternalTexture(string texturePath)
+        {
+            UnityEngine.Debug.Log($"{LOG_PREFIX}      ┌────────────────────────────────────────────────");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}      │ 🔍 LOADING EXTERNAL TEXTURE");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}      ├────────────────────────────────────────────────");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}      │ Original path: {texturePath}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}      │ FBX directory: {fbxDirectory}");
+
+            try
+            {
+                // テクスチャパスを解析（相対パス、絶対パス、ファイル名のみに対応）
+                string fullPath = null;
+
+                // パターン1: 絶対パスとして存在確認
+                if (File.Exists(texturePath))
+                {
+                    fullPath = texturePath;
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}      │ Found (absolute path): {fullPath}");
+                }
+                // パターン2: FBXディレクトリ + 相対パス
+                else if (!string.IsNullOrEmpty(fbxDirectory))
+                {
+                    string relativePath = Path.Combine(fbxDirectory, texturePath);
+                    if (File.Exists(relativePath))
+                    {
+                        fullPath = relativePath;
+                        UnityEngine.Debug.Log($"{LOG_PREFIX}      │ Found (relative to FBX): {fullPath}");
+                    }
+                    else
+                    {
+                        // パターン3: ファイル名のみで検索（パスの最後の部分を使用）
+                        string fileName = Path.GetFileName(texturePath);
+                        string fileNamePath = Path.Combine(fbxDirectory, fileName);
+                        if (File.Exists(fileNamePath))
+                        {
+                            fullPath = fileNamePath;
+                            UnityEngine.Debug.Log($"{LOG_PREFIX}      │ Found (filename only): {fullPath}");
+                        }
+                        else
+                        {
+                            // パターン4: Texturesサブディレクトリも検索
+                            string texturesDir = Path.Combine(fbxDirectory, "Textures");
+                            if (Directory.Exists(texturesDir))
+                            {
+                                string texturesDirPath = Path.Combine(texturesDir, fileName);
+                                if (File.Exists(texturesDirPath))
+                                {
+                                    fullPath = texturesDirPath;
+                                    UnityEngine.Debug.Log($"{LOG_PREFIX}      │ Found (in Textures/): {fullPath}");
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (fullPath == null || !File.Exists(fullPath))
+                {
+                    UnityEngine.Debug.LogError($"{LOG_PREFIX}      │ ✗ FAILED - Texture file not found");
+                    UnityEngine.Debug.LogError($"{LOG_PREFIX}      │   Searched paths:");
+                    UnityEngine.Debug.LogError($"{LOG_PREFIX}      │   - {texturePath}");
+                    if (!string.IsNullOrEmpty(fbxDirectory))
+                    {
+                        UnityEngine.Debug.LogError($"{LOG_PREFIX}      │   - {Path.Combine(fbxDirectory, texturePath)}");
+                        UnityEngine.Debug.LogError($"{LOG_PREFIX}      │   - {Path.Combine(fbxDirectory, Path.GetFileName(texturePath))}");
+                        UnityEngine.Debug.LogError($"{LOG_PREFIX}      │   - {Path.Combine(fbxDirectory, "Textures", Path.GetFileName(texturePath))}");
+                    }
+                    UnityEngine.Debug.LogError($"{LOG_PREFIX}      └────────────────────────────────────────────────");
+                    return null;
+                }
+
+                // ファイルを読み込み
+                byte[] imageData = File.ReadAllBytes(fullPath);
+                UnityEngine.Debug.Log($"{LOG_PREFIX}      │   File size: {imageData.Length} bytes ({imageData.Length / 1024.0:F2} KB)");
+
+                // Texture2Dを作成
+                UnityEngine.Texture2D texture = new UnityEngine.Texture2D(2, 2);
+
+                // LoadImageでバイトデータから画像をロード
+                UnityEngine.Debug.Log($"{LOG_PREFIX}      │   Calling Texture2D.LoadImage()...");
+                bool loadSuccess = texture.LoadImage(imageData);
+
+                if (loadSuccess)
+                {
+                    texture.name = Path.GetFileNameWithoutExtension(fullPath);
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}      │");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}      │ ✓ SUCCESS - External texture loaded!");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}      │   Name: {texture.name}");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}      │   Dimensions: {texture.width}x{texture.height}");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}      │   Format: {texture.format}");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}      └────────────────────────────────────────────────");
+                    return texture;
+                }
+                else
+                {
+                    UnityEngine.Debug.LogError($"{LOG_PREFIX}      │");
+                    UnityEngine.Debug.LogError($"{LOG_PREFIX}      │ ✗ FAILED - Texture2D.LoadImage() returned false");
+                    UnityEngine.Debug.LogError($"{LOG_PREFIX}      │   File: {fullPath}");
+                    UnityEngine.Debug.LogError($"{LOG_PREFIX}      │   Size: {imageData.Length} bytes");
+                    UnityEngine.Debug.LogError($"{LOG_PREFIX}      └────────────────────────────────────────────────");
+                    UnityEngine.Object.Destroy(texture);
+                }
+            }
+            catch (System.Exception ex)
+            {
+                UnityEngine.Debug.LogError($"{LOG_PREFIX}      │");
+                UnityEngine.Debug.LogError($"{LOG_PREFIX}      │ ✗ EXCEPTION - {ex.GetType().Name}");
+                UnityEngine.Debug.LogError($"{LOG_PREFIX}      │   Message: {ex.Message}");
+                UnityEngine.Debug.LogError($"{LOG_PREFIX}      └────────────────────────────────────────────────");
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// マテリアルを作成し、埋め込みテクスチャを適用
+        /// </summary>
+        /// <param name="nodeName">ノード名</param>
+        /// <param name="assimpMaterial">Assimpマテリアル</param>
+        /// <param name="assimpMaterialIndex">Assimpマテリアルインデックス</param>
+        private UnityEngine.Material CreateMaterialWithShaderDB(string nodeName, Assimp.Material assimpMaterial, int assimpMaterialIndex)
+        {
+            UnityEngine.Material material = null;
+
+            // Assimpマテリアルからシェーダーを作成
+            if (assimpMaterial != null)
+            {
+                UnityEngine.Debug.Log($"{LOG_PREFIX}   Creating material for: {assimpMaterial.Name}");
+
+                // lilToonまたはStandardシェーダーを使用
+                UnityEngine.Shader shader = UnityEngine.Shader.Find("lilToon");
+                if (shader == null)
+                {
+                    shader = UnityEngine.Shader.Find("Standard");
+                }
+
+                if (shader != null)
+                {
+                    material = new UnityEngine.Material(shader);
+                    material.name = $"{nodeName}_Material";
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}     ✓ Material created with shader: {shader.name}");
+                }
+            }
+
+            // マテリアルが作成されなかった場合はフォールバック
+            if (material == null)
+            {
+                UnityEngine.Debug.LogWarning($"{LOG_PREFIX}   Material creation failed, creating fallback lilToon material");
+                material = CreateLilToonMaterial(nodeName, assimpMaterialIndex);
+            }
+
+            // 埋め込みテクスチャを適用
+            if (assimpMaterial != null && material != null)
+            {
+                ApplyEmbeddedTextures(material, assimpMaterial);
+            }
+
+            return material;
+        }
+
+        /// <summary>
+        /// 埋め込みテクスチャをマテリアルに適用
+        /// </summary>
+        /// <param name="material">Unity Material</param>
+        /// <param name="assimpMaterial">Assimp Material</param>
+        private void ApplyEmbeddedTextures(UnityEngine.Material material, Assimp.Material assimpMaterial)
+        {
+            UnityEngine.Debug.Log($"{LOG_PREFIX}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX} ┌══════════════════════════════════════════════════════════");
+            UnityEngine.Debug.Log($"{LOG_PREFIX} │ 🎨 APPLYING EMBEDDED TEXTURES TO MATERIAL");
+            UnityEngine.Debug.Log($"{LOG_PREFIX} ├══════════════════════════════════════════════════════════");
+            UnityEngine.Debug.Log($"{LOG_PREFIX} │ ℹ Material: {material.name}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX} │   Shader: {material.shader.name}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX} │");
+
+            // Diffuseテクスチャを抽出して適用
+            UnityEngine.Texture2D diffuseTexture = ExtractTextureFromAssimpMaterial(assimpMaterial, Assimp.TextureType.Diffuse);
+
+            if (diffuseTexture != null)
+            {
+                UnityEngine.Debug.Log($"{LOG_PREFIX} ├──────────────────────────────────────────────────────────");
+                UnityEngine.Debug.Log($"{LOG_PREFIX} │ ✓ Diffuse texture extracted successfully");
+                UnityEngine.Debug.Log($"{LOG_PREFIX} │   Name: {diffuseTexture.name}");
+                UnityEngine.Debug.Log($"{LOG_PREFIX} │   Dimensions: {diffuseTexture.width}x{diffuseTexture.height}");
+                UnityEngine.Debug.Log($"{LOG_PREFIX} │   Format: {diffuseTexture.format}");
+                UnityEngine.Debug.Log($"{LOG_PREFIX} │");
+                UnityEngine.Debug.Log($"{LOG_PREFIX} │ 🔍 Checking material properties...");
+
+                // _MainTexプロパティに設定（lilToon, Standard, URP Litなど）
+                if (material.HasProperty("_MainTex"))
+                {
+                    UnityEngine.Debug.Log($"{LOG_PREFIX} │   ✓ Material has '_MainTex' property");
+                    material.SetTexture("_MainTex", diffuseTexture);
+                    UnityEngine.Debug.Log($"{LOG_PREFIX} │   ✓ Texture assigned to '_MainTex'");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX} │");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX} │ ✅ SUCCESS - Texture applied to material!");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX} │   Property: _MainTex");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX} │   Texture: {diffuseTexture.name} ({diffuseTexture.width}x{diffuseTexture.height})");
+                }
+                // _BaseMapプロパティに設定（URP）
+                else if (material.HasProperty("_BaseMap"))
+                {
+                    UnityEngine.Debug.Log($"{LOG_PREFIX} │   ✓ Material has '_BaseMap' property (URP)");
+                    material.SetTexture("_BaseMap", diffuseTexture);
+                    UnityEngine.Debug.Log($"{LOG_PREFIX} │   ✓ Texture assigned to '_BaseMap'");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX} │");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX} │ ✅ SUCCESS - Texture applied to material!");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX} │   Property: _BaseMap");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX} │   Texture: {diffuseTexture.name} ({diffuseTexture.width}x{diffuseTexture.height})");
+                }
+                else
+                {
+                    UnityEngine.Debug.LogWarning($"{LOG_PREFIX} │");
+                    UnityEngine.Debug.LogWarning($"{LOG_PREFIX} │ ⚠ WARNING - No compatible texture property found!");
+                    UnityEngine.Debug.LogWarning($"{LOG_PREFIX} │   Shader: {material.shader.name}");
+                    UnityEngine.Debug.LogWarning($"{LOG_PREFIX} │   Missing: '_MainTex' and '_BaseMap' properties");
+                    UnityEngine.Debug.LogWarning($"{LOG_PREFIX} │   Texture extracted but could not be applied");
+                }
+                UnityEngine.Debug.Log($"{LOG_PREFIX} └══════════════════════════════════════════════════════════");
+            }
+            else
+            {
+                UnityEngine.Debug.Log($"{LOG_PREFIX} ├──────────────────────────────────────────────────────────");
+                UnityEngine.Debug.Log($"{LOG_PREFIX} │ ℹ No diffuse texture found in material");
+                UnityEngine.Debug.Log($"{LOG_PREFIX} │   Material will use shader's default color/texture");
+                UnityEngine.Debug.Log($"{LOG_PREFIX} └══════════════════════════════════════════════════════════");
+            }
+        }
+
+        /// <summary>
+        /// lilToonシェーダーを使用したマテリアルを作成（フォールバック用）
+        /// </summary>
+        /// <param name="nodeName">ノード名</param>
+        /// <param name="assimpMaterialIndex">Assimpマテリアルインデックス（-1の場合はマテリアル情報なし）</param>
+        private UnityEngine.Material CreateLilToonMaterial(string nodeName, int assimpMaterialIndex = -1)
         {
             // lilToonシェーダーを検索
             UnityEngine.Shader lilToonShader = UnityEngine.Shader.Find("lilToon");
@@ -941,14 +1418,68 @@ namespace AICam.FBXLoader
             UnityEngine.Material material = new UnityEngine.Material(lilToonShader);
             material.name = $"{nodeName}_Material";
 
-            // デフォルトカラーを設定（白）
-            if (material.HasProperty("_Color"))
+            // Assimpマテリアルからテクスチャを抽出
+            if (assimpMaterialIndex >= 0 && currentScene != null && assimpMaterialIndex < currentScene.MaterialCount)
             {
-                material.SetColor("_Color", UnityEngine.Color.white);
+                Assimp.Material assimpMaterial = currentScene.Materials[assimpMaterialIndex];
+
+                UnityEngine.Debug.Log($"{LOG_PREFIX}   Processing Assimp material[{assimpMaterialIndex}]: {assimpMaterial.Name}");
+                UnityEngine.Debug.Log($"{LOG_PREFIX}     HasTextureDiffuse: {assimpMaterial.HasTextureDiffuse}");
+                UnityEngine.Debug.Log($"{LOG_PREFIX}     TextureDiffuse count: {assimpMaterial.GetMaterialTextureCount(Assimp.TextureType.Diffuse)}");
+
+                // Diffuseテクスチャを抽出
+                UnityEngine.Texture2D diffuseTexture = ExtractTextureFromAssimpMaterial(assimpMaterial, Assimp.TextureType.Diffuse);
+
+                if (diffuseTexture != null)
+                {
+                    // lilToonの場合は_MainTexにテクスチャを設定
+                    if (material.HasProperty("_MainTex"))
+                    {
+                        material.SetTexture("_MainTex", diffuseTexture);
+                        UnityEngine.Debug.Log($"{LOG_PREFIX}     ✓ Applied diffuse texture to _MainTex: {diffuseTexture.name} ({diffuseTexture.width}x{diffuseTexture.height})");
+                    }
+                    else if (material.HasProperty("_BaseMap"))
+                    {
+                        material.SetTexture("_BaseMap", diffuseTexture);
+                        UnityEngine.Debug.Log($"{LOG_PREFIX}     ✓ Applied diffuse texture to _BaseMap: {diffuseTexture.name} ({diffuseTexture.width}x{diffuseTexture.height})");
+                    }
+                }
+                else
+                {
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}     No diffuse texture extracted, using default white color");
+                }
+
+                // マテリアルのカラー情報も取得
+                if (assimpMaterial.HasColorDiffuse)
+                {
+                    var diffuseColor = assimpMaterial.ColorDiffuse;
+                    UnityEngine.Color color = new UnityEngine.Color(diffuseColor.R, diffuseColor.G, diffuseColor.B, diffuseColor.A);
+
+                    if (material.HasProperty("_Color"))
+                    {
+                        material.SetColor("_Color", color);
+                    }
+                    else if (material.HasProperty("_BaseColor"))
+                    {
+                        material.SetColor("_BaseColor", color);
+                    }
+
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}     Applied diffuse color: {color}");
+                }
             }
-            else if (material.HasProperty("_BaseColor"))
+            else
             {
-                material.SetColor("_BaseColor", UnityEngine.Color.white);
+                // デフォルトカラーを設定（白）
+                if (material.HasProperty("_Color"))
+                {
+                    material.SetColor("_Color", UnityEngine.Color.white);
+                }
+                else if (material.HasProperty("_BaseColor"))
+                {
+                    material.SetColor("_BaseColor", UnityEngine.Color.white);
+                }
+
+                UnityEngine.Debug.Log($"{LOG_PREFIX}   No Assimp material, using default white color");
             }
 
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Created material: {material.name} with shader: {lilToonShader.name}");
