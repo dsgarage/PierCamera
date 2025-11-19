@@ -30,6 +30,14 @@ namespace AICam.FBXLoader
         // ボーン名 → Transform のマップ（STEP 4: SkinnedMeshRenderer.bones構築用）
         private Dictionary<string, Transform> boneNameToTransform = new Dictionary<string, Transform>();
 
+        // MeshNode名 → マテリアル名のマッピング（RuntimeMaterialManager用）
+        private Dictionary<string, List<string>> meshNodeToMaterialNames = new Dictionary<string, List<string>>();
+
+        /// <summary>
+        /// MeshNode名とマテリアル名のマッピングを取得
+        /// </summary>
+        public Dictionary<string, List<string>> GetMeshNodeToMaterialNames() => meshNodeToMaterialNames;
+
         /// <summary>
         /// FBXファイルからボーン階層をロードしてGameObjectツリーを構築（非同期）
         /// v0.4.0以降: メッシュも階層構築時に即座に処理（辞書ルックアップ不使用）
@@ -514,16 +522,42 @@ namespace AICam.FBXLoader
                 // マテリアル作成（メッシュのマテリアルインデックスを取得）
                 int materialIndex = -1;
                 Assimp.Material assimpMaterial = null;
+                List<string> materialNames = new List<string>();
+
                 if (node.MeshCount > 0)
                 {
-                    int assimpMeshIndex = node.MeshIndices[0];
-                    Assimp.Mesh assimpMesh = currentScene.Meshes[assimpMeshIndex];
-                    materialIndex = assimpMesh.MaterialIndex;
+                    // 全メッシュのマテリアル名を収集
+                    foreach (int assimpMeshIndex in node.MeshIndices)
+                    {
+                        Assimp.Mesh assimpMesh = currentScene.Meshes[assimpMeshIndex];
+                        int matIndex = assimpMesh.MaterialIndex;
+
+                        if (matIndex >= 0 && matIndex < currentScene.MaterialCount)
+                        {
+                            Assimp.Material mat = currentScene.Materials[matIndex];
+                            if (!materialNames.Contains(mat.Name))
+                            {
+                                materialNames.Add(mat.Name);
+                            }
+                        }
+                    }
+
+                    // 最初のメッシュのマテリアルを使用（テクスチャ抽出用）
+                    int assimpMeshIndex0 = node.MeshIndices[0];
+                    Assimp.Mesh assimpMesh0 = currentScene.Meshes[assimpMeshIndex0];
+                    materialIndex = assimpMesh0.MaterialIndex;
 
                     if (materialIndex >= 0 && materialIndex < currentScene.MaterialCount)
                     {
                         assimpMaterial = currentScene.Materials[materialIndex];
                         UnityEngine.Debug.Log($"{LOG_PREFIX}   Mesh material index: {materialIndex}, Material name: {assimpMaterial.Name}");
+                    }
+
+                    // MeshNode名とマテリアル名のマッピングを保存
+                    if (materialNames.Count > 0)
+                    {
+                        meshNodeToMaterialNames[node.Name] = materialNames;
+                        UnityEngine.Debug.Log($"{LOG_PREFIX}   Stored material mapping: {node.Name} -> [{string.Join(", ", materialNames)}]");
                     }
                 }
 
