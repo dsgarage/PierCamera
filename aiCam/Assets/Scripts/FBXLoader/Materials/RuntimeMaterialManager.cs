@@ -179,11 +179,11 @@ namespace AICam.FBXLoader
 
         public RuntimeMaterialManager()
         {
-            // MaterialCacheDatabaseをロード
+            // MaterialCacheDatabaseをロード (オプション)
             materialCacheDatabase = Resources.Load<MaterialCacheDatabase>("MaterialCacheDatabase");
             if (materialCacheDatabase == null)
             {
-                Debug.LogError("MaterialCacheDatabaseがResources内に見つかりません。");
+                Debug.LogWarning("[RuntimeMaterialManager] MaterialCacheDatabaseが見つかりません。Runtime検索モードで動作します。");
             }
         }
 
@@ -209,13 +209,13 @@ namespace AICam.FBXLoader
             LogDirectoryStructure(extractedPath);
 #endif
 
+            // MaterialCacheDatabaseがnullの場合は警告のみ出して続行
             if (materialCacheDatabase == null)
             {
-                Debug.LogError("MaterialCacheDatabaseがロードされていません。");
+                Debug.LogWarning("[RuntimeMaterialManager] MaterialCacheDatabaseなしでRuntime検索モードで動作します。");
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
-                materialSearchLog.AppendLine("ERROR: MaterialCacheDatabaseがロードされていません。");
+                materialSearchLog.AppendLine("WARNING: MaterialCacheDatabaseがロードされていません。Runtime検索モードで動作します。");
 #endif
-                return;
             }
 
             var skinnedMeshRenderers = gameObject.GetComponentsInChildren<SkinnedMeshRenderer>();
@@ -298,11 +298,40 @@ namespace AICam.FBXLoader
         {
             var materials = new List<Material>();
 
+            // MaterialCacheDatabaseがない場合は直接テクスチャ検索へ
+            if (materialCacheDatabase == null)
+            {
+                Debug.Log($"[RuntimeMaterialManager] CacheDatabaseなし。{meshNodeName}のテクスチャを直接検索します。");
+                materialSearchLog.AppendLine($"[Runtime Mode] No cache database, searching textures directly for: {meshNodeName}");
+
+                // 戦略3のみ実行: 親ディレクトリからテクスチャを直接検索
+                var searchNames = new List<string>();
+                if (meshNodeToMaterialNames != null && meshNodeToMaterialNames.TryGetValue(meshNodeName, out List<string> matNames))
+                {
+                    searchNames.AddRange(matNames);
+                }
+                searchNames.Add(meshNodeName);
+
+                materials = await SearchTexturesInParentDirectory(extractedPath, searchNames);
+                return materials;
+            }
+
             // FBXエントリを検索
             var fbxEntry = materialCacheDatabase.mappings.Find(m => m.fbxName == fbxName);
             if (fbxEntry == null)
             {
-                Debug.LogWarning($"FBXエントリが見つかりません: {fbxName}");
+                Debug.LogWarning($"FBXエントリが見つかりません: {fbxName}。Runtime検索に切り替えます。");
+                materialSearchLog.AppendLine($"[Fallback] FBX entry not found: {fbxName}, using runtime search");
+
+                // FBXエントリがない場合も戦略3にフォールバック
+                var searchNames = new List<string>();
+                if (meshNodeToMaterialNames != null && meshNodeToMaterialNames.TryGetValue(meshNodeName, out List<string> matNames))
+                {
+                    searchNames.AddRange(matNames);
+                }
+                searchNames.Add(meshNodeName);
+
+                materials = await SearchTexturesInParentDirectory(extractedPath, searchNames);
                 return materials;
             }
 
