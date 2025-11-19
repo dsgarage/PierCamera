@@ -305,14 +305,14 @@ namespace AICam.FBXLoader
                 materialSearchLog.AppendLine($"[Runtime Mode] No cache database, searching textures directly for: {meshNodeName}");
 
                 // 戦略3のみ実行: 親ディレクトリからテクスチャを直接検索
-                var searchNames = new List<string>();
-                if (meshNodeToMaterialNames != null && meshNodeToMaterialNames.TryGetValue(meshNodeName, out List<string> matNames))
+                var runtimeSearchNames = new List<string>();
+                if (meshNodeToMaterialNames != null && meshNodeToMaterialNames.TryGetValue(meshNodeName, out List<string> runtimeMatNames))
                 {
-                    searchNames.AddRange(matNames);
+                    runtimeSearchNames.AddRange(runtimeMatNames);
                 }
-                searchNames.Add(meshNodeName);
+                runtimeSearchNames.Add(meshNodeName);
 
-                materials = await SearchTexturesInParentDirectory(extractedPath, searchNames);
+                materials = await SearchTexturesInParentDirectory(extractedPath, runtimeSearchNames);
                 return materials;
             }
 
@@ -324,14 +324,14 @@ namespace AICam.FBXLoader
                 materialSearchLog.AppendLine($"[Fallback] FBX entry not found: {fbxName}, using runtime search");
 
                 // FBXエントリがない場合も戦略3にフォールバック
-                var searchNames = new List<string>();
-                if (meshNodeToMaterialNames != null && meshNodeToMaterialNames.TryGetValue(meshNodeName, out List<string> matNames))
+                var fallbackSearchNames = new List<string>();
+                if (meshNodeToMaterialNames != null && meshNodeToMaterialNames.TryGetValue(meshNodeName, out List<string> fallbackMatNames))
                 {
-                    searchNames.AddRange(matNames);
+                    fallbackSearchNames.AddRange(fallbackMatNames);
                 }
-                searchNames.Add(meshNodeName);
+                fallbackSearchNames.Add(meshNodeName);
 
-                materials = await SearchTexturesInParentDirectory(extractedPath, searchNames);
+                materials = await SearchTexturesInParentDirectory(extractedPath, fallbackSearchNames);
                 return materials;
             }
 
