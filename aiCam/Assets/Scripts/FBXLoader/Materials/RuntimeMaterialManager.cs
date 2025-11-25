@@ -644,8 +644,10 @@ namespace AICam.FBXLoader
                             Debug.Log($"[Manifest] Found material in manifest: {searchName}");
                             materialSearchLog.AppendLine($"    [Manifest] Found: {searchName} (shader: {entry.shaderName})");
 
-                            // .matファイルから再構築
-                            string matPath = Path.Combine(searchDir, searchName + ".mat");
+                            // .matファイルから再構築 (manifestに記録された正しいパスを使用)
+                            string matPath = entry.assetPath;
+                            materialSearchLog.AppendLine($"    [Manifest] Checking .mat file: {matPath}");
+
                             if (File.Exists(matPath))
                             {
                                 var material = await CreateMaterialFromMatFile(matPath, extractRootDir);
@@ -655,6 +657,10 @@ namespace AICam.FBXLoader
                                     materialSearchLog.AppendLine($"    [Manifest] ✓ Material reconstructed successfully");
                                     return materials;
                                 }
+                            }
+                            else
+                            {
+                                materialSearchLog.AppendLine($"    [Manifest] ✗ .mat file not found at: {matPath}");
                             }
                         }
                     }
