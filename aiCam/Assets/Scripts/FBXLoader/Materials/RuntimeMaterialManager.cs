@@ -568,8 +568,24 @@ namespace AICam.FBXLoader
         {
             var materials = new List<Material>();
 
-            // FBXの親ディレクトリを取得（例: /path/to/ExtractedUnityPackage/FBX/）
-            string fbxDir = Path.GetDirectoryName(extractedPath);
+            // extractedPathがディレクトリかファイルか判定
+            string fbxDir;
+            if (Directory.Exists(extractedPath))
+            {
+                // extractedPathがディレクトリの場合、そのまま使用
+                fbxDir = extractedPath;
+            }
+            else if (File.Exists(extractedPath))
+            {
+                // extractedPathがファイルの場合、親ディレクトリを取得
+                fbxDir = Path.GetDirectoryName(extractedPath);
+            }
+            else
+            {
+                // どちらでもない場合、親ディレクトリを試す
+                fbxDir = Path.GetDirectoryName(extractedPath);
+            }
+
             if (string.IsNullOrEmpty(fbxDir) || !Directory.Exists(fbxDir))
             {
                 Debug.LogWarning($"FBXディレクトリが見つかりません: {extractedPath}");
