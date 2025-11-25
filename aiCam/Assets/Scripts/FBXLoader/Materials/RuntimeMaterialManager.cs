@@ -1164,6 +1164,16 @@ namespace AICam.FBXLoader
                         if (loadedTexture != null)
                         {
                             material.SetTexture(texProp.name, loadedTexture);
+
+                            // .matファイルから読み取ったUV scale/offsetを適用
+                            // TexturePropertyにはオリジナルのUV設定が保存されている
+                            if (texProp.scale != Vector2.one || texProp.offset != Vector2.zero)
+                            {
+                                material.SetTextureScale(texProp.name, texProp.scale);
+                                material.SetTextureOffset(texProp.name, texProp.offset);
+                                Debug.Log($"[UniSIL]   Applied UV transform: scale={texProp.scale}, offset={texProp.offset} for {texProp.name}");
+                            }
+
                             appliedTextures++;
                         }
                         else
