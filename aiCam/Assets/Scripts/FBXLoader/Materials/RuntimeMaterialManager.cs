@@ -1029,9 +1029,12 @@ namespace AICam.FBXLoader
                             {
                                 string fileName = Path.GetFileNameWithoutExtension(texEntry.relativePath);
 
-                                // ファイル名がマテリアル名を含むかチェック
-                                // 例: "Cloth.png", "Clothes.png", "Cloth_Main.png" など
-                                if (fileName.Contains(materialBaseName, StringComparison.OrdinalIgnoreCase))
+                                // ファイル名とマテリアル名の双方向マッチング
+                                // 例: "Cloth" <-> "Clothes.png", "Lace" <-> "Lace2", "lace1" <-> "Lace"
+                                bool nameMatches = fileName.Contains(materialBaseName, StringComparison.OrdinalIgnoreCase) ||
+                                                  materialBaseName.Contains(fileName, StringComparison.OrdinalIgnoreCase);
+
+                                if (nameMatches)
                                 {
                                     // プロパティタイプに応じたサフィックスチェック
                                     bool isMatch = false;
