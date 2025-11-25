@@ -653,8 +653,19 @@ namespace AICam.FBXLoader
                                 var material = await CreateMaterialFromMatFile(matPath, extractRootDir);
                                 if (material != null)
                                 {
-                                    materials.Add(material);
-                                    materialSearchLog.AppendLine($"    [Manifest] ✓ Material reconstructed successfully");
+                                    // 重複チェック: 同じ名前のマテリアルがすでに存在する場合はスキップ
+                                    bool isDuplicate = materials.Any(m => m.name == material.name);
+                                    if (!isDuplicate)
+                                    {
+                                        materials.Add(material);
+                                        materialSearchLog.AppendLine($"    [Manifest] ✓ Material reconstructed successfully");
+                                    }
+                                    else
+                                    {
+                                        materialSearchLog.AppendLine($"    [Manifest] ⚠ Duplicate material skipped: {material.name}");
+                                        // 重複マテリアルは破棄
+                                        UnityEngine.Object.Destroy(material);
+                                    }
                                     // ✓ 複数マテリアル対応: 見つかってもすぐにreturnせず、全searchNamesをチェック
                                 }
                             }
