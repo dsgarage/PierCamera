@@ -1247,7 +1247,11 @@ namespace AICam.FBXLoader
                     return null;
 
                 byte[] fileData = await File.ReadAllBytesAsync(filePath);
-                Texture2D texture = new Texture2D(2, 2, TextureFormat.BGRA32, false);
+
+                // URP + Linearカラースペース対応:
+                // テクスチャはsRGBカラースペースで保存されているため、linear=false（sRGB）で作成
+                // これによりUnityが自動的にLinear空間に変換してレンダリングします
+                Texture2D texture = new Texture2D(2, 2, TextureFormat.BGRA32, mipChain: false, linear: false);
 
                 if (texture.LoadImage(fileData))
                 {
