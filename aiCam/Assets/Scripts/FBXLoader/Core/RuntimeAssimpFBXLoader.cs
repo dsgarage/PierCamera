@@ -1388,7 +1388,7 @@ namespace AICam.FBXLoader
                             materialNameToEntry.Clear();
                             if (manifest.materials != null)
                             {
-                                UnityEngine.Debug.Log($"{LOG_PREFIX} [LoadMaterialManifests] Building material name dictionary from {manifest.materials.Length} entries");
+                                UnityEngine.Debug.Log($"{LOG_PREFIX} [LoadMaterialManifests] Building material name dictionary from {manifest.materials.Count} entries");
                                 foreach (var entry in manifest.materials)
                                 {
                                     if (entry != null && !string.IsNullOrEmpty(entry.name))
