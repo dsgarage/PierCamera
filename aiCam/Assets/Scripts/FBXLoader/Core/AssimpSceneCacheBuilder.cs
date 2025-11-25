@@ -150,9 +150,7 @@ namespace AICam.FBXLoader
                 TextureType.Specular,
                 TextureType.Emissive,
                 TextureType.Height,
-                TextureType.Opacity,
-                TextureType.Metalness,
-                TextureType.Roughness
+                TextureType.Opacity
             };
 
             foreach (var texType in textureTypes)
