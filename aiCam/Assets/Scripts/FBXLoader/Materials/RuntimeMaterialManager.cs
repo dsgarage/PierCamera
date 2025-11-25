@@ -1209,6 +1209,9 @@ namespace AICam.FBXLoader
                 Debug.Log($"[UniSIL] Applied {appliedTextures} textures");
                 materialSearchLog.AppendLine($"      Applied {appliedTextures} textures");
 
+                // テクスチャのY軸反転を適用（FBX/Unityの座標系の違いに対応）
+                ApplyTextureFlipping(material);
+
                 // Keywords適用
                 if (materialData.keywords != null && materialData.keywords.Count > 0)
                 {
@@ -1233,6 +1236,42 @@ namespace AICam.FBXLoader
                 materialSearchLog.AppendLine($"      ERROR: {ex.Message}");
                 materialSearchLog.AppendLine($"      Stack trace: {ex.StackTrace}");
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// テクスチャのY軸反転を適用
+        /// FBXファイルからエクスポートされたテクスチャは上下反転している場合があるため、
+        /// 全てのテクスチャプロパティに対してY軸反転を適用します
+        /// </summary>
+        private void ApplyTextureFlipping(Material material)
+        {
+            if (material == null || material.shader == null)
+                return;
+
+            // シェーダーの全プロパティを取得
+            int propertyCount = material.shader.GetPropertyCount();
+            for (int i = 0; i < propertyCount; i++)
+            {
+                // テクスチャプロパティのみ処理
+                if (material.shader.GetPropertyType(i) == UnityEngine.Rendering.ShaderPropertyType.Texture)
+                {
+                    string propertyName = material.shader.GetPropertyName(i);
+
+                    // このプロパティにテクスチャが設定されているか確認
+                    if (material.HasProperty(propertyName))
+                    {
+                        Texture texture = material.GetTexture(propertyName);
+                        if (texture != null)
+                        {
+                            // Y軸反転: Scale.y = -1, Offset.y = 1
+                            material.SetTextureScale(propertyName, new Vector2(1, -1));
+                            material.SetTextureOffset(propertyName, new Vector2(0, 1));
+
+                            Debug.Log($"[UniSIL] Applied Y-flip to texture property: {propertyName}");
+                        }
+                    }
+                }
             }
         }
 
