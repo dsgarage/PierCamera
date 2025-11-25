@@ -1023,6 +1023,7 @@ namespace AICam.FBXLoader
                         {
                             // マテリアル名（例: "Cloth"）を使ってテクスチャを検索
                             string materialBaseName = materialData.name; // 例: "Cloth"
+                            Debug.Log($"[UniSIL] Searching texture for material '{materialBaseName}', property '{texProp.name}'");
 
                             foreach (var texEntry in textureManifest.textures)
                             {
@@ -1037,13 +1038,15 @@ namespace AICam.FBXLoader
 
                                     if (texProp.name.Contains("Base", StringComparison.OrdinalIgnoreCase) ||
                                         texProp.name.Contains("Main", StringComparison.OrdinalIgnoreCase) ||
-                                        texProp.name.Contains("Albedo", StringComparison.OrdinalIgnoreCase))
+                                        texProp.name.Contains("Albedo", StringComparison.OrdinalIgnoreCase) ||
+                                        texProp.name.Contains("Color", StringComparison.OrdinalIgnoreCase))
                                     {
-                                        // ベースカラー: サフィックスなし、または _Main
+                                        // ベースカラー: サフィックスなし、または _Main/_Color
                                         isMatch = !fileName.Contains("Normal", StringComparison.OrdinalIgnoreCase) &&
                                                  !fileName.Contains("Bump", StringComparison.OrdinalIgnoreCase) &&
                                                  !fileName.Contains("Metallic", StringComparison.OrdinalIgnoreCase) &&
                                                  !fileName.Contains("Smoothness", StringComparison.OrdinalIgnoreCase);
+                                        Debug.Log($"[UniSIL]   Checking base color texture: {fileName} -> isMatch={isMatch}");
                                     }
                                     else if (texProp.name.Contains("Normal", StringComparison.OrdinalIgnoreCase) ||
                                             texProp.name.Contains("Bump", StringComparison.OrdinalIgnoreCase))
@@ -1051,6 +1054,17 @@ namespace AICam.FBXLoader
                                         // ノーマルマップ: _Normal または _Bump
                                         isMatch = fileName.Contains("Normal", StringComparison.OrdinalIgnoreCase) ||
                                                  fileName.Contains("Bump", StringComparison.OrdinalIgnoreCase);
+                                        Debug.Log($"[UniSIL]   Checking normal map: {fileName} -> isMatch={isMatch}");
+                                    }
+                                    else
+                                    {
+                                        // その他のプロパティ: マテリアル名に一致するファイルの最初のものを使用
+                                        // 特殊マップ(Normal/Bump/Metallic/Smoothness)を除外
+                                        isMatch = !fileName.Contains("Normal", StringComparison.OrdinalIgnoreCase) &&
+                                                 !fileName.Contains("Bump", StringComparison.OrdinalIgnoreCase) &&
+                                                 !fileName.Contains("Metallic", StringComparison.OrdinalIgnoreCase) &&
+                                                 !fileName.Contains("Smoothness", StringComparison.OrdinalIgnoreCase);
+                                        Debug.Log($"[UniSIL]   Checking other property '{texProp.name}': {fileName} -> isMatch={isMatch}");
                                     }
 
                                     if (isMatch)
@@ -1066,6 +1080,11 @@ namespace AICam.FBXLoader
                                         }
                                     }
                                 }
+                            }
+
+                            if (loadedTexture == null)
+                            {
+                                Debug.LogWarning($"[UniSIL] No texture found for material '{materialBaseName}', property '{texProp.name}'");
                             }
                         }
 
