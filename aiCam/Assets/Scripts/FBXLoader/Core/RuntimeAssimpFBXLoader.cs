@@ -40,6 +40,10 @@ namespace AICam.FBXLoader
         private MaterialManifest cachedMaterialManifest = null;
         private Dictionary<string, MaterialManifest.MaterialEntry> materialNameToEntry = new Dictionary<string, MaterialManifest.MaterialEntry>();
 
+        // AssimpSceneCacheキャッシュ
+        private AssimpSceneCache assimpSceneCache = null;
+        private string cachedFbxPath = null;
+
         /// <summary>
         /// MeshNode名とマテリアル名のマッピングを取得
         /// </summary>
@@ -77,6 +81,19 @@ namespace AICam.FBXLoader
 
             // FBXディレクトリパスを保存（テクスチャ検索用）
             fbxDirectory = Path.GetDirectoryName(fbxPath);
+            cachedFbxPath = fbxPath;
+
+            // AssimpSceneCacheをロードまたは生成
+            assimpSceneCache = AssimpSceneCacheBuilder.Load(fbxPath);
+            if (assimpSceneCache == null)
+            {
+                UnityEngine.Debug.Log($"{LOG_PREFIX} Generating new AssimpSceneCache...");
+                assimpSceneCache = AssimpSceneCacheBuilder.BuildAndSave(scene, fbxPath);
+            }
+            else
+            {
+                UnityEngine.Debug.Log($"{LOG_PREFIX} Using existing AssimpSceneCache");
+            }
 
             // UniSIL統合: MaterialManifestをロード
             LoadMaterialManifests();
@@ -143,6 +160,9 @@ namespace AICam.FBXLoader
 
             UnityEngine.Debug.Log($"{LOG_PREFIX} Bone hierarchy built successfully");
             LogHierarchy(rootObject.transform, 0);
+
+            // 全メッシュ構築完了後、キャッシュを使用してマテリアルを一括割り当て
+            await AssignMaterialsFromCache(rootObject);
 
             return rootObject;
         }
@@ -571,12 +591,13 @@ namespace AICam.FBXLoader
                     }
                 }
 
-                // RuntimeMaterialManagerを使用してマテリアルを作成（ShaderDB対応）
-                UnityEngine.Material material = CreateMaterialWithShaderDB(node.Name, assimpMaterial, materialIndex);
-                UnityEngine.Material[] materials = new UnityEngine.Material[] { material };
+                // デフォルトマテリアルで一時的に構築（後でAssignMaterialsFromCacheで置き換える）
+                UnityEngine.Material defaultMaterial = CreateDefaultMaterial(node.Name);
+                UnityEngine.Material[] materials = new UnityEngine.Material[] { defaultMaterial };
 
                 // SkinnedMeshRenderer 構築
                 SkinnedMeshRenderer smr = skinnedMeshBuilder.Build(meshData, boneData, rootBoneName, materials);
+                UnityEngine.Debug.Log($"{LOG_PREFIX}   SkinnedMeshRenderer created with default material (will be replaced later)");
                 await UniTask.Yield();
 
                 UnityEngine.Debug.Log($"{LOG_PREFIX} ========================================");
@@ -1326,6 +1347,72 @@ namespace AICam.FBXLoader
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// デフォルトマテリアルを作成（一時的なプレースホルダー）
+        /// </summary>
+        private UnityEngine.Material CreateDefaultMaterial(string materialName)
+        {
+            UnityEngine.Shader shader = UnityEngine.Shader.Find("Standard");
+            if (shader == null)
+            {
+                shader = UnityEngine.Shader.Find("Unlit/Color");
+            }
+
+            var material = new UnityEngine.Material(shader);
+            material.name = $"{materialName}_Default";
+            material.color = UnityEngine.Color.gray; // グレーで識別しやすく
+
+            return material;
+        }
+
+        /// <summary>
+        /// AssimpSceneCacheを使用してマテリアルを一括割り当て
+        /// RuntimeMaterialManagerを使用してUniSIL統合マテリアル再構築を行う
+        /// </summary>
+        private async UniTask AssignMaterialsFromCache(GameObject rootObject)
+        {
+            if (rootObject == null)
+            {
+                UnityEngine.Debug.LogWarning($"{LOG_PREFIX} [AssignMaterials] rootObject is null");
+                return;
+            }
+
+            if (assimpSceneCache == null)
+            {
+                UnityEngine.Debug.LogWarning($"{LOG_PREFIX} [AssignMaterials] assimpSceneCache is null, skipping material assignment");
+                return;
+            }
+
+            UnityEngine.Debug.Log($"{LOG_PREFIX} [AssignMaterials] === START ===");
+            UnityEngine.Debug.Log($"{LOG_PREFIX} [AssignMaterials] Using AssimpSceneCache with {assimpSceneCache.materials.Count} materials");
+
+            // RuntimeMaterialManagerを作成
+            var materialManager = new RuntimeMaterialManager();
+
+            // 解凍先パス（FBXディレクトリまたはUnityPackage解凍先）
+            string extractedPath = fbxDirectory;
+
+            // MaterialManifestが見つかっている場合、そのディレクトリを優先
+            string extractRootDir = FindExtractRootDirectory(fbxDirectory);
+            if (!string.IsNullOrEmpty(extractRootDir))
+            {
+                extractedPath = extractRootDir;
+                UnityEngine.Debug.Log($"{LOG_PREFIX} [AssignMaterials] Using extract root: {extractedPath}");
+            }
+
+            // RuntimeMaterialManager.AssignMaterials()を使用して一括割り当て
+            await materialManager.AssignMaterials(rootObject, extractedPath, meshNodeToMaterialNames);
+
+            UnityEngine.Debug.Log($"{LOG_PREFIX} [AssignMaterials] === END ===");
+
+            // ログを出力（デバッグ用）
+            string log = materialManager.GetCombinedLog();
+            if (!string.IsNullOrEmpty(log))
+            {
+                UnityEngine.Debug.Log($"{LOG_PREFIX} [AssignMaterials] Combined Log:\n{log}");
+            }
         }
 
         /// <summary>
