@@ -976,17 +976,44 @@ namespace AICam.FBXLoader
                 var textureManifest = LoadTextureManifest(extractRootDir);
                 if (textureManifest == null)
                 {
+                    Debug.Log($"[UniSIL] TextureManifest not found at extract root: {extractRootDir}");
                     // 見つからなければ.matファイルと同じディレクトリを試す
                     textureManifest = LoadTextureManifest(matDirectory);
+                    if (textureManifest == null)
+                    {
+                        Debug.LogWarning($"[UniSIL] TextureManifest not found at material directory: {matDirectory}");
+                    }
+                }
+                else
+                {
+                    Debug.Log($"[UniSIL] TextureManifest loaded: {textureManifest.textureCount} textures");
                 }
 
                 int appliedTextures = 0;
-                if (materialData.textures != null)
+                if (materialData.textures == null)
                 {
+                    Debug.LogWarning($"[UniSIL] materialData.textures is NULL");
+                    materialSearchLog.AppendLine($"      WARNING: materialData.textures is NULL");
+                }
+                else if (materialData.textures.Count == 0)
+                {
+                    Debug.LogWarning($"[UniSIL] materialData.textures is EMPTY (Count=0)");
+                    materialSearchLog.AppendLine($"      WARNING: materialData.textures is EMPTY");
+                }
+                else
+                {
+                    Debug.Log($"[UniSIL] Material has {materialData.textures.Count} texture properties");
+                    materialSearchLog.AppendLine($"      Material has {materialData.textures.Count} texture properties");
+
                     foreach (var texProp in materialData.textures)
                     {
+                        Debug.Log($"[UniSIL]   Texture property: {texProp.name} (GUID: {texProp.guid})");
+
                         if (!material.HasProperty(texProp.name))
+                        {
+                            Debug.LogWarning($"[UniSIL]   Property {texProp.name} not found in shader {material.shader.name}");
                             continue;
+                        }
 
                         // TextureManifestからGUIDで検索
                         Texture2D loadedTexture = null;
@@ -1053,8 +1080,12 @@ namespace AICam.FBXLoader
                             material.SetTexture(texProp.name, loadedTexture);
                             appliedTextures++;
                         }
+                        else
+                        {
+                            Debug.LogWarning($"[UniSIL]   Failed to load texture for property: {texProp.name}");
+                        }
                     }
-                }
+                } // end of else (materialData.textures is not null/empty)
 
                 Debug.Log($"[UniSIL] Applied {appliedTextures} textures");
                 materialSearchLog.AppendLine($"      Applied {appliedTextures} textures");
