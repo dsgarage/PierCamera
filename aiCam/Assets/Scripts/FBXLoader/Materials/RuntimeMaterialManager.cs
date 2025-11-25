@@ -4,6 +4,8 @@ using System.Linq;
 using UnityEngine;
 using UniSIL.ShaderInference;
 using UniSIL.ShaderInference.MaterialReconstruction;
+using UniSIL.ShaderInference.MaterialLoading;
+using UniSIL.ShaderInference.TextureLoading;
 
 namespace AICam.FBXLoader
 {
@@ -24,6 +26,10 @@ namespace AICam.FBXLoader
         private MaterialCacheDatabase materialCacheDatabase;
         private System.Text.StringBuilder materialSearchLog = new System.Text.StringBuilder();
         private System.Text.StringBuilder meshDiagnosticsLog = new System.Text.StringBuilder();
+
+        // UniSIL Manifest support
+        private Dictionary<string, MaterialManifest> loadedMaterialManifests = new Dictionary<string, MaterialManifest>();
+        private Dictionary<string, TextureManifest> loadedTextureManifests = new Dictionary<string, TextureManifest>();
 
         // ログ記録が有効かどうか
         private static bool IsLoggingEnabled =>
@@ -467,8 +473,93 @@ namespace AICam.FBXLoader
         }
 
         /// <summary>
+        /// MaterialManifestをロード
+        /// </summary>
+        /// <param name="directory">マニフェストが保存されているディレクトリ</param>
+        /// <returns>ロードされたManifest、失敗時はnull</returns>
+        private MaterialManifest LoadMaterialManifest(string directory)
+        {
+            if (loadedMaterialManifests.TryGetValue(directory, out MaterialManifest cached))
+            {
+                return cached;
+            }
+
+            string manifestPath = Path.Combine(directory, "MaterialManifest.json");
+            if (!File.Exists(manifestPath))
+            {
+                materialSearchLog.AppendLine($"    [Manifest] MaterialManifest not found at: {Path.GetFileName(directory)}");
+                return null;
+            }
+
+            try
+            {
+                string json = File.ReadAllText(manifestPath);
+                MaterialManifest manifest = JsonUtility.FromJson<MaterialManifest>(json);
+
+                if (manifest != null)
+                {
+                    // IsValid()チェックを外す（JsonUtilityの制限でListが正しくデシリアライズされない可能性）
+                    loadedMaterialManifests[directory] = manifest;
+                    string msg = $"[Manifest] ✓ Loaded MaterialManifest: {manifest.materialCount} materials";
+                    Debug.Log(msg);
+                    materialSearchLog.AppendLine($"    {msg}");
+                    return manifest;
+                }
+            }
+            catch (Exception ex)
+            {
+                string errorMsg = $"[Manifest] ✗ Failed to load MaterialManifest: {ex.Message}";
+                Debug.LogWarning(errorMsg);
+                materialSearchLog.AppendLine($"    {errorMsg}");
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// TextureManifestをロード
+        /// </summary>
+        /// <param name="directory">マニフェストが保存されているディレクトリ</param>
+        /// <returns>ロードされたManifest、失敗時はnull</returns>
+        private TextureManifest LoadTextureManifest(string directory)
+        {
+            if (loadedTextureManifests.TryGetValue(directory, out TextureManifest cached))
+            {
+                return cached;
+            }
+
+            string manifestPath = Path.Combine(directory, "TextureManifest.json");
+            if (!File.Exists(manifestPath))
+            {
+                Debug.Log($"[RuntimeMaterialManager] TextureManifest not found: {manifestPath}");
+                return null;
+            }
+
+            try
+            {
+                string json = File.ReadAllText(manifestPath);
+                TextureManifest manifest = JsonUtility.FromJson<TextureManifest>(json);
+
+                if (manifest != null)
+                {
+                    // IsValid()チェックを外す（JsonUtilityの制限でListが正しくデシリアライズされない可能性）
+                    loadedTextureManifests[directory] = manifest;
+                    Debug.Log($"[RuntimeMaterialManager] ✓ Loaded TextureManifest: {manifest.textureCount} textures from {directory}");
+                    return manifest;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[RuntimeMaterialManager] Failed to load TextureManifest: {ex.Message}");
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// 親ディレクトリからテクスチャファイルを検索してMaterialを作成
         /// UniSIL統合: .matファイルがあればYAMLパースとShader推論を使用
+        /// Manifest優先: MaterialManifestがあれば優先的に使用
         /// </summary>
         /// <param name="extractedPath">FBXファイルのパス</param>
         /// <param name="searchNames">検索するファイル名のリスト</param>
@@ -477,7 +568,7 @@ namespace AICam.FBXLoader
         {
             var materials = new List<Material>();
 
-            // FBXの親ディレクトリを取得（例: /path/to/FBX/）
+            // FBXの親ディレクトリを取得（例: /path/to/ExtractedUnityPackage/FBX/）
             string fbxDir = Path.GetDirectoryName(extractedPath);
             if (string.IsNullOrEmpty(fbxDir) || !Directory.Exists(fbxDir))
             {
@@ -486,28 +577,73 @@ namespace AICam.FBXLoader
                 return materials;
             }
 
-            // FBXの親の親ディレクトリを取得（例: /path/to/Assets/Kyoko/）
-            string assetDir = Path.GetDirectoryName(fbxDir);
-            if (string.IsNullOrEmpty(assetDir) || !Directory.Exists(assetDir))
+            // 解凍先のルートディレクトリを取得
+            // UnityPackageExtractorは extractedFolderPath 配下に全ファイルを展開する
+            // MaterialManifest.json と TextureManifest.json はルート直下に保存される
+            //
+            // ルート検出方法: fbxDirから最大5階層上まで遡り、Manifestファイルを探す
+            materialSearchLog.AppendLine($"    [Manifest] Searching for extract root...");
+            string extractRootDir = FindExtractRootDirectory(fbxDir);
+            if (string.IsNullOrEmpty(extractRootDir))
             {
-                Debug.LogWarning($"アセットディレクトリが見つかりません: {fbxDir}");
-                materialSearchLog.AppendLine($"    ERROR: Asset directory not found: {fbxDir}");
+                Debug.LogError($"[RuntimeMaterialManager] Could not find extract root (no Manifest found within 5 levels up from {fbxDir})");
+                materialSearchLog.AppendLine($"    ERROR: Could not find extract root directory");
+                materialSearchLog.AppendLine($"    No MaterialManifest.json or TextureManifest.json found within 5 levels");
                 return materials;
             }
 
             Debug.Log($"[RuntimeMaterialManager] FBX directory: {fbxDir}");
-            Debug.Log($"[RuntimeMaterialManager] Asset directory: {assetDir}");
+            Debug.Log($"[RuntimeMaterialManager] Extract root directory: {extractRootDir}");
             materialSearchLog.AppendLine($"    FBX directory: {fbxDir}");
-            materialSearchLog.AppendLine($"    Asset directory: {assetDir}");
+            materialSearchLog.AppendLine($"    [Manifest] ✓ Extract root found: {extractRootDir}");
 
             // 検索対象ディレクトリ（優先順位順）
+            // 最優先: 解凍先ルートディレクトリ（Manifestが保存される場所）
             string[] searchDirectories = new string[]
             {
-                Path.Combine(assetDir, "Material"),   // ../Material/
-                Path.Combine(assetDir, "Materials"),  // ../Materials/
-                fbxDir,                                // FBXと同じディレクトリ
-                assetDir                               // アセットルート
+                extractRootDir,                        // 解凍先ルート（最優先）
+                Path.Combine(extractRootDir, "Material"),   // ../Material/
+                Path.Combine(extractRootDir, "Materials"),  // ../Materials/
+                fbxDir                                 // FBXと同じディレクトリ
             };
+
+            // 戦略0（新規）: MaterialManifestを使用
+            foreach (var searchDir in searchDirectories)
+            {
+                if (!Directory.Exists(searchDir))
+                    continue;
+
+                MaterialManifest materialManifest = LoadMaterialManifest(searchDir);
+                if (materialManifest != null)
+                {
+                    Debug.Log($"[Manifest] Using MaterialManifest from: {searchDir}");
+                    materialSearchLog.AppendLine($"    [Manifest] Using MaterialManifest: {materialManifest.materialCount} materials");
+
+                    // searchNamesに一致するマテリアルを検索
+                    foreach (var searchName in searchNames)
+                    {
+                        var entry = materialManifest.FindByName(searchName);
+                        if (entry != null)
+                        {
+                            Debug.Log($"[Manifest] Found material in manifest: {searchName}");
+                            materialSearchLog.AppendLine($"    [Manifest] Found: {searchName} (shader: {entry.shaderName})");
+
+                            // .matファイルから再構築
+                            string matPath = Path.Combine(searchDir, searchName + ".mat");
+                            if (File.Exists(matPath))
+                            {
+                                var material = await CreateMaterialFromMatFile(matPath, extractRootDir);
+                                if (material != null)
+                                {
+                                    materials.Add(material);
+                                    materialSearchLog.AppendLine($"    [Manifest] ✓ Material reconstructed successfully");
+                                    return materials;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             foreach (var searchName in searchNames)
             {
@@ -523,7 +659,7 @@ namespace AICam.FBXLoader
                         Debug.Log($"[UniSIL] .mat file found: {matPath}");
                         materialSearchLog.AppendLine($"    [UniSIL] Found .mat file: {searchName}.mat in {Path.GetFileName(searchDir)}/");
 
-                        var material = await CreateMaterialFromMatFile(matPath, assetDir);
+                        var material = await CreateMaterialFromMatFile(matPath, extractRootDir);
                         if (material != null)
                         {
                             materials.Add(material);
@@ -545,12 +681,12 @@ namespace AICam.FBXLoader
             // テクスチャ検索用ディレクトリ（Material/, Texture/, Textures/ なども探す）
             string[] textureSearchDirs = new string[]
             {
-                Path.Combine(assetDir, "Texture"),
-                Path.Combine(assetDir, "Textures"),
-                Path.Combine(assetDir, "Material"),
-                Path.Combine(assetDir, "Materials"),
+                Path.Combine(extractRootDir, "Texture"),
+                Path.Combine(extractRootDir, "Textures"),
+                Path.Combine(extractRootDir, "Material"),
+                Path.Combine(extractRootDir, "Materials"),
                 fbxDir,
-                assetDir
+                extractRootDir
             };
 
             string[] imageExtensions = { ".png", ".jpg", ".jpeg", ".tga", ".bmp" };
@@ -589,6 +725,8 @@ namespace AICam.FBXLoader
 
         /// <summary>
         /// .matファイルからUniSILを使用してMaterialを再構築
+        /// MaterialReconstructorは使わず、ShaderInferenceのみを使用してシェーダーを推論
+        /// テクスチャは手動でTextureManifestから読み込み
         /// </summary>
         private async UniTask<Material> CreateMaterialFromMatFile(string matPath, string textureDirectory)
         {
@@ -612,32 +750,290 @@ namespace AICam.FBXLoader
                 materialSearchLog.AppendLine($"      Keywords: {string.Join(", ", materialData.keywords)}");
 
                 // ShaderDatabaseをロード
+                Debug.Log("[UniSIL] Loading ShaderDatabase...");
                 var shaderDB = ShaderDBLoader.LoadDatabase();
+
                 if (shaderDB == null)
                 {
-                    Debug.LogError("[UniSIL] Failed to load ShaderDatabase");
+                    Debug.LogError("[UniSIL] Failed to load ShaderDatabase - ShaderDBLoader.LoadDatabase() returned null");
+                    Debug.LogError("[UniSIL] Please check if Assets/Resources/ShaderDB.asset exists");
                     materialSearchLog.AppendLine($"      ERROR: ShaderDatabase not found");
                     return null;
                 }
 
-                // ShaderInferenceEngineで推論
-                var inferenceEngine = new ShaderInferenceEngine(shaderDB);
-                var inferenceResult = inferenceEngine.InferShader(materialData);
-
-                Debug.Log($"[UniSIL] Inferred shader: {inferenceResult.inferredShader} (confidence: {inferenceResult.confidence:P2})");
-                materialSearchLog.AppendLine($"      Inferred shader: {inferenceResult.inferredShader}");
-                materialSearchLog.AppendLine($"      Confidence: {inferenceResult.confidence:P2}");
-
-                // MaterialReconstructorで再構築
-                var reconstructor = new MaterialReconstructor();
-                var material = reconstructor.ReconstructMaterial(materialData, inferenceResult);
-
-                if (material != null)
+                if (shaderDB.shaders == null)
                 {
-                    Debug.Log($"[UniSIL] Material reconstructed: {material.name} with shader {material.shader.name}");
-                    materialSearchLog.AppendLine($"      ✓ Material reconstructed successfully");
-                    materialSearchLog.AppendLine($"      Final shader: {material.shader.name}");
+                    Debug.LogError("[UniSIL] ShaderDatabase.shaders is null - ShaderDB.asset may be corrupted");
+                    Debug.LogError("[UniSIL] Please regenerate ShaderDB.asset using Tools > UniSIL > Generate ShaderDB");
+                    materialSearchLog.AppendLine($"      ERROR: ShaderDatabase.shaders is null (corrupted asset)");
+                    return null;
                 }
+
+                Debug.Log($"[UniSIL] ShaderDatabase loaded successfully: {shaderDB.shaders.Count} shaders");
+
+                // シェーダー取得の優先順位:
+                // 1. GUID直接lookup (ShaderGuidDictionary)
+                // 2. ShaderInferenceEngineでの推論
+                // 3. フォールバック (lilToon → Standard)
+
+                Shader shader = null;
+                string shaderSource = null;
+
+                // 戦略1: GUIDがあれば直接lookupを試みる
+                if (!string.IsNullOrEmpty(materialData.shaderGuid))
+                {
+                    Debug.Log($"[UniSIL] Attempting GUID lookup: {materialData.shaderGuid}");
+                    materialSearchLog.AppendLine($"      [Strategy 1] Direct GUID lookup: {materialData.shaderGuid}");
+
+                    // ShaderGuidDictionaryLoaderを使用してGUIDから直接シェーダー名を取得
+                    var shaderGuidDict = ShaderGuidDictionaryLoader.LoadDictionary();
+                    if (shaderGuidDict != null)
+                    {
+                        string shaderName = shaderGuidDict.GetShaderNameByGuid(materialData.shaderGuid);
+                        if (!string.IsNullOrEmpty(shaderName))
+                        {
+                            shader = Shader.Find(shaderName);
+                            if (shader != null)
+                            {
+                                Debug.Log($"[UniSIL] ✓ Found shader by GUID: {shaderName}");
+                                materialSearchLog.AppendLine($"      ✓ GUID lookup succeeded: {shaderName}");
+                                shaderSource = "GUID Lookup";
+                            }
+                            else
+                            {
+                                Debug.LogWarning($"[UniSIL] ✗ Shader name found by GUID but Shader.Find() failed: {shaderName}");
+                                materialSearchLog.AppendLine($"      ✗ Shader name found but not loaded: {shaderName}");
+                            }
+                        }
+                        else
+                        {
+                            Debug.Log($"[UniSIL] GUID not found in ShaderGuidDictionary");
+                            materialSearchLog.AppendLine($"      GUID not found in dictionary");
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning("[UniSIL] ShaderGuidDictionary could not be loaded");
+                        materialSearchLog.AppendLine($"      ✗ ShaderGuidDictionary not available");
+                    }
+                }
+
+                // 戦略2: GUID lookupで見つからなければ推論を使用
+                if (shader == null)
+                {
+                    Debug.Log($"[UniSIL] Falling back to shader inference");
+                    materialSearchLog.AppendLine($"      [Strategy 2] Shader inference");
+
+                    var config = new InferenceConfig();
+                    var inferenceEngine = new ShaderInferenceEngine(shaderDB, config);
+                    ShaderInferenceResult inferenceResult;
+
+                    if (!string.IsNullOrEmpty(materialData.shaderGuid))
+                    {
+                        Debug.Log($"[UniSIL] Using shader GUID for inference: {materialData.shaderGuid}");
+                        materialSearchLog.AppendLine($"      Using GUID-based inference");
+                        inferenceResult = inferenceEngine.InferShaderWithGuid(materialData, materialData.shaderGuid);
+                    }
+                    else
+                    {
+                        Debug.Log($"[UniSIL] No shader GUID, using property-based inference");
+                        materialSearchLog.AppendLine($"      Using property-based inference");
+                        inferenceResult = inferenceEngine.InferShader(materialData);
+                    }
+
+                    Debug.Log($"[UniSIL] Inferred shader: {inferenceResult.inferredShader} (confidence: {inferenceResult.confidence:P2})");
+                    materialSearchLog.AppendLine($"      Inferred: {inferenceResult.inferredShader} (confidence: {inferenceResult.confidence:P2})");
+
+                    shader = Shader.Find(inferenceResult.inferredShader);
+                    if (shader != null)
+                    {
+                        shaderSource = $"Inference ({inferenceResult.confidence:P2})";
+                        materialSearchLog.AppendLine($"      ✓ Inference succeeded");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[UniSIL] ✗ Inferred shader not found: {inferenceResult.inferredShader}");
+                        materialSearchLog.AppendLine($"      ✗ Inferred shader not found in project");
+                    }
+                }
+
+                // 戦略3: 最終フォールバック
+                if (shader == null)
+                {
+                    Debug.LogWarning($"[UniSIL] All shader lookup strategies failed, using fallback");
+                    materialSearchLog.AppendLine($"      [Strategy 3] Fallback shaders");
+
+                    shader = Shader.Find("lilToon");
+                    if (shader != null)
+                    {
+                        shaderSource = "Fallback (lilToon)";
+                        materialSearchLog.AppendLine($"      Using lilToon fallback");
+                    }
+                    else
+                    {
+                        Debug.LogError("[UniSIL] Even lilToon shader not found, using Standard");
+                        shader = Shader.Find("Standard");
+                        shaderSource = "Fallback (Standard)";
+                        materialSearchLog.AppendLine($"      Using Standard fallback");
+                    }
+                }
+
+                // Materialを作成
+                var material = new Material(shader);
+                material.name = materialData.name;
+
+                Debug.Log($"[UniSIL] Material created with shader: {shader.name} (source: {shaderSource})");
+                materialSearchLog.AppendLine($"      ✓ Material created with shader: {shader.name}");
+                materialSearchLog.AppendLine($"      Shader source: {shaderSource}");
+
+                // プロパティを適用
+                int appliedProps = 0;
+
+                // Float/Range properties
+                if (materialData.floats != null)
+                {
+                    foreach (var kvp in materialData.floats)
+                    {
+                        if (material.HasProperty(kvp.Key))
+                        {
+                            material.SetFloat(kvp.Key, kvp.Value);
+                            appliedProps++;
+                        }
+                    }
+                }
+
+                // Color properties
+                if (materialData.colors != null)
+                {
+                    foreach (var kvp in materialData.colors)
+                    {
+                        if (material.HasProperty(kvp.Key))
+                        {
+                            material.SetColor(kvp.Key, kvp.Value);
+                            appliedProps++;
+                        }
+                    }
+                }
+
+                Debug.Log($"[UniSIL] Applied {appliedProps} properties");
+                materialSearchLog.AppendLine($"      Applied {appliedProps} properties");
+
+                // テクスチャを手動で読み込み（TextureManifestから）
+                // .matファイルのディレクトリを取得
+                string matDirectory = Path.GetDirectoryName(matPath);
+
+                // 解凍先ルートディレクトリを取得（Manifestがある場所）
+                // matDirectoryから最大5階層上まで遡り、TextureManifest.jsonを探す
+                string extractRootDir = FindExtractRootDirectory(matDirectory);
+                if (string.IsNullOrEmpty(extractRootDir))
+                {
+                    Debug.LogWarning($"[UniSIL] Could not find extract root (no TextureManifest.json found within 5 levels up from {matDirectory})");
+                    extractRootDir = matDirectory; // フォールバック: .matと同じディレクトリ
+                }
+
+                Debug.Log($"[UniSIL] Material directory: {matDirectory}");
+                Debug.Log($"[UniSIL] Extract root directory: {extractRootDir}");
+
+                // まず解凍先ルートのManifestを優先的に読み込み
+                var textureManifest = LoadTextureManifest(extractRootDir);
+                if (textureManifest == null)
+                {
+                    // 見つからなければ.matファイルと同じディレクトリを試す
+                    textureManifest = LoadTextureManifest(matDirectory);
+                }
+
+                int appliedTextures = 0;
+                if (materialData.textures != null)
+                {
+                    foreach (var texProp in materialData.textures)
+                    {
+                        if (!material.HasProperty(texProp.name))
+                            continue;
+
+                        // TextureManifestからGUIDで検索
+                        Texture2D loadedTexture = null;
+                        if (textureManifest != null && !string.IsNullOrEmpty(texProp.guid))
+                        {
+                            var texEntry = textureManifest.FindByGuid(texProp.guid);
+                            if (texEntry != null)
+                            {
+                                // TextureManifest.relativePathは解凍先ルートからの相対パス
+                                string texPath = Path.Combine(extractRootDir, texEntry.relativePath);
+                                loadedTexture = await LoadTextureFromFile(texPath);
+
+                                if (loadedTexture != null)
+                                {
+                                    Debug.Log($"[UniSIL] Loaded texture from manifest: {texProp.name} -> {texEntry.relativePath}");
+                                }
+                            }
+                        }
+
+                        // Manifestで見つからない場合は直接ファイル検索
+                        if (loadedTexture == null && !string.IsNullOrEmpty(texProp.name))
+                        {
+                            // 一般的な拡張子で検索
+                            string[] extensions = { ".png", ".jpg", ".jpeg", ".tga" };
+
+                            // 検索対象ディレクトリ
+                            string[] searchDirs = new string[]
+                            {
+                                matDirectory,                                      // .matと同じディレクトリ
+                                Path.Combine(extractRootDir, "Textures"),         // ルート/Textures
+                                Path.Combine(extractRootDir, "Materials"),        // ルート/Materials
+                                extractRootDir                                     // ルート直下
+                            };
+
+                            foreach (string searchDir in searchDirs)
+                            {
+                                if (!Directory.Exists(searchDir))
+                                    continue;
+
+                                foreach (string ext in extensions)
+                                {
+                                    // プロパティ名からテクスチャ名を推測
+                                    string texName = texProp.name.Replace("_MainTex", "").Replace("_", "");
+                                    string texPath = Path.Combine(searchDir, texName + ext);
+
+                                    if (File.Exists(texPath))
+                                    {
+                                        loadedTexture = await LoadTextureFromFile(texPath);
+                                        if (loadedTexture != null)
+                                        {
+                                            Debug.Log($"[UniSIL] Loaded texture by name: {texProp.name} -> {searchDir}/{texName}{ext}");
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                if (loadedTexture != null)
+                                    break;
+                            }
+                        }
+
+                        if (loadedTexture != null)
+                        {
+                            material.SetTexture(texProp.name, loadedTexture);
+                            appliedTextures++;
+                        }
+                    }
+                }
+
+                Debug.Log($"[UniSIL] Applied {appliedTextures} textures");
+                materialSearchLog.AppendLine($"      Applied {appliedTextures} textures");
+
+                // Keywords適用
+                if (materialData.keywords != null && materialData.keywords.Count > 0)
+                {
+                    foreach (var keyword in materialData.keywords)
+                    {
+                        material.EnableKeyword(keyword);
+                    }
+                    Debug.Log($"[UniSIL] Applied {materialData.keywords.Count} keywords");
+                    materialSearchLog.AppendLine($"      Applied {materialData.keywords.Count} keywords");
+                }
+
+                materialSearchLog.AppendLine($"      ✓ Material reconstructed successfully");
+                materialSearchLog.AppendLine($"      Final shader: {material.shader.name}");
 
                 await UniTask.Yield();
                 return material;
@@ -645,7 +1041,40 @@ namespace AICam.FBXLoader
             catch (Exception ex)
             {
                 Debug.LogError($"[UniSIL] Error reconstructing material from {matPath}: {ex.Message}");
+                Debug.LogError($"[UniSIL] Stack trace: {ex.StackTrace}");
                 materialSearchLog.AppendLine($"      ERROR: {ex.Message}");
+                materialSearchLog.AppendLine($"      Stack trace: {ex.StackTrace}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// ファイルパスからテクスチャを読み込み
+        /// </summary>
+        private async UniTask<Texture2D> LoadTextureFromFile(string filePath)
+        {
+            try
+            {
+                if (!File.Exists(filePath))
+                    return null;
+
+                byte[] fileData = await File.ReadAllBytesAsync(filePath);
+                Texture2D texture = new Texture2D(2, 2, TextureFormat.BGRA32, false);
+
+                if (texture.LoadImage(fileData))
+                {
+                    texture.Compress(true);
+                    return texture;
+                }
+                else
+                {
+                    UnityEngine.Object.Destroy(texture);
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[UniSIL] Failed to load texture from {filePath}: {ex.Message}");
                 return null;
             }
         }
@@ -1344,11 +1773,20 @@ namespace AICam.FBXLoader
                 string environment = "BUILD";
 #endif
 
-                string fileName = $"FBX_Load_Log_{environment}_{timestamp}.txt";
+                string fileName = $"MaterialManager_Log_{environment}_{timestamp}.txt";
 
-                // プロジェクト直下に保存（Assetsの親ディレクトリ）
+                // FBXImportLogsディレクトリに保存
                 string projectRoot = Path.GetDirectoryName(Application.dataPath);
-                string filePath = Path.Combine(projectRoot, fileName);
+                string logsDirectory = Path.Combine(projectRoot, "FBXImportLogs");
+
+                // ディレクトリが存在しない場合は作成
+                if (!Directory.Exists(logsDirectory))
+                {
+                    Directory.CreateDirectory(logsDirectory);
+                    Debug.Log($"Created logs directory: {logsDirectory}");
+                }
+
+                string filePath = Path.Combine(logsDirectory, fileName);
 
                 // ファイルに書き込み
                 File.WriteAllText(filePath, combinedLog);
@@ -1360,6 +1798,46 @@ namespace AICam.FBXLoader
                 Debug.LogError($"Failed to auto-save log: {e.Message}");
             }
 #endif
+        }
+
+        /// <summary>
+        /// 指定ディレクトリから最大5階層上まで遡り、MaterialManifest.jsonまたはTextureManifest.jsonが存在するディレクトリを返す
+        /// </summary>
+        /// <param name="startDirectory">開始ディレクトリ</param>
+        /// <returns>Manifestが見つかったディレクトリ。見つからない場合はnull</returns>
+        private string FindExtractRootDirectory(string startDirectory)
+        {
+            const int MAX_LEVELS = 5;
+            string currentDir = startDirectory;
+
+            for (int level = 0; level < MAX_LEVELS; level++)
+            {
+                if (string.IsNullOrEmpty(currentDir))
+                    break;
+
+                // MaterialManifest.json または TextureManifest.json が存在するか確認
+                string materialManifestPath = Path.Combine(currentDir, "MaterialManifest.json");
+                string textureManifestPath = Path.Combine(currentDir, "TextureManifest.json");
+
+                if (File.Exists(materialManifestPath) || File.Exists(textureManifestPath))
+                {
+                    Debug.Log($"[FindExtractRoot] Found manifest at level {level}: {currentDir}");
+                    return currentDir;
+                }
+
+                // 親ディレクトリへ移動
+                string parentDir = Path.GetDirectoryName(currentDir);
+                if (string.IsNullOrEmpty(parentDir) || parentDir == currentDir)
+                {
+                    // これ以上親ディレクトリがない
+                    break;
+                }
+
+                currentDir = parentDir;
+            }
+
+            Debug.LogWarning($"[FindExtractRoot] No manifest found within {MAX_LEVELS} levels from {startDirectory}");
+            return null;
         }
     }
 }
