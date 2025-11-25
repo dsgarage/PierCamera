@@ -1251,6 +1251,15 @@ namespace AICam.FBXLoader
 
                 if (texture.LoadImage(fileData))
                 {
+                    // テクスチャの基本設定を適用
+                    // Unity標準のテクスチャインポート設定に合わせる
+                    texture.wrapMode = TextureWrapMode.Repeat;  // デフォルトはRepeat
+                    texture.filterMode = FilterMode.Bilinear;   // デフォルトはBilinear
+                    texture.anisoLevel = 1;                     // 異方性フィルタリングレベル
+
+                    // 注: LoadImage()はPNG/JPGの向きを自動的に正しく処理します
+                    // FBXのUV座標は変更不要（メッシュ側で正しく設定されている）
+
                     texture.Compress(true);
                     return texture;
                 }
