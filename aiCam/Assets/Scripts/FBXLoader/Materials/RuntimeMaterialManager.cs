@@ -1015,20 +1015,73 @@ namespace AICam.FBXLoader
                             continue;
                         }
 
-                        // TextureManifestからGUIDで検索
                         Texture2D loadedTexture = null;
-                        if (textureManifest != null && !string.IsNullOrEmpty(texProp.guid))
+
+                        // 戦略1: TextureManifestからマテリアル名ベースで検索（最優先）
+                        // GUIDは解凍時に変わるため、ファイル名ベースの検索を優先
+                        if (textureManifest != null && loadedTexture == null)
+                        {
+                            // マテリアル名（例: "Cloth"）を使ってテクスチャを検索
+                            string materialBaseName = materialData.name; // 例: "Cloth"
+
+                            foreach (var texEntry in textureManifest.textures)
+                            {
+                                string fileName = Path.GetFileNameWithoutExtension(texEntry.relativePath);
+
+                                // ファイル名がマテリアル名を含むかチェック
+                                // 例: "Cloth.png", "Clothes.png", "Cloth_Main.png" など
+                                if (fileName.Contains(materialBaseName, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    // プロパティタイプに応じたサフィックスチェック
+                                    bool isMatch = false;
+
+                                    if (texProp.name.Contains("Base", StringComparison.OrdinalIgnoreCase) ||
+                                        texProp.name.Contains("Main", StringComparison.OrdinalIgnoreCase) ||
+                                        texProp.name.Contains("Albedo", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        // ベースカラー: サフィックスなし、または _Main
+                                        isMatch = !fileName.Contains("Normal", StringComparison.OrdinalIgnoreCase) &&
+                                                 !fileName.Contains("Bump", StringComparison.OrdinalIgnoreCase) &&
+                                                 !fileName.Contains("Metallic", StringComparison.OrdinalIgnoreCase) &&
+                                                 !fileName.Contains("Smoothness", StringComparison.OrdinalIgnoreCase);
+                                    }
+                                    else if (texProp.name.Contains("Normal", StringComparison.OrdinalIgnoreCase) ||
+                                            texProp.name.Contains("Bump", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        // ノーマルマップ: _Normal または _Bump
+                                        isMatch = fileName.Contains("Normal", StringComparison.OrdinalIgnoreCase) ||
+                                                 fileName.Contains("Bump", StringComparison.OrdinalIgnoreCase);
+                                    }
+
+                                    if (isMatch)
+                                    {
+                                        string texPath = Path.Combine(extractRootDir, texEntry.relativePath);
+                                        loadedTexture = await LoadTextureFromFile(texPath);
+
+                                        if (loadedTexture != null)
+                                        {
+                                            Debug.Log($"[UniSIL] ✓ Loaded texture by material name: {texProp.name} -> {texEntry.relativePath}");
+                                            materialSearchLog.AppendLine($"        ✓ Loaded: {Path.GetFileName(texEntry.relativePath)}");
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // 戦略2（非推奨・フォールバック）: GUIDで検索
+                        // UnityPackage解凍時にGUIDが変わるため、通常は失敗する
+                        if (textureManifest != null && loadedTexture == null && !string.IsNullOrEmpty(texProp.guid))
                         {
                             var texEntry = textureManifest.FindByGuid(texProp.guid);
                             if (texEntry != null)
                             {
-                                // TextureManifest.relativePathは解凍先ルートからの相対パス
                                 string texPath = Path.Combine(extractRootDir, texEntry.relativePath);
                                 loadedTexture = await LoadTextureFromFile(texPath);
 
                                 if (loadedTexture != null)
                                 {
-                                    Debug.Log($"[UniSIL] Loaded texture from manifest: {texProp.name} -> {texEntry.relativePath}");
+                                    Debug.Log($"[UniSIL] Loaded texture by GUID: {texProp.name} -> {texEntry.relativePath}");
                                 }
                             }
                         }
