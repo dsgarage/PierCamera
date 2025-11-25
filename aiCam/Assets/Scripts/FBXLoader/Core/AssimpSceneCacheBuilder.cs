@@ -140,7 +140,7 @@ namespace AICam.FBXLoader
         /// <summary>
         /// テクスチャ情報を抽出
         /// </summary>
-        private static void ExtractTextures(Material assimpMat, AssimpSceneCache.MaterialInfo matInfo)
+        private static void ExtractTextures(Assimp.Material assimpMat, AssimpSceneCache.MaterialInfo matInfo)
         {
             // 主要なテクスチャタイプを抽出
             var textureTypes = new[]
