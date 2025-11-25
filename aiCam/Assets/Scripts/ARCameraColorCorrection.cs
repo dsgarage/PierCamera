@@ -144,8 +144,7 @@ namespace ARCam
         private void ApplyWhiteBalance()
         {
             // WhiteBalance Componentを取得または追加
-            var whiteBalance = _profile.GetComponent<UnityEngine.Rendering.Universal.WhiteBalance>();
-            if (whiteBalance == null)
+            if (!_profile.TryGet<UnityEngine.Rendering.Universal.WhiteBalance>(out var whiteBalance))
             {
                 whiteBalance = _profile.Add<UnityEngine.Rendering.Universal.WhiteBalance>(true);
             }
@@ -162,8 +161,7 @@ namespace ARCam
         private void ApplyColorAdjustments()
         {
             // ColorAdjustments Componentを取得または追加
-            var colorAdjustments = _profile.GetComponent<UnityEngine.Rendering.Universal.ColorAdjustments>();
-            if (colorAdjustments == null)
+            if (!_profile.TryGet<UnityEngine.Rendering.Universal.ColorAdjustments>(out var colorAdjustments))
             {
                 colorAdjustments = _profile.Add<UnityEngine.Rendering.Universal.ColorAdjustments>(true);
             }
