@@ -635,7 +635,7 @@ namespace AICam.FBXLoader
                     Debug.Log($"[Manifest] Using MaterialManifest from: {searchDir}");
                     materialSearchLog.AppendLine($"    [Manifest] Using MaterialManifest: {materialManifest.materialCount} materials");
 
-                    // searchNamesに一致するマテリアルを検索
+                    // searchNamesに一致するマテリアルを検索（複数マテリアル対応）
                     foreach (var searchName in searchNames)
                     {
                         var entry = materialManifest.FindByName(searchName);
@@ -655,7 +655,7 @@ namespace AICam.FBXLoader
                                 {
                                     materials.Add(material);
                                     materialSearchLog.AppendLine($"    [Manifest] ✓ Material reconstructed successfully");
-                                    return materials;
+                                    // ✓ 複数マテリアル対応: 見つかってもすぐにreturnせず、全searchNamesをチェック
                                 }
                             }
                             else
@@ -664,12 +664,20 @@ namespace AICam.FBXLoader
                             }
                         }
                     }
+
+                    // Manifest検索で1つ以上見つかっていれば、それを返す
+                    if (materials.Count > 0)
+                    {
+                        materialSearchLog.AppendLine($"    [Manifest] ✓ Total {materials.Count} material(s) reconstructed from manifest");
+                        return materials;
+                    }
                 }
             }
 
+            // 戦略1: .matファイルを複数のディレクトリから探してUniSILで再構築（複数マテリアル対応）
             foreach (var searchName in searchNames)
             {
-                // 戦略1: .matファイルを複数のディレクトリから探してUniSILで再構築
+                bool foundForThisName = false;
                 foreach (var searchDir in searchDirectories)
                 {
                     if (!Directory.Exists(searchDir))
@@ -686,7 +694,8 @@ namespace AICam.FBXLoader
                         {
                             materials.Add(material);
                             materialSearchLog.AppendLine($"    [UniSIL] Material reconstructed successfully");
-                            return materials;
+                            foundForThisName = true;
+                            break; // このsearchNameに対して見つかったので次のsearchNameへ
                         }
                         else
                         {
@@ -694,6 +703,13 @@ namespace AICam.FBXLoader
                         }
                     }
                 }
+            }
+
+            // 戦略1で1つ以上見つかっていれば、それを返す
+            if (materials.Count > 0)
+            {
+                materialSearchLog.AppendLine($"    [UniSIL] ✓ Total {materials.Count} material(s) reconstructed");
+                return materials;
             }
 
             // 戦略2（フォールバック）: テクスチャファイルのみからStandardシェーダーで作成
