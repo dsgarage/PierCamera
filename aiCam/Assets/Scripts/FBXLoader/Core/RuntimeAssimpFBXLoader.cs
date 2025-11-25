@@ -3,6 +3,9 @@ using Assimp;
 using System.Collections.Generic;
 using System.IO;
 using Cysharp.Threading.Tasks;
+using UniSIL.ShaderInference;
+using UniSIL.ShaderInference.MaterialLoading;
+using UniSIL.ShaderInference.MaterialReconstruction;
 
 using arCam.FBXLoader;
 
@@ -32,6 +35,10 @@ namespace AICam.FBXLoader
 
         // MeshNode名 → マテリアル名のマッピング（RuntimeMaterialManager用）
         private Dictionary<string, List<string>> meshNodeToMaterialNames = new Dictionary<string, List<string>>();
+
+        // UniSIL統合: MaterialManifestキャッシュ
+        private MaterialManifest cachedMaterialManifest = null;
+        private Dictionary<string, MaterialManifest.MaterialEntry> materialNameToEntry = new Dictionary<string, MaterialManifest.MaterialEntry>();
 
         /// <summary>
         /// MeshNode名とマテリアル名のマッピングを取得
@@ -70,6 +77,9 @@ namespace AICam.FBXLoader
 
             // FBXディレクトリパスを保存（テクスチャ検索用）
             fbxDirectory = Path.GetDirectoryName(fbxPath);
+
+            // UniSIL統合: MaterialManifestをロード
+            LoadMaterialManifests();
 
             UnityEngine.Debug.Log($"{LOG_PREFIX} Scene loaded successfully");
             UnityEngine.Debug.Log($"{LOG_PREFIX}   Meshes: {scene.MeshCount}");
@@ -1319,7 +1329,143 @@ namespace AICam.FBXLoader
         }
 
         /// <summary>
-        /// マテリアルを作成し、埋め込みテクスチャを適用
+        /// MaterialManifestをロード（UniSIL統合）
+        /// </summary>
+        private void LoadMaterialManifests()
+        {
+            UnityEngine.Debug.Log($"{LOG_PREFIX} [LoadMaterialManifests] === START ===");
+            UnityEngine.Debug.Log($"{LOG_PREFIX} [LoadMaterialManifests] FBX directory: {fbxDirectory}");
+
+            // 解凍先ルートディレクトリを検索（最大5階層上まで遡る）
+            string extractRootDir = FindExtractRootDirectory(fbxDirectory);
+
+            if (string.IsNullOrEmpty(extractRootDir))
+            {
+                UnityEngine.Debug.LogWarning($"{LOG_PREFIX} [LoadMaterialManifests] Could not find extract root directory from: {fbxDirectory}");
+                UnityEngine.Debug.Log($"{LOG_PREFIX} [LoadMaterialManifests] MaterialManifest not found, using fallback material creation");
+                return;
+            }
+
+            UnityEngine.Debug.Log($"{LOG_PREFIX} [LoadMaterialManifests] Extract root directory: {extractRootDir}");
+
+            // 検索対象ディレクトリ（解凍ルートを優先）
+            List<string> searchDirs = new List<string>
+            {
+                extractRootDir,                                    // 解凍ルート（最優先）
+                Path.Combine(extractRootDir, "Material"),         // ルート/Material
+                Path.Combine(extractRootDir, "Materials"),        // ルート/Materials
+                fbxDirectory                                       // FBXと同じディレクトリ
+            };
+
+            UnityEngine.Debug.Log($"{LOG_PREFIX} [LoadMaterialManifests] Searching {searchDirs.Count} directories for MaterialManifest.json");
+
+            foreach (string searchDir in searchDirs)
+            {
+                UnityEngine.Debug.Log($"{LOG_PREFIX} [LoadMaterialManifests]   Checking: {searchDir}");
+
+                if (!Directory.Exists(searchDir))
+                {
+                    UnityEngine.Debug.Log($"{LOG_PREFIX} [LoadMaterialManifests]     Directory does not exist");
+                    continue;
+                }
+
+                string manifestPath = Path.Combine(searchDir, "MaterialManifest.json");
+                UnityEngine.Debug.Log($"{LOG_PREFIX} [LoadMaterialManifests]     Looking for: {manifestPath}");
+
+                if (File.Exists(manifestPath))
+                {
+                    try
+                    {
+                        string json = File.ReadAllText(manifestPath);
+                        MaterialManifest manifest = JsonUtility.FromJson<MaterialManifest>(json);
+
+                        if (manifest != null)
+                        {
+                            cachedMaterialManifest = manifest;
+                            UnityEngine.Debug.Log($"{LOG_PREFIX} [LoadMaterialManifests] ✓ Loaded MaterialManifest: {manifest.materialCount} materials from {searchDir}");
+
+                            // マテリアル名→エントリのマッピングを構築
+                            materialNameToEntry.Clear();
+                            if (manifest.materials != null)
+                            {
+                                UnityEngine.Debug.Log($"{LOG_PREFIX} [LoadMaterialManifests] Building material name dictionary from {manifest.materials.Length} entries");
+                                foreach (var entry in manifest.materials)
+                                {
+                                    if (entry != null && !string.IsNullOrEmpty(entry.name))
+                                    {
+                                        materialNameToEntry[entry.name] = entry;
+                                        UnityEngine.Debug.Log($"{LOG_PREFIX} [LoadMaterialManifests]   Registered: {entry.name}");
+                                    }
+                                }
+                                UnityEngine.Debug.Log($"{LOG_PREFIX} [LoadMaterialManifests] ✓ Dictionary built with {materialNameToEntry.Count} materials");
+                            }
+                            else
+                            {
+                                UnityEngine.Debug.LogWarning($"{LOG_PREFIX} [LoadMaterialManifests] manifest.materials is null!");
+                            }
+
+                            UnityEngine.Debug.Log($"{LOG_PREFIX} [LoadMaterialManifests] === END (SUCCESS) ===");
+                            return; // 最初に見つかったManifestを使用
+                        }
+                    }
+                    catch (System.Exception ex)
+                    {
+                        UnityEngine.Debug.LogWarning($"{LOG_PREFIX} [UniSIL] Failed to load MaterialManifest: {ex.Message}");
+                    }
+                }
+                else
+                {
+                    UnityEngine.Debug.Log($"{LOG_PREFIX} [LoadMaterialManifests]     File does not exist");
+                }
+            }
+
+            UnityEngine.Debug.LogWarning($"{LOG_PREFIX} [LoadMaterialManifests] MaterialManifest not found in any search directory");
+            UnityEngine.Debug.Log($"{LOG_PREFIX} [LoadMaterialManifests] === END (NOT FOUND) ===");
+        }
+
+        /// <summary>
+        /// 指定ディレクトリから最大5階層上まで遡り、MaterialManifest.jsonまたはTextureManifest.jsonが存在するディレクトリを返す
+        /// </summary>
+        private string FindExtractRootDirectory(string startDirectory)
+        {
+            const int MAX_LEVELS = 5;
+            string currentDir = startDirectory;
+
+            for (int level = 0; level < MAX_LEVELS; level++)
+            {
+                if (string.IsNullOrEmpty(currentDir))
+                    break;
+
+                // MaterialManifest.json または TextureManifest.json が存在するか確認
+                string materialManifestPath = Path.Combine(currentDir, "MaterialManifest.json");
+                string textureManifestPath = Path.Combine(currentDir, "TextureManifest.json");
+
+                if (File.Exists(materialManifestPath) || File.Exists(textureManifestPath))
+                {
+                    UnityEngine.Debug.Log($"{LOG_PREFIX} [FindExtractRoot] Found manifest at level {level}: {currentDir}");
+                    return currentDir;
+                }
+
+                // 親ディレクトリへ移動
+                string parentDir = Directory.GetParent(currentDir)?.FullName;
+                if (string.IsNullOrEmpty(parentDir) || parentDir == currentDir)
+                {
+                    // これ以上親ディレクトリがない
+                    break;
+                }
+
+                currentDir = parentDir;
+            }
+
+            UnityEngine.Debug.LogWarning($"{LOG_PREFIX} [FindExtractRoot] No manifest found within {MAX_LEVELS} levels from {startDirectory}");
+            return null;
+        }
+
+        /// <summary>
+        /// マテリアルを作成（UniSIL統合版）
+        /// 戦略0: MaterialManifestから.matファイルを検索→UniSILで再構築
+        /// 戦略1: Assimpの埋め込みテクスチャを使用
+        /// 戦略2: フォールバック（lilToon/Standard）
         /// </summary>
         /// <param name="nodeName">ノード名</param>
         /// <param name="assimpMaterial">Assimpマテリアル</param>
@@ -1327,11 +1473,59 @@ namespace AICam.FBXLoader
         private UnityEngine.Material CreateMaterialWithShaderDB(string nodeName, Assimp.Material assimpMaterial, int assimpMaterialIndex)
         {
             UnityEngine.Material material = null;
+            string materialName = assimpMaterial?.Name ?? nodeName;
 
-            // Assimpマテリアルからシェーダーを作成
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   [CreateMaterialWithShaderDB] === START ===");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   [CreateMaterialWithShaderDB] Creating material for: {materialName}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   [CreateMaterialWithShaderDB] cachedMaterialManifest: {(cachedMaterialManifest != null ? "EXISTS" : "NULL")}");
+            UnityEngine.Debug.Log($"{LOG_PREFIX}   [CreateMaterialWithShaderDB] assimpMaterial: {(assimpMaterial != null ? "EXISTS" : "NULL")}");
+
+            if (cachedMaterialManifest != null)
+            {
+                UnityEngine.Debug.Log($"{LOG_PREFIX}   [CreateMaterialWithShaderDB] materialNameToEntry.Count: {materialNameToEntry.Count}");
+                UnityEngine.Debug.Log($"{LOG_PREFIX}   [CreateMaterialWithShaderDB] materialNameToEntry keys: {string.Join(", ", materialNameToEntry.Keys)}");
+            }
+
+            // 戦略0: MaterialManifestを使用してUniSILで再構築
+            if (cachedMaterialManifest != null && assimpMaterial != null)
+            {
+                UnityEngine.Debug.Log($"{LOG_PREFIX}   [CreateMaterialWithShaderDB] Attempting Strategy 0 (UniSIL MaterialManifest)");
+                UnityEngine.Debug.Log($"{LOG_PREFIX}   [CreateMaterialWithShaderDB] Looking for material: '{assimpMaterial.Name}'");
+
+                if (materialNameToEntry.TryGetValue(assimpMaterial.Name, out MaterialManifest.MaterialEntry entry))
+                {
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}   [UniSIL Strategy 0] ✓ Found in MaterialManifest: {entry.name}");
+                    UnityEngine.Debug.Log($"{LOG_PREFIX}     Shader: {entry.shaderName}");
+
+                    material = CreateMaterialFromManifestEntry(entry);
+
+                    if (material != null)
+                    {
+                        UnityEngine.Debug.Log($"{LOG_PREFIX}     ✓ Material reconstructed with UniSIL");
+                        return material;
+                    }
+                    else
+                    {
+                        UnityEngine.Debug.LogWarning($"{LOG_PREFIX}     ✗ CreateMaterialFromManifestEntry returned null");
+                    }
+                }
+                else
+                {
+                    UnityEngine.Debug.LogWarning($"{LOG_PREFIX}   [UniSIL Strategy 0] ✗ Material '{assimpMaterial.Name}' not found in materialNameToEntry");
+                }
+            }
+            else
+            {
+                if (cachedMaterialManifest == null)
+                    UnityEngine.Debug.LogWarning($"{LOG_PREFIX}   [CreateMaterialWithShaderDB] Skipping Strategy 0: cachedMaterialManifest is null");
+                if (assimpMaterial == null)
+                    UnityEngine.Debug.LogWarning($"{LOG_PREFIX}   [CreateMaterialWithShaderDB] Skipping Strategy 0: assimpMaterial is null");
+            }
+
+            // 戦略1: Assimpの埋め込みテクスチャを使用
             if (assimpMaterial != null)
             {
-                UnityEngine.Debug.Log($"{LOG_PREFIX}   Creating material for: {assimpMaterial.Name}");
+                UnityEngine.Debug.Log($"{LOG_PREFIX}   [Strategy 1] Using Assimp embedded textures");
 
                 // lilToonまたはStandardシェーダーを使用
                 UnityEngine.Shader shader = UnityEngine.Shader.Find("lilToon");
@@ -1343,25 +1537,234 @@ namespace AICam.FBXLoader
                 if (shader != null)
                 {
                     material = new UnityEngine.Material(shader);
-                    material.name = $"{nodeName}_Material";
+                    material.name = materialName;
                     UnityEngine.Debug.Log($"{LOG_PREFIX}     ✓ Material created with shader: {shader.name}");
+
+                    // 埋め込みテクスチャを適用
+                    ApplyEmbeddedTextures(material, assimpMaterial);
+                    return material;
                 }
             }
 
-            // マテリアルが作成されなかった場合はフォールバック
-            if (material == null)
-            {
-                UnityEngine.Debug.LogWarning($"{LOG_PREFIX}   Material creation failed, creating fallback lilToon material");
-                material = CreateLilToonMaterial(nodeName, assimpMaterialIndex);
-            }
-
-            // 埋め込みテクスチャを適用
-            if (assimpMaterial != null && material != null)
-            {
-                ApplyEmbeddedTextures(material, assimpMaterial);
-            }
+            // 戦略2: フォールバック
+            UnityEngine.Debug.LogWarning($"{LOG_PREFIX}   [Strategy 2] Fallback - creating default material");
+            material = CreateLilToonMaterial(nodeName, assimpMaterialIndex);
 
             return material;
+        }
+
+        /// <summary>
+        /// MaterialManifestのエントリから.matファイルを読み込んでUniSILで再構築
+        /// </summary>
+        private UnityEngine.Material CreateMaterialFromManifestEntry(MaterialManifest.MaterialEntry entry)
+        {
+            try
+            {
+                // 解凍先ルートディレクトリを検索（最大5階層上まで遡る）
+                string extractRootDir = FindExtractRootDirectory(fbxDirectory);
+
+                if (string.IsNullOrEmpty(extractRootDir))
+                {
+                    UnityEngine.Debug.LogWarning($"{LOG_PREFIX}     [UniSIL] Extract root directory not found, using fbxDirectory");
+                    extractRootDir = fbxDirectory;
+                }
+
+                // 検索対象ディレクトリ（解凍ルートを優先）
+                List<string> searchDirs = new List<string>
+                {
+                    Path.Combine(extractRootDir, "Material"),
+                    Path.Combine(extractRootDir, "Materials"),
+                    fbxDirectory,
+                    extractRootDir
+                };
+
+                foreach (string searchDir in searchDirs)
+                {
+                    if (!Directory.Exists(searchDir))
+                        continue;
+
+                    string matPath = Path.Combine(searchDir, entry.name + ".mat");
+                    if (File.Exists(matPath))
+                    {
+                        UnityEngine.Debug.Log($"{LOG_PREFIX}     [UniSIL] Found .mat file: {matPath}");
+
+                        // YAMLパース
+                        string yamlText = File.ReadAllText(matPath);
+                        MaterialData materialData = YAMLMaterialParser.Parse(yamlText);
+
+                        if (materialData == null || !materialData.IsValid())
+                        {
+                            UnityEngine.Debug.LogWarning($"{LOG_PREFIX}     [UniSIL] Failed to parse .mat file");
+                            continue;
+                        }
+
+                        UnityEngine.Debug.Log($"{LOG_PREFIX}     [UniSIL] Parsed material: {materialData.name}");
+
+                        // テクスチャパスを絶対パスに変換（MaterialDataのテクスチャGUIDからパスを解決）
+                        ConvertTexturePathsToAbsolute(materialData, searchDir);
+
+                        // ShaderDatabaseをロード
+                        UnityEngine.Debug.Log($"{LOG_PREFIX}     [UniSIL] Loading ShaderDatabase...");
+                        var shaderDB = ShaderDBLoader.LoadDatabase();
+
+                        if (shaderDB == null)
+                        {
+                            UnityEngine.Debug.LogError($"{LOG_PREFIX}     [UniSIL] ShaderDatabase not found - LoadDatabase() returned null");
+                            continue;
+                        }
+
+                        if (shaderDB.shaders == null)
+                        {
+                            UnityEngine.Debug.LogError($"{LOG_PREFIX}     [UniSIL] ShaderDatabase.shaders is null - asset may be corrupted");
+                            UnityEngine.Debug.LogError($"{LOG_PREFIX}     Please regenerate ShaderDB.asset");
+                            continue;
+                        }
+
+                        UnityEngine.Debug.Log($"{LOG_PREFIX}     [UniSIL] ShaderDatabase loaded: {shaderDB.shaders.Count} shaders");
+
+                        // シェーダー取得の3層戦略
+                        UnityEngine.Shader shader = null;
+                        string shaderSource = null;
+
+                        // 戦略1: GUID直接lookup (ShaderGuidDictionary)
+                        if (!string.IsNullOrEmpty(materialData.shaderGuid))
+                        {
+                            UnityEngine.Debug.Log($"{LOG_PREFIX}     [Strategy 1] Attempting GUID lookup: {materialData.shaderGuid}");
+                            var shaderGuidDict = ShaderGuidDictionaryLoader.LoadDictionary();
+
+                            if (shaderGuidDict != null)
+                            {
+                                string shaderName = shaderGuidDict.GetShaderNameByGuid(materialData.shaderGuid);
+                                if (!string.IsNullOrEmpty(shaderName))
+                                {
+                                    shader = UnityEngine.Shader.Find(shaderName);
+                                    if (shader != null)
+                                    {
+                                        UnityEngine.Debug.Log($"{LOG_PREFIX}       ✓ Found shader by GUID: {shaderName}");
+                                        shaderSource = "GUID Lookup";
+                                    }
+                                    else
+                                    {
+                                        UnityEngine.Debug.LogWarning($"{LOG_PREFIX}       ✗ Shader name found but Shader.Find() failed: {shaderName}");
+                                    }
+                                }
+                            }
+                        }
+
+                        // 戦略2: ShaderInferenceEngineでの推論
+                        if (shader == null)
+                        {
+                            UnityEngine.Debug.Log($"{LOG_PREFIX}     [Strategy 2] Falling back to shader inference");
+                            var config = new InferenceConfig();
+                            var inferenceEngine = new ShaderInferenceEngine(shaderDB, config);
+                            ShaderInferenceResult inferenceResult;
+
+                            if (!string.IsNullOrEmpty(materialData.shaderGuid))
+                            {
+                                inferenceResult = inferenceEngine.InferShaderWithGuid(materialData, materialData.shaderGuid);
+                            }
+                            else
+                            {
+                                inferenceResult = inferenceEngine.InferShader(materialData);
+                            }
+
+                            UnityEngine.Debug.Log($"{LOG_PREFIX}       Inferred: {inferenceResult.inferredShader} (confidence: {inferenceResult.confidence:P2})");
+                            shader = UnityEngine.Shader.Find(inferenceResult.inferredShader);
+
+                            if (shader != null)
+                            {
+                                shaderSource = $"Inference ({inferenceResult.confidence:P2})";
+                                UnityEngine.Debug.Log($"{LOG_PREFIX}       ✓ Inference succeeded");
+                            }
+                            else
+                            {
+                                UnityEngine.Debug.LogWarning($"{LOG_PREFIX}       ✗ Inferred shader not found: {inferenceResult.inferredShader}");
+                            }
+                        }
+
+                        // 戦略3: フォールバック (lilToon → Standard)
+                        if (shader == null)
+                        {
+                            UnityEngine.Debug.LogWarning($"{LOG_PREFIX}     [Strategy 3] All shader lookup failed, using fallback");
+                            shader = UnityEngine.Shader.Find("lilToon");
+
+                            if (shader != null)
+                            {
+                                shaderSource = "Fallback (lilToon)";
+                                UnityEngine.Debug.Log($"{LOG_PREFIX}       Using lilToon fallback");
+                            }
+                            else
+                            {
+                                shader = UnityEngine.Shader.Find("Standard");
+                                shaderSource = "Fallback (Standard)";
+                                UnityEngine.Debug.Log($"{LOG_PREFIX}       Using Standard fallback");
+                            }
+                        }
+
+                        // Materialを作成
+                        var material = new UnityEngine.Material(shader);
+                        material.name = materialData.name;
+
+                        UnityEngine.Debug.Log($"{LOG_PREFIX}     ✓ Material created: {material.name} with shader: {shader.name}");
+                        UnityEngine.Debug.Log($"{LOG_PREFIX}       Shader source: {shaderSource}");
+
+                        // MaterialReconstructorでプロパティとテクスチャを適用
+                        UnityEngine.Debug.Log($"{LOG_PREFIX}     Applying properties and textures...");
+                        var reconstructor = new MaterialReconstructor();
+
+                        try
+                        {
+                            // Note: ReconstructMaterialは新しいマテリアルを返すので、
+                            // 既存のマテリアルにプロパティをコピーする必要がある
+                            var tempMaterial = reconstructor.ReconstructMaterial(materialData, new ShaderInferenceResult { inferredShader = shader.name, confidence = 1.0f });
+
+                            if (tempMaterial != null)
+                            {
+                                // プロパティとテクスチャをコピー
+                                material.CopyPropertiesFromMaterial(tempMaterial);
+                                UnityEngine.Debug.Log($"{LOG_PREFIX}     ✓ Properties and textures applied");
+                            }
+                            else
+                            {
+                                UnityEngine.Debug.LogWarning($"{LOG_PREFIX}     ⚠ ReconstructMaterial returned null, using material with shader only");
+                            }
+                        }
+                        catch (System.Exception propEx)
+                        {
+                            UnityEngine.Debug.LogWarning($"{LOG_PREFIX}     ⚠ Failed to apply properties: {propEx.Message}");
+                            UnityEngine.Debug.LogWarning($"{LOG_PREFIX}       Using material with shader only");
+                        }
+
+                        return material;
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                UnityEngine.Debug.LogError($"{LOG_PREFIX}     [UniSIL] Error reconstructing material: {ex.Message}");
+                UnityEngine.Debug.LogError($"{LOG_PREFIX}     Stack trace: {ex.StackTrace}");
+                if (ex.InnerException != null)
+                {
+                    UnityEngine.Debug.LogError($"{LOG_PREFIX}     Inner exception: {ex.InnerException.Message}");
+                    UnityEngine.Debug.LogError($"{LOG_PREFIX}     Inner stack trace: {ex.InnerException.StackTrace}");
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// MaterialDataのテクスチャGUIDをパスに解決（TextureManifest使用）
+        /// 注: UniSILのTexturePropertyにはpathフィールドがなくguidのみ
+        /// MaterialReconstructorが内部でTextureLoaderを使ってGUIDから自動的にロードする
+        /// </summary>
+        private void ConvertTexturePathsToAbsolute(MaterialData materialData, string baseDirectory)
+        {
+            // MaterialReconstructorが内部でTextureLoaderを使用するため、
+            // ここでは何もする必要がない
+            // TextureLoaderがTextureManifest.jsonを自動的に読み込んでGUID→パス解決を行う
+
+            UnityEngine.Debug.Log($"{LOG_PREFIX}     [UniSIL] MaterialReconstructor will handle texture loading via TextureLoader");
         }
 
         /// <summary>
