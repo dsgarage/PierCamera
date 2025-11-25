@@ -1173,6 +1173,39 @@ namespace AICam.FBXLoader
                     }
                 } // end of else (materialData.textures is not null/empty)
 
+                // lilToon shaders require _MainTex to be set for rendering
+                // If _MainTex is not set but we have base color textures, copy one to _MainTex
+                if (material.shader.name.Contains("lilToon", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (material.HasProperty("_MainTex") && material.GetTexture("_MainTex") == null)
+                    {
+                        // Try to find a base color texture to use as _MainTex
+                        Texture2D baseTexture = null;
+
+                        // Check common base color properties in priority order
+                        string[] baseColorProperties = { "_BaseMap", "_BaseColorMap", "_MainTexture", "_ColorMap" };
+                        foreach (string propName in baseColorProperties)
+                        {
+                            if (material.HasProperty(propName))
+                            {
+                                baseTexture = material.GetTexture(propName) as Texture2D;
+                                if (baseTexture != null)
+                                {
+                                    material.SetTexture("_MainTex", baseTexture);
+                                    Debug.Log($"[UniSIL] Set _MainTex from {propName} for lilToon shader");
+                                    materialSearchLog.AppendLine($"      ✓ Set _MainTex from {propName}");
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (baseTexture == null)
+                        {
+                            Debug.LogWarning($"[UniSIL] lilToon shader detected but no base color texture found to set _MainTex");
+                        }
+                    }
+                }
+
                 Debug.Log($"[UniSIL] Applied {appliedTextures} textures");
                 materialSearchLog.AppendLine($"      Applied {appliedTextures} textures");
 
