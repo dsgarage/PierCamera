@@ -614,14 +614,11 @@ namespace AICam.FBXLoader
             materialSearchLog.AppendLine($"    [Manifest] ✓ Extract root found: {extractRootDir}");
 
             // 検索対象ディレクトリ（優先順位順）
-            // 最優先: 解凍先ルートディレクトリ（Manifestが保存される場所）
-            string[] searchDirectories = new string[]
-            {
-                extractRootDir,                        // 解凍先ルート（最優先）
-                Path.Combine(extractRootDir, "Material"),   // ../Material/
-                Path.Combine(extractRootDir, "Materials"),  // ../Materials/
-                fbxDir                                 // FBXと同じディレクトリ
-            };
+            // シェーダー優先順位: lilToon > Poiyomi > UnityChan > Default (Standard)
+            string[] searchDirectories = BuildMaterialSearchDirectories(extractRootDir, fbxDir);
+
+            materialSearchLog.AppendLine($"    [Material Search] Shader priority: lilToon > Poiyomi > UnityChan > Default");
+            materialSearchLog.AppendLine($"    [Material Search] Searching {searchDirectories.Length} directories in priority order");
 
             // 戦略0（新規）: MaterialManifestを使用
             foreach (var searchDir in searchDirectories)
@@ -663,8 +660,8 @@ namespace AICam.FBXLoader
                                     else
                                     {
                                         materialSearchLog.AppendLine($"    [Manifest] ⚠ Duplicate material skipped: {material.name}");
-                                        // 重複マテリアルは破棄
-                                        UnityEngine.Object.Destroy(material);
+                                        // 重複マテリアルは即座に破棄（Destroyは次フレームまで遅延するため参照エラーの原因になる）
+                                        UnityEngine.Object.DestroyImmediate(material);
                                     }
                                     // ✓ 複数マテリアル対応: 見つかってもすぐにreturnせず、全searchNamesをチェック
                                 }
@@ -703,10 +700,23 @@ namespace AICam.FBXLoader
                         var material = await CreateMaterialFromMatFile(matPath, extractRootDir);
                         if (material != null)
                         {
-                            materials.Add(material);
-                            materialSearchLog.AppendLine($"    [UniSIL] Material reconstructed successfully");
-                            foundForThisName = true;
-                            break; // このsearchNameに対して見つかったので次のsearchNameへ
+                            // 重複チェック: 同じ名前のマテリアルがすでに存在する場合はスキップ
+                            bool isDuplicate = materials.Any(m => m.name == material.name);
+                            if (!isDuplicate)
+                            {
+                                materials.Add(material);
+                                materialSearchLog.AppendLine($"    [UniSIL] Material reconstructed successfully");
+                                foundForThisName = true;
+                                break; // このsearchNameに対して見つかったので次のsearchNameへ
+                            }
+                            else
+                            {
+                                materialSearchLog.AppendLine($"    [UniSIL] ⚠ Duplicate material skipped: {material.name}");
+                                // 重複マテリアルは即座に破棄（Destroyは次フレームまで遅延するため参照エラーの原因になる）
+                                UnityEngine.Object.DestroyImmediate(material);
+                                foundForThisName = true;
+                                break; // 重複でも次のsearchNameへ
+                            }
                         }
                         else
                         {
@@ -756,8 +766,19 @@ namespace AICam.FBXLoader
                             var material = await CreateMaterialFromTexturePath(searchName, texturePath);
                             if (material != null)
                             {
-                                materials.Add(material);
-                                materialSearchLog.AppendLine($"    Material created successfully from texture");
+                                // 重複チェック: 同じ名前のマテリアルがすでに存在する場合はスキップ
+                                bool isDuplicate = materials.Any(m => m.name == material.name);
+                                if (!isDuplicate)
+                                {
+                                    materials.Add(material);
+                                    materialSearchLog.AppendLine($"    Material created successfully from texture");
+                                }
+                                else
+                                {
+                                    materialSearchLog.AppendLine($"    ⚠ Duplicate material skipped: {material.name}");
+                                    // 重複マテリアルは即座に破棄（Destroyは次フレームまで遅延するため参照エラーの原因になる）
+                                    UnityEngine.Object.DestroyImmediate(material);
+                                }
                                 return materials;
                             }
                             else
@@ -893,7 +914,16 @@ namespace AICam.FBXLoader
                     Debug.Log($"[UniSIL] Inferred shader: {inferenceResult.inferredShader} (confidence: {inferenceResult.confidence:P2})");
                     materialSearchLog.AppendLine($"      Inferred: {inferenceResult.inferredShader} (confidence: {inferenceResult.confidence:P2})");
 
-                    shader = Shader.Find(inferenceResult.inferredShader);
+                    // Hidden/lilToon* シェーダーを公開シェーダーに正規化
+                    string targetShaderName = inferenceResult.inferredShader;
+                    if (LilToonShaderNormalizer.TryNormalize(targetShaderName, out string normalizedName))
+                    {
+                        Debug.Log($"[UniSIL] Normalized Hidden lilToon shader: '{targetShaderName}' → '{normalizedName}'");
+                        materialSearchLog.AppendLine($"      Normalized: {targetShaderName} → {normalizedName}");
+                        targetShaderName = normalizedName;
+                    }
+
+                    shader = Shader.Find(targetShaderName);
                     if (shader != null)
                     {
                         shaderSource = $"Inference ({inferenceResult.confidence:P2})";
@@ -901,7 +931,7 @@ namespace AICam.FBXLoader
                     }
                     else
                     {
-                        Debug.LogWarning($"[UniSIL] ✗ Inferred shader not found: {inferenceResult.inferredShader}");
+                        Debug.LogWarning($"[UniSIL] ✗ Inferred shader not found: {targetShaderName}");
                         materialSearchLog.AppendLine($"      ✗ Inferred shader not found in project");
                     }
                 }
@@ -966,6 +996,23 @@ namespace AICam.FBXLoader
 
                 Debug.Log($"[UniSIL] Applied {appliedProps} properties");
                 materialSearchLog.AppendLine($"      Applied {appliedProps} properties");
+
+                // lilToonシェーダーの場合、キーワードとレンダーステートを復元
+                // materialData is UniSIL.ShaderInference.MaterialData from YAMLMaterialParser.Parse()
+                if (shader.name.Contains("lilToon"))
+                {
+                    var setupResult = LilToonMaterialSetup.SetupMaterial(material, materialData, enableLogging: true);
+                    if (setupResult.Success)
+                    {
+                        Debug.Log($"[UniSIL] lilToon setup: Mode={setupResult.DetectedRenderingMode}, Keywords={setupResult.AppliedKeywords}, RenderStates={setupResult.AppliedRenderStates}");
+                        materialSearchLog.AppendLine($"      lilToon setup: Mode={setupResult.DetectedRenderingMode}, Keywords={setupResult.AppliedKeywords}, RenderStates={setupResult.AppliedRenderStates}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[UniSIL] lilToon setup failed: {setupResult.ErrorMessage}");
+                        materialSearchLog.AppendLine($"      lilToon setup failed: {setupResult.ErrorMessage}");
+                    }
+                }
 
                 // テクスチャを手動で読み込み（TextureManifestから）
                 // .matファイルのディレクトリを取得
@@ -2009,6 +2056,113 @@ namespace AICam.FBXLoader
                 Debug.LogError($"Failed to auto-save log: {e.Message}");
             }
 #endif
+        }
+
+        /// <summary>
+        /// シェーダー優先順位に基づいてマテリアル検索ディレクトリを構築
+        /// 優先順位: lilToon > Poiyomi > UnityChan > Default (Standard)
+        /// </summary>
+        /// <param name="extractRootDir">解凍先ルートディレクトリ</param>
+        /// <param name="fbxDir">FBXディレクトリ</param>
+        /// <returns>優先順位順のディレクトリ配列</returns>
+        private string[] BuildMaterialSearchDirectories(string extractRootDir, string fbxDir)
+        {
+            var directories = new List<string>();
+
+            // シェーダー優先順位定義
+            // 優先順位: lilToon > Poiyomi > UnityChan > Default (Standard)
+            string[] shaderPriorityKeywords = new string[]
+            {
+                "lilToon",
+                "liltoon",
+                "Poiyomi",
+                "poiyomi",
+                "UnityChan",
+                "unitychan",
+                "UTS",  // Unity Toon Shader
+                "Standard",
+                "standard",
+                "Default",
+                "default"
+            };
+
+            // 1. 優先順位の高いシェーダーフォルダを先に追加
+            foreach (var keyword in shaderPriorityKeywords)
+            {
+                // extractRootDir 直下の Material/Materials フォルダをチェック
+                string[] materialFolderNames = new string[]
+                {
+                    $"Materials_{keyword}",
+                    $"Material_{keyword}",
+                    $"{keyword}_Materials",
+                    $"{keyword}_Material",
+                    $"Mat_{keyword}",
+                    $"{keyword}"
+                };
+
+                foreach (var folderName in materialFolderNames)
+                {
+                    // extractRootDir直下
+                    string candidate = Path.Combine(extractRootDir, folderName);
+                    if (Directory.Exists(candidate) && !directories.Contains(candidate))
+                    {
+                        directories.Add(candidate);
+                        Debug.Log($"[Material Priority] Added: {folderName} (Priority: {Array.IndexOf(shaderPriorityKeywords, keyword) + 1})");
+                    }
+
+                    // extractRootDir/Assets 配下も探す
+                    string assetsCandidate = Path.Combine(extractRootDir, "Assets", folderName);
+                    if (Directory.Exists(assetsCandidate) && !directories.Contains(assetsCandidate))
+                    {
+                        directories.Add(assetsCandidate);
+                        Debug.Log($"[Material Priority] Added: Assets/{folderName} (Priority: {Array.IndexOf(shaderPriorityKeywords, keyword) + 1})");
+                    }
+
+                    // FBXファイルと同じ階層の兄弟フォルダもチェック
+                    string fbxParent = Path.GetDirectoryName(fbxDir);
+                    if (!string.IsNullOrEmpty(fbxParent))
+                    {
+                        string siblingCandidate = Path.Combine(fbxParent, folderName);
+                        if (Directory.Exists(siblingCandidate) && !directories.Contains(siblingCandidate))
+                        {
+                            directories.Add(siblingCandidate);
+                            Debug.Log($"[Material Priority] Added: ../{folderName} (Priority: {Array.IndexOf(shaderPriorityKeywords, keyword) + 1})");
+                        }
+                    }
+                }
+            }
+
+            // 2. 汎用マテリアルフォルダを追加（優先順位キーワードなし）
+            string[] genericMaterialFolders = new string[]
+            {
+                Path.Combine(extractRootDir, "Materials"),
+                Path.Combine(extractRootDir, "Material"),
+                Path.Combine(extractRootDir, "Assets", "Materials"),
+                Path.Combine(extractRootDir, "Assets", "Material"),
+                fbxDir  // FBXと同じディレクトリ（最後）
+            };
+
+            foreach (var folder in genericMaterialFolders)
+            {
+                if (Directory.Exists(folder) && !directories.Contains(folder))
+                {
+                    directories.Add(folder);
+                }
+            }
+
+            // 3. 解凍先ルート自体も最後に追加（Manifestがある場所）
+            if (!directories.Contains(extractRootDir))
+            {
+                directories.Add(extractRootDir);
+            }
+
+            Debug.Log($"[Material Priority] Total {directories.Count} directories in search order");
+            for (int i = 0; i < directories.Count; i++)
+            {
+                Debug.Log($"[Material Priority]   {i + 1}. {Path.GetFileName(directories[i])}");
+            }
+
+            return directories.ToArray();
         }
 
         /// <summary>
