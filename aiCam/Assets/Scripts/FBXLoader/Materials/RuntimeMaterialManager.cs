@@ -31,6 +31,12 @@ namespace AICam.FBXLoader
         private Dictionary<string, MaterialManifest> loadedMaterialManifests = new Dictionary<string, MaterialManifest>();
         private Dictionary<string, TextureManifest> loadedTextureManifests = new Dictionary<string, TextureManifest>();
 
+        // シェーダー固定モード: 全マテリアルにlilToonシェーダーを使用
+        public bool UseLilToonShaderOnly { get; set; } = false;
+
+        // 固定シェーダーのキャッシュ
+        private Shader _fixedLilToonShader;
+
         // ログ記録が有効かどうか
         private static bool IsLoggingEnabled =>
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
@@ -196,6 +202,122 @@ namespace AICam.FBXLoader
         }
 
         /// <summary>
+        /// lilToonシェーダーを取得（キャッシュ付き）
+        /// </summary>
+        private Shader GetLilToonShader()
+        {
+            if (_fixedLilToonShader != null) return _fixedLilToonShader;
+
+            // lilToon公開シェーダーのみを使用（Hidden系は使用しない）
+            _fixedLilToonShader = Shader.Find("lilToon");
+            if (_fixedLilToonShader == null)
+            {
+                _fixedLilToonShader = Shader.Find("Universal Render Pipeline/Lit");
+                Debug.LogWarning("[RuntimeMaterialManager] lilToonシェーダーが見つかりません。URP/Litを使用します。");
+            }
+
+            return _fixedLilToonShader;
+        }
+
+#if UNITY_EDITOR
+        // ロードしたマテリアルを保存するためのリスト
+        private List<(string meshName, Material material)> loadedMaterialsForSave = new List<(string, Material)>();
+
+        /// <summary>
+        /// マテリアルを記録（後でアセットとして保存用）
+        /// </summary>
+        private void RecordMaterialForSave(string meshName, Material material, string texturePath)
+        {
+            if (material == null) return;
+            loadedMaterialsForSave.Add((meshName, material));
+        }
+
+        /// <summary>
+        /// 記録したマテリアルをアセットとして保存
+        /// </summary>
+        public void SaveLoadedMaterialsToStreamingAssets(string modelName)
+        {
+            if (loadedMaterialsForSave.Count == 0)
+            {
+                Debug.LogWarning("[RuntimeMaterialManager] 保存するマテリアルがありません。");
+                return;
+            }
+
+            // 保存先ディレクトリ（Assets/StreamingAssets/LoadedMaterials/モデル名/）
+            string relativePath = $"Assets/StreamingAssets/LoadedMaterials/{modelName}";
+            string fullPath = Path.Combine(Application.dataPath, "StreamingAssets", "LoadedMaterials", modelName);
+
+            // ディレクトリを作成
+            if (!Directory.Exists(fullPath))
+            {
+                Directory.CreateDirectory(fullPath);
+            }
+
+            // 正しいlilToonシェーダーを取得（GUIDベース）
+            // lilToon の正しいGUID: df12117ecd77c31469c224178886498e
+            string lilToonShaderPath = "Packages/jp.lilxyzw.liltoon/Shader/lts.shader";
+            Shader correctLilToonShader = UnityEditor.AssetDatabase.LoadAssetAtPath<Shader>(lilToonShaderPath);
+            if (correctLilToonShader == null)
+            {
+                // フォールバック: Shader.Findを使用
+                correctLilToonShader = Shader.Find("lilToon");
+            }
+            Debug.Log($"[RuntimeMaterialManager] 保存用シェーダー: {correctLilToonShader?.name ?? "null"} (path: {lilToonShaderPath})");
+
+            int savedCount = 0;
+            foreach (var (meshName, material) in loadedMaterialsForSave)
+            {
+                if (material == null) continue;
+
+                // マテリアル名をファイル名に使用（不正な文字を除去）
+                string safeName = string.Join("_", material.name.Split(Path.GetInvalidFileNameChars()));
+                string assetPath = $"{relativePath}/{safeName}.mat";
+
+                // 既存のアセットがあれば削除
+                if (UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(assetPath) != null)
+                {
+                    UnityEditor.AssetDatabase.DeleteAsset(assetPath);
+                }
+
+                // マテリアルをコピーして保存（元のマテリアルを変更しない）
+                Material materialCopy = new Material(material);
+
+                // シェーダーを正しいlilToonに置き換え（Hidden系を回避）
+                if (correctLilToonShader != null && UseLilToonShaderOnly)
+                {
+                    materialCopy.shader = correctLilToonShader;
+                }
+
+                UnityEditor.AssetDatabase.CreateAsset(materialCopy, assetPath);
+                savedCount++;
+
+                Debug.Log($"[RuntimeMaterialManager] マテリアル保存: {assetPath} (Shader: {materialCopy.shader?.name})");
+            }
+
+            UnityEditor.AssetDatabase.SaveAssets();
+            UnityEditor.AssetDatabase.Refresh();
+
+            Debug.Log($"[RuntimeMaterialManager] マテリアルを保存しました: {relativePath} ({savedCount}件)");
+
+            // リストをクリア
+            loadedMaterialsForSave.Clear();
+        }
+
+        /// <summary>
+        /// マテリアル記録リストをクリア
+        /// </summary>
+        public void ClearMaterialSaveList()
+        {
+            loadedMaterialsForSave.Clear();
+        }
+#elif DEVELOPMENT_BUILD
+        // Development Buildではダミー実装
+        private void RecordMaterialForSave(string meshName, Material material, string texturePath) { }
+        public void SaveLoadedMaterialsToStreamingAssets(string modelName) { }
+        public void ClearMaterialSaveList() { }
+#endif
+
+        /// <summary>
         /// 指定されたGameObjectにキャッシュされたMaterialを適用
         /// </summary>
         /// <param name="gameObject">対象のGameObject</param>
@@ -260,6 +382,10 @@ namespace AICam.FBXLoader
                     foreach (var mat in materials)
                     {
                         materialSearchLog.AppendLine($"  - {mat.name} (Shader: {mat.shader.name})");
+#if UNITY_EDITOR
+                        // マテリアルをアセットとして保存用に記録（エディタのみ）
+                        RecordMaterialForSave(meshNodeName, mat, null);
+#endif
                     }
 #endif
                 }
@@ -287,7 +413,14 @@ namespace AICam.FBXLoader
 
             // ログを自動的にファイルに保存（エディタ/ビルド版を区別）
             SaveLogToFile();
+#endif
 
+#if UNITY_EDITOR
+            // マテリアルをアセットとして保存（エディタのみ）
+            SaveLoadedMaterialsToStreamingAssets(gameObject.name);
+#endif
+
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
             Debug.Log("[RuntimeMaterialManager] AssignMaterials() 完了");
 #else
             Debug.Log("[RuntimeMaterialManager] AssignMaterials() 完了 (ログ機能は無効)");
@@ -842,6 +975,7 @@ namespace AICam.FBXLoader
                 Debug.Log($"[UniSIL] ShaderDatabase loaded successfully: {shaderDB.shaders.Count} shaders");
 
                 // シェーダー取得の優先順位:
+                // 0. UseLilToonShaderOnly が true の場合、lilToon固定
                 // 1. GUID直接lookup (ShaderGuidDictionary)
                 // 2. ShaderInferenceEngineでの推論
                 // 3. フォールバック (lilToon → Standard)
@@ -849,8 +983,17 @@ namespace AICam.FBXLoader
                 Shader shader = null;
                 string shaderSource = null;
 
+                // 戦略0: lilToonシェーダー固定モード
+                if (UseLilToonShaderOnly)
+                {
+                    shader = GetLilToonShader();
+                    shaderSource = "Fixed (lilToon)";
+                    Debug.Log($"[UniSIL] Using fixed lilToon shader: {shader?.name}");
+                    materialSearchLog.AppendLine($"      [Fixed Mode] Using lilToon shader: {shader?.name}");
+                }
+
                 // 戦略1: GUIDがあれば直接lookupを試みる
-                if (!string.IsNullOrEmpty(materialData.shaderGuid))
+                if (shader == null && !string.IsNullOrEmpty(materialData.shaderGuid))
                 {
                     Debug.Log($"[UniSIL] Attempting GUID lookup: {materialData.shaderGuid}");
                     materialSearchLog.AppendLine($"      [Strategy 1] Direct GUID lookup: {materialData.shaderGuid}");
@@ -859,7 +1002,18 @@ namespace AICam.FBXLoader
                     var shaderGuidDict = ShaderGuidDictionaryLoader.LoadDictionary();
                     if (shaderGuidDict != null)
                     {
-                        string shaderName = shaderGuidDict.GetShaderNameByGuid(materialData.shaderGuid);
+                        string rawShaderName = shaderGuidDict.GetShaderNameByGuid(materialData.shaderGuid);
+
+                        // Hidden/lilToon* を公開lilToonシェーダーに正規化
+                        string shaderName = NormalizeLilToonShaderName(rawShaderName);
+
+                        // 正規化が行われた場合はログに記録
+                        if (!string.IsNullOrEmpty(shaderName) && !string.IsNullOrEmpty(rawShaderName) && shaderName != rawShaderName)
+                        {
+                            Debug.Log($"[UniSIL] Hidden lilToon shader normalized: '{rawShaderName}' → '{shaderName}'");
+                            materialSearchLog.AppendLine($"      Normalized: {rawShaderName} → {shaderName}");
+                        }
+
                         if (!string.IsNullOrEmpty(shaderName))
                         {
                             shader = Shader.Find(shaderName);
@@ -1345,10 +1499,19 @@ namespace AICam.FBXLoader
         /// <returns>作成されたMaterial</returns>
         private async UniTask<Material> CreateMaterialFromTexturePath(string materialName, string texturePath)
         {
-            Shader shader = Shader.Find("Standard");
+            Shader shader;
+            if (UseLilToonShaderOnly)
+            {
+                shader = GetLilToonShader();
+            }
+            else
+            {
+                shader = Shader.Find("Standard");
+            }
+
             if (shader == null)
             {
-                Debug.LogWarning("Standardシェーダーが見つかりません。");
+                Debug.LogWarning("シェーダーが見つかりません。");
                 return null;
             }
 
@@ -1399,7 +1562,21 @@ namespace AICam.FBXLoader
             materialSearchLog.AppendLine($"      Requested Shader: {entry.shaderName}");
 #endif
 
-            Shader shader = Shader.Find(entry.shaderName);
+            Shader shader;
+
+            // シェーダー固定モードの場合はlilToonを使用
+            if (UseLilToonShaderOnly)
+            {
+                shader = GetLilToonShader();
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+                materialSearchLog.AppendLine($"      [Fixed Mode] Using lilToon shader: {shader?.name}");
+#endif
+            }
+            else
+            {
+                shader = Shader.Find(entry.shaderName);
+            }
+
             if (shader == null)
             {
                 Debug.LogWarning($"Shaderが見つかりません: {entry.shaderName}。フォールバックマテリアルを試みます。");
@@ -2203,6 +2380,39 @@ namespace AICam.FBXLoader
 
             Debug.LogWarning($"[FindExtractRoot] No manifest found within {MAX_LEVELS} levels from {startDirectory}");
             return null;
+        }
+
+        /// <summary>
+        /// Hidden/lilToon* シェーダー名を公開用 lilToon シェーダー名に正規化する
+        /// </summary>
+        /// <param name="shaderName">元のシェーダー名</param>
+        /// <returns>正規化されたシェーダー名（Hidden/lilToon*の場合はlilToonに変換）</returns>
+        private string NormalizeLilToonShaderName(string shaderName)
+        {
+            if (string.IsNullOrEmpty(shaderName))
+                return shaderName;
+
+            // Hidden/lilToon* シェーダーを公開用 lilToon に正規化
+            if (shaderName.StartsWith("Hidden/lilToon", StringComparison.OrdinalIgnoreCase))
+            {
+                // Hidden/lilToonLite* → lilToonLite
+                if (shaderName.StartsWith("Hidden/lilToonLite", StringComparison.OrdinalIgnoreCase))
+                {
+                    return "lilToonLite";
+                }
+                // Hidden/lilToonMulti* → lilToonMulti
+                else if (shaderName.StartsWith("Hidden/lilToonMulti", StringComparison.OrdinalIgnoreCase))
+                {
+                    return "lilToonMulti";
+                }
+                // Hidden/lilToon* (その他) → lilToon
+                else
+                {
+                    return "lilToon";
+                }
+            }
+
+            return shaderName;
         }
     }
 }
