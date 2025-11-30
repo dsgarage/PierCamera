@@ -4,6 +4,8 @@ using NativeFilePickerNamespace;
 using Cysharp.Threading.Tasks;
 using System.IO;
 using System;
+using System.Collections.Generic;
+using AICam.AR;
 
 namespace AICam.UI
 {
@@ -19,6 +21,7 @@ namespace AICam.UI
 
         [Header("Avatar Loader")]
         [SerializeField] private AICam.VRM.RuntimeAvatarLoader avatarLoader;
+        [SerializeField] private AICam.FBXLoader.RuntimeFBXLoaderBridge fbxLoaderBridge;
 
         private VisualElement root;
         private VisualElement captureButton;
@@ -32,6 +35,19 @@ namespace AICam.UI
         private VisualElement viewerOverlay;
         private Image viewerImage;
 
+        // アラートバー要素
+        private VisualElement alertBar;
+        private Label alertMessage;
+        private Button alertClose;
+
+        // アイコンプレビューパネル要素
+        private VisualElement iconPreviewPanel;
+        private VisualElement iconPreviewImage;
+        private Button iconPreviewRetake;
+        private Button iconPreviewConfirm;
+        private System.Action onIconPreviewConfirm;
+        private System.Action onIconPreviewRetake;
+
         // パネル要素
         private VisualElement topPanel;
         private VisualElement bottomPanel;
@@ -44,6 +60,16 @@ namespace AICam.UI
         private Button sideButton1;
         private Button sideButton2;
         private Button sideButton3;
+
+        // Issue #74/#75: トップパネルボタン要素
+        private Button topButton1; // Light Estimation ON/OFF
+        private Button topButton2; // Shadow ON/OFF
+
+        // Issue #74: Light Estimation状態
+        private bool isLightEstimationEnabled = true;
+
+        // Issue #75: Shadow状態
+        private bool isShadowEnabled = true;
 
         // アスペクト比トグル用のステート（02_01 → 02_02 → 02_03 → 02_01）
         private int aspectRatioState = 0;
@@ -90,6 +116,35 @@ namespace AICam.UI
         private Texture2D lastCapturedPhoto;
         private string lastCapturedVideoPath;
 
+        // スロットデータ管理
+        private Dictionary<Button, SlotData> slotDataMap = new Dictionary<Button, SlotData>();
+        private Button currentSelectedSlot;
+
+        // Issue #73: スロット別プログレス要素の管理
+        private Dictionary<Button, CircularProgressElement> slotProgressMap = new Dictionary<Button, CircularProgressElement>();
+
+        /// <summary>
+        /// スロットのファイルタイプ
+        /// </summary>
+        private enum SlotFileType
+        {
+            None,
+            VRM,
+            FBX
+        }
+
+        /// <summary>
+        /// スロットデータ（ファイルパス、サムネイル、ロード済みアバターを管理）
+        /// </summary>
+        private class SlotData
+        {
+            public string filePath;
+            public SlotFileType fileType;
+            public Texture2D thumbnail;
+            public GameObject loadedAvatar;
+            public bool IsConfigured => !string.IsNullOrEmpty(filePath);
+        }
+
         void OnEnable()
         {
             Debug.Log("🔧 CameraCaptureController OnEnable called");
@@ -126,6 +181,17 @@ namespace AICam.UI
             viewerOverlay = root.Q<VisualElement>("viewerOverlay");
             viewerImage = root.Q<Image>("viewerImage");
 
+            // アラートバー要素の取得
+            alertBar = root.Q<VisualElement>("alertBar");
+            alertMessage = root.Q<Label>("alertMessage");
+            alertClose = root.Q<Button>("alertClose");
+
+            // アイコンプレビューパネル要素の取得
+            iconPreviewPanel = root.Q<VisualElement>("iconPreviewPanel");
+            iconPreviewImage = root.Q<VisualElement>("iconPreviewImage");
+            iconPreviewRetake = root.Q<Button>("iconPreviewRetake");
+            iconPreviewConfirm = root.Q<Button>("iconPreviewConfirm");
+
             topPanel = root.Q<VisualElement>("topPanel");
             bottomPanel = root.Q<VisualElement>("bottomPanel");
             bottomButtonContainer = root.Q<VisualElement>("bottomButtonContainer");
@@ -136,6 +202,10 @@ namespace AICam.UI
             sideButton1 = root.Q<Button>("sideButton1");
             sideButton2 = root.Q<Button>("sideButton2");
             sideButton3 = root.Q<Button>("sideButton3");
+
+            // Issue #74/#75: トップパネルボタンの取得
+            topButton1 = root.Q<Button>("topButton1");
+            topButton2 = root.Q<Button>("topButton2");
 
             // アスペクト比マスク要素の取得
             topMask = root.Q<VisualElement>("topMask");
@@ -210,6 +280,26 @@ namespace AICam.UI
                 Debug.Log("✅ Viewer overlay events registered");
             }
 
+            // アラートバーのイベント登録
+            if (alertClose != null)
+            {
+                alertClose.RegisterCallback<ClickEvent>(evt => HideAlert());
+                Debug.Log("✅ Alert close button events registered");
+            }
+
+            // アイコンプレビューパネルのイベント登録
+            if (iconPreviewConfirm != null)
+            {
+                iconPreviewConfirm.RegisterCallback<ClickEvent>(evt => OnIconPreviewConfirmClicked());
+                Debug.Log("✅ Icon preview confirm button events registered");
+            }
+
+            if (iconPreviewRetake != null)
+            {
+                iconPreviewRetake.RegisterCallback<ClickEvent>(evt => OnIconPreviewRetakeClicked());
+                Debug.Log("✅ Icon preview retake button events registered");
+            }
+
             if (bottomButtonAdd != null)
             {
                 bottomButtonAdd.RegisterCallback<ClickEvent>(evt => AddBottomPanelButton());
@@ -233,6 +323,19 @@ namespace AICam.UI
             {
                 sideButton3.RegisterCallback<ClickEvent>(evt => OnSideButton3Clicked());
                 Debug.Log("✅ Side button 3 events registered");
+            }
+
+            // Issue #74/#75: トップパネルボタンのイベント登録
+            if (topButton1 != null)
+            {
+                topButton1.RegisterCallback<ClickEvent>(evt => OnTopButton1Clicked());
+                Debug.Log("✅ Top button 1 (Light Estimation) events registered");
+            }
+
+            if (topButton2 != null)
+            {
+                topButton2.RegisterCallback<ClickEvent>(evt => OnTopButton2Clicked());
+                Debug.Log("✅ Top button 2 (Shadow) events registered");
             }
 
             // 削除ポップアップを作成（初期状態では非表示）
@@ -656,8 +759,8 @@ namespace AICam.UI
                 Debug.Log($"🔘 Bottom button #{newButton.name} clicked");
                 TapticEngine.Selection();
 
-                // 空のスロットの場合はファイルピッカーを開く
-                OpenFilePicker(newButton);
+                // スロットの状態に応じて処理を分岐
+                OnSlotClicked(newButton);
             });
 
             // Light impact for button addition
@@ -712,7 +815,7 @@ namespace AICam.UI
 
                 RegisterLongPressForButton(button);
 
-                // クリックイベントも登録（ファイルピッカー用）
+                // クリックイベントも登録
                 button.RegisterCallback<ClickEvent>(evt =>
                 {
                     // 長押し後のクリックは抑制
@@ -726,8 +829,8 @@ namespace AICam.UI
                     Debug.Log($"🔘 Bottom button #{button.name} clicked");
                     TapticEngine.Selection();
 
-                    // 空のスロットの場合はファイルピッカーを開く
-                    OpenFilePicker(button);
+                    // スロットの状態に応じて処理を分岐
+                    OnSlotClicked(button);
                 });
             }
 
@@ -864,40 +967,48 @@ namespace AICam.UI
 
         /// <summary>
         /// Check if screen position is over UI Toolkit panel (top, side, or bottom)
+        /// Issue #71: Unity Screen座標とUIToolkit座標のY軸変換を追加
+        /// - Unity Screen: Y=0が画面下部、上に向かって増加
+        /// - UIToolkit worldBound: Y=0が画面上部、下に向かって増加
         /// </summary>
         public bool IsPointOverUIPanel(Vector2 screenPosition)
         {
-            if (topPanel != null && topPanel.worldBound.Contains(screenPosition))
+            // Issue #71 A案: Y座標を反転してUIToolkit座標系に変換
+            Vector2 uiToolkitPosition = new Vector2(
+                screenPosition.x,
+                Screen.height - screenPosition.y
+            );
+
+            if (topPanel != null && topPanel.worldBound.Contains(uiToolkitPosition))
             {
-                Debug.Log($"🎯 Touch over topPanel at {screenPosition}");
+                Debug.Log($"[#71] Touch over topPanel: Unity({screenPosition}) → UIToolkit({uiToolkitPosition})");
                 return true;
             }
 
-            if (sidePanel != null && sidePanel.worldBound.Contains(screenPosition))
+            if (sidePanel != null && sidePanel.worldBound.Contains(uiToolkitPosition))
             {
-                Debug.Log($"🎯 Touch over sidePanel at {screenPosition}");
+                Debug.Log($"[#71] Touch over sidePanel: Unity({screenPosition}) → UIToolkit({uiToolkitPosition})");
                 return true;
             }
 
-            if (bottomPanel != null && bottomPanel.worldBound.Contains(screenPosition))
+            if (bottomPanel != null && bottomPanel.worldBound.Contains(uiToolkitPosition))
             {
-                Debug.Log($"🎯 Touch over bottomPanel at {screenPosition}");
+                Debug.Log($"[#71] Touch over bottomPanel: Unity({screenPosition}) → UIToolkit({uiToolkitPosition})");
                 return true;
             }
 
-            if (captureButton != null && captureButton.worldBound.Contains(screenPosition))
+            if (captureButton != null && captureButton.worldBound.Contains(uiToolkitPosition))
             {
-                Debug.Log($"🎯 Touch over captureButton at {screenPosition}");
+                Debug.Log($"[#71] Touch over captureButton: Unity({screenPosition}) → UIToolkit({uiToolkitPosition})");
                 return true;
             }
 
-            if (galleryThumbnail != null && galleryThumbnail.worldBound.Contains(screenPosition))
+            if (galleryThumbnail != null && galleryThumbnail.worldBound.Contains(uiToolkitPosition))
             {
-                Debug.Log($"🎯 Touch over galleryThumbnail at {screenPosition}");
+                Debug.Log($"[#71] Touch over galleryThumbnail: Unity({screenPosition}) → UIToolkit({uiToolkitPosition})");
                 return true;
             }
 
-            Debug.Log($"🎯 Touch NOT over UI panel at {screenPosition}");
             return false;
         }
 
@@ -1019,9 +1130,7 @@ namespace AICam.UI
                         break;
 
                     case ".fbx":
-                        Debug.LogWarning("⚠️ FBX format is not yet supported");
-                        // TODO: 将来的に実装
-                        // await LoadFBXFileAsync(filePath, targetButton);
+                        await LoadFBXFileAsync(filePath, targetButton);
                         break;
 
                     case ".jpg":
@@ -1058,6 +1167,10 @@ namespace AICam.UI
 
             Debug.Log($"🎭 Loading VRM file: {filePath}");
 
+            // Issue #73: プログレス表示開始
+            StartSlotLoading(targetButton);
+            UpdateSlotProgress(targetButton, 0.1f); // 10%: 開始
+
             try
             {
                 // 既存のアバターをクリアしてから新しいVRMをロード
@@ -1084,19 +1197,50 @@ namespace AICam.UI
                     }
                 }
 
+                // Issue #73: プログレス更新
+                UpdateSlotProgress(targetButton, 0.3f); // 30%: バイト読込開始
+
                 // VRMをロード
                 var avatar = await avatarLoader.LoadVRMFromPathAsync(filePath);
 
                 if (avatar == null)
                 {
                     Debug.LogError("❌ Failed to load VRM avatar");
+                    CancelSlotLoading(targetButton); // Issue #73: キャンセル
                     return;
                 }
 
                 Debug.Log($"✅ VRM avatar loaded successfully: {avatar.name}");
 
-                // サムネイルを生成
-                var thumbnail = await avatarLoader.GenerateThumbnailAsync(avatar);
+                // Issue #73: プログレス更新
+                UpdateSlotProgress(targetButton, 0.7f); // 70%: VRM生成完了
+
+                // レンダリングが安定するまで待機
+                await UniTask.DelayFrame(3);
+
+                // Issue #73: プログレス更新
+                UpdateSlotProgress(targetButton, 0.85f); // 85%: 配置完了
+
+                // サムネイルを生成（AvatarIconCaptureを使用）
+                Debug.Log($"🖼 Starting thumbnail capture for: {avatar.name}");
+                var thumbnail = await AICam.FBXLoader.AvatarIconCapture.Instance.CaptureAsTextureAsync(avatar);
+                Debug.Log($"🖼 Thumbnail capture result: {(thumbnail != null ? $"{thumbnail.width}x{thumbnail.height}" : "NULL")}");
+
+                // Issue #73: プログレス完了
+                CompleteSlotLoading(targetButton);
+
+                // スロットデータを保存
+                if (!slotDataMap.ContainsKey(targetButton))
+                {
+                    slotDataMap[targetButton] = new SlotData();
+                }
+                var slotData = slotDataMap[targetButton];
+                slotData.filePath = filePath;
+                slotData.fileType = SlotFileType.VRM;
+                slotData.thumbnail = thumbnail;
+                slotData.loadedAvatar = avatar;
+
+                Debug.Log($"💾 Slot data saved for {targetButton.name}: {filePath} (VRM)");
 
                 if (thumbnail != null)
                 {
@@ -1105,6 +1249,9 @@ namespace AICam.UI
                     Debug.Log($"🖼 Thumbnail generated and applied to button: {targetButton.name}");
                 }
 
+                // 選択状態を更新
+                UpdateSlotSelection(targetButton);
+
                 // Heavy impact for successful load
                 TapticEngine.Impact(TapticEngine.ImpactStyle.Heavy);
             }
@@ -1112,26 +1259,253 @@ namespace AICam.UI
             {
                 Debug.LogError($"❌ Error loading VRM: {e.Message}");
                 Debug.LogException(e);
+                CancelSlotLoading(targetButton); // Issue #73: エラー時はキャンセル
             }
         }
 
         /// <summary>
-        /// ボタンのアイコンを更新
+        /// FBXファイルをロード
         /// </summary>
-        void UpdateButtonIcon(Button button, Texture2D texture)
+        async UniTask LoadFBXFileAsync(string filePath, Button targetButton)
         {
-            if (button == null || texture == null) return;
-
-            var iconImage = button.Q<VisualElement>("Icon");
-            if (iconImage != null)
+            if (fbxLoaderBridge == null)
             {
-                iconImage.style.backgroundImage = new StyleBackground(texture);
-                Debug.Log($"✅ Button icon updated for {button.name}");
+                // RuntimeFBXLoaderBridgeを探す
+                fbxLoaderBridge = FindFirstObjectByType<AICam.FBXLoader.RuntimeFBXLoaderBridge>();
+
+                if (fbxLoaderBridge == null)
+                {
+                    Debug.LogError("❌ RuntimeFBXLoaderBridge is not found!");
+                    return;
+                }
+            }
+
+            Debug.Log($"📦 Loading FBX file: {filePath}");
+
+            // Issue #73: プログレス表示開始
+            StartSlotLoading(targetButton);
+            UpdateSlotProgress(targetButton, 0.1f); // 10%: 開始
+
+            bool loadSuccess = false;
+            var tcs = new UniTaskCompletionSource();
+
+            try
+            {
+                // RuntimeFBXLoaderBridgeを使用してFBXをロード
+                fbxLoaderBridge.StartRuntimeLoadFromPath(
+                    filePath,
+                    -1,  // スロットインデックスは使わない
+                    null, // アイコンパスは自前で処理
+                    progress =>
+                    {
+                        Debug.Log($"📦 FBX load progress: {progress}%");
+                        // Issue #73: FBXローダーの進捗をUIに反映（0-100を0.1-0.9にマップ）
+                        UpdateSlotProgress(targetButton, 0.1f + (progress / 100f) * 0.8f);
+                    },
+                    success =>
+                    {
+                        loadSuccess = success;
+                        tcs.TrySetResult();
+                    }
+                );
+
+                await tcs.Task;
+
+                if (!loadSuccess)
+                {
+                    Debug.LogError("❌ Failed to load FBX");
+                    CancelSlotLoading(targetButton); // Issue #73: キャンセル
+                    return;
+                }
+
+                var loadedModel = fbxLoaderBridge.CurrentModel;
+                if (loadedModel == null)
+                {
+                    Debug.LogError("❌ FBX model is null after loading");
+                    CancelSlotLoading(targetButton); // Issue #73: キャンセル
+                    return;
+                }
+
+                Debug.Log($"✅ FBX loaded successfully: {loadedModel.name}");
+
+                // Issue #73: プログレス更新
+                UpdateSlotProgress(targetButton, 0.9f); // 90%: FBX生成完了
+
+                // レンダリングが安定するまで待機
+                await UniTask.DelayFrame(3);
+
+                // サムネイルを生成（AvatarIconCaptureを使用）
+                Debug.Log($"🖼 Starting thumbnail capture for: {loadedModel.name}");
+                Texture2D thumbnail = await AICam.FBXLoader.AvatarIconCapture.Instance.CaptureAsTextureAsync(loadedModel);
+                Debug.Log($"🖼 Thumbnail capture result: {(thumbnail != null ? $"{thumbnail.width}x{thumbnail.height}" : "NULL")}");
+
+                // Issue #73: プログレス完了
+                CompleteSlotLoading(targetButton);
+
+                // スロットデータを保存
+                if (!slotDataMap.ContainsKey(targetButton))
+                {
+                    slotDataMap[targetButton] = new SlotData();
+                }
+                var slotData = slotDataMap[targetButton];
+                slotData.filePath = filePath;
+                slotData.fileType = SlotFileType.FBX;
+                slotData.thumbnail = thumbnail;
+                slotData.loadedAvatar = loadedModel;
+
+                Debug.Log($"💾 Slot data saved for {targetButton.name}: {filePath} (FBX)");
+
+                if (thumbnail != null)
+                {
+                    UpdateButtonIcon(targetButton, thumbnail);
+                    Debug.Log($"🖼 Thumbnail generated and applied to button: {targetButton.name}");
+                }
+
+                // 選択状態を更新
+                UpdateSlotSelection(targetButton);
+
+                // Heavy impact for successful load
+                TapticEngine.Impact(TapticEngine.ImpactStyle.Heavy);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"❌ Error loading FBX: {e.Message}");
+                Debug.LogException(e);
+                CancelSlotLoading(targetButton); // Issue #73: エラー時はキャンセル
+            }
+        }
+
+        /// <summary>
+        /// スロットクリック時の処理
+        /// </summary>
+        void OnSlotClicked(Button button)
+        {
+            // スロットデータを取得
+            if (!slotDataMap.TryGetValue(button, out var slotData))
+            {
+                slotData = null;
+            }
+
+            if (slotData != null && slotData.IsConfigured)
+            {
+                // 設定済みスロット → アバターを切り替え
+                Debug.Log($"🔄 Switching to avatar in slot: {button.name}");
+                SwitchToSlotAvatar(button, slotData);
             }
             else
             {
-                Debug.LogWarning($"⚠️ Icon element not found in button {button.name}");
+                // 空のスロット → ファイルピッカーを開く
+                Debug.Log($"📂 Empty slot, opening file picker: {button.name}");
+                OpenFilePicker(button);
             }
+        }
+
+        /// <summary>
+        /// スロットのアバターに切り替え
+        /// </summary>
+        async void SwitchToSlotAvatar(Button button, SlotData slotData)
+        {
+            if (slotData == null || !slotData.IsConfigured) return;
+
+            // 既に選択中のスロットなら何もしない
+            if (currentSelectedSlot == button)
+            {
+                Debug.Log($"🔄 Already selected slot: {button.name}");
+                return;
+            }
+
+            // 選択状態を更新
+            UpdateSlotSelection(button);
+
+            // アバターがまだロードされていない場合はロード
+            if (slotData.loadedAvatar == null)
+            {
+                Debug.Log($"🔄 Avatar not loaded, loading from: {slotData.filePath}");
+                if (slotData.fileType == SlotFileType.VRM)
+                {
+                    await LoadVRMFileAsync(slotData.filePath, button);
+                }
+                else if (slotData.fileType == SlotFileType.FBX)
+                {
+                    await LoadFBXFileAsync(slotData.filePath, button);
+                }
+            }
+            else
+            {
+                // 既存のアバターを非表示にして、このスロットのアバターを表示
+                Debug.Log($"🔄 Activating avatar: {slotData.loadedAvatar.name}");
+                ActivateSlotAvatar(slotData);
+            }
+
+            TapticEngine.Impact(TapticEngine.ImpactStyle.Medium);
+        }
+
+        /// <summary>
+        /// スロットの選択状態を更新
+        /// </summary>
+        void UpdateSlotSelection(Button selectedButton)
+        {
+            // 前の選択を解除
+            if (currentSelectedSlot != null)
+            {
+                currentSelectedSlot.RemoveFromClassList("selected");
+            }
+
+            // 新しい選択を設定
+            currentSelectedSlot = selectedButton;
+            if (currentSelectedSlot != null)
+            {
+                currentSelectedSlot.AddToClassList("selected");
+            }
+        }
+
+        /// <summary>
+        /// スロットのアバターをアクティブにする
+        /// </summary>
+        void ActivateSlotAvatar(SlotData slotData)
+        {
+            // 全スロットのアバターを非表示
+            foreach (var kvp in slotDataMap)
+            {
+                if (kvp.Value?.loadedAvatar != null)
+                {
+                    kvp.Value.loadedAvatar.SetActive(false);
+                }
+            }
+
+            // 選択したスロットのアバターを表示
+            if (slotData?.loadedAvatar != null)
+            {
+                slotData.loadedAvatar.SetActive(true);
+            }
+        }
+
+        /// <summary>
+        /// ボタンのアイコンを更新（背景画像として直接設定）
+        /// </summary>
+        void UpdateButtonIcon(Button button, Texture2D texture)
+        {
+            if (button == null)
+            {
+                Debug.LogWarning("⚠️ UpdateButtonIcon: button is null");
+                return;
+            }
+
+            if (texture == null)
+            {
+                Debug.LogWarning($"⚠️ UpdateButtonIcon: texture is null for {button.name}");
+                return;
+            }
+
+            Debug.Log($"🖼 UpdateButtonIcon: Setting texture {texture.width}x{texture.height} to {button.name}");
+
+            // ボタン自体の背景画像としてサムネイルを設定
+            button.style.backgroundImage = new StyleBackground(texture);
+
+            // has-iconクラスを追加してUSSスタイルを適用
+            button.AddToClassList("has-icon");
+
+            Debug.Log($"✅ Button icon updated for {button.name}");
         }
 
         /// <summary>
@@ -1194,6 +1568,103 @@ namespace AICam.UI
             TapticEngine.Selection();
 
             // ここにフラッシュ切り替え処理を追加
+        }
+
+        /// <summary>
+        /// Issue #74: トップボタン1（Light Estimation）クリック時の処理
+        /// ON/OFFをトグル、OFFのとき半透明表示
+        /// </summary>
+        void OnTopButton1Clicked()
+        {
+            isLightEstimationEnabled = !isLightEstimationEnabled;
+            Debug.Log($"💡 Top button 1 (Light Estimation) clicked: {(isLightEstimationEnabled ? "ON" : "OFF")}");
+            TapticEngine.Selection();
+
+            // ボタンの透明度を更新
+            UpdateTopButtonOpacity(topButton1, isLightEstimationEnabled);
+
+            // Light Estimation設定を適用
+            ApplyLightEstimationSetting();
+        }
+
+        /// <summary>
+        /// Issue #75: トップボタン2（Shadow）クリック時の処理
+        /// ON/OFFをトグル、OFFのとき半透明表示
+        /// </summary>
+        void OnTopButton2Clicked()
+        {
+            isShadowEnabled = !isShadowEnabled;
+            Debug.Log($"🌑 Top button 2 (Shadow) clicked: {(isShadowEnabled ? "ON" : "OFF")}");
+            TapticEngine.Selection();
+
+            // ボタンの透明度を更新
+            UpdateTopButtonOpacity(topButton2, isShadowEnabled);
+
+            // Shadow設定を適用
+            ApplyShadowSetting();
+        }
+
+        /// <summary>
+        /// トップボタンの透明度を更新
+        /// ONのとき不透明、OFFのとき半透明
+        /// </summary>
+        void UpdateTopButtonOpacity(Button button, bool isEnabled)
+        {
+            if (button == null) return;
+            button.style.opacity = isEnabled ? 1.0f : 0.4f;
+        }
+
+        /// <summary>
+        /// Issue #74: Light Estimation設定を適用
+        /// </summary>
+        void ApplyLightEstimationSetting()
+        {
+            // ARLightEstimationControllerがあれば設定を適用
+            var lightEstimation = FindFirstObjectByType<ARLightEstimationController>();
+            if (lightEstimation != null)
+            {
+                lightEstimation.enabled = isLightEstimationEnabled;
+                Debug.Log($"💡 ARLightEstimationController.enabled = {isLightEstimationEnabled}");
+            }
+            else
+            {
+                Debug.LogWarning("⚠️ ARLightEstimationController not found in scene");
+            }
+        }
+
+        /// <summary>
+        /// Issue #75: Shadow設定を適用
+        /// </summary>
+        void ApplyShadowSetting()
+        {
+            // メインライトのシャドウを制御
+            var mainLight = FindMainDirectionalLight();
+            if (mainLight != null)
+            {
+                mainLight.shadows = isShadowEnabled ? LightShadows.Soft : LightShadows.None;
+                Debug.Log($"🌑 Main light shadows = {mainLight.shadows}");
+            }
+            else
+            {
+                Debug.LogWarning("⚠️ Main Directional Light not found in scene");
+            }
+        }
+
+        /// <summary>
+        /// メインのDirectional Lightを検索
+        /// </summary>
+        Light FindMainDirectionalLight()
+        {
+            // タグでメインライトを検索
+            var lights = FindObjectsByType<Light>(FindObjectsSortMode.None);
+            foreach (var light in lights)
+            {
+                if (light.type == LightType.Directional)
+                {
+                    return light;
+                }
+            }
+            return null;
         }
 
         /// <summary>
@@ -1338,5 +1809,301 @@ namespace AICam.UI
                 }
             }
         }
+
+        #region AlertBar Methods
+
+        /// <summary>
+        /// 警告アラートを表示（フェードイン）
+        /// </summary>
+        /// <param name="code">警告コード（例: W001）</param>
+        /// <param name="message">警告メッセージ</param>
+        /// <param name="autoDismissSeconds">自動非表示までの秒数（0の場合は自動非表示しない）</param>
+        public void ShowWarning(string code, string message, float autoDismissSeconds = 5f)
+        {
+            ShowAlertInternal(code, message, false, autoDismissSeconds);
+        }
+
+        /// <summary>
+        /// エラーアラートを表示（フェードイン）
+        /// </summary>
+        /// <param name="code">エラーコード（例: E001）</param>
+        /// <param name="message">エラーメッセージ</param>
+        /// <param name="autoDismissSeconds">自動非表示までの秒数（0の場合は自動非表示しない）</param>
+        public void ShowError(string code, string message, float autoDismissSeconds = 0f)
+        {
+            ShowAlertInternal(code, message, true, autoDismissSeconds);
+        }
+
+        private void ShowAlertInternal(string code, string message, bool isError, float autoDismissSeconds)
+        {
+            if (alertBar == null || alertMessage == null)
+            {
+                Debug.LogWarning("⚠️ AlertBar elements not found");
+                return;
+            }
+
+            // メッセージを設定
+            alertMessage.text = $"[{code}] {message}";
+
+            // スタイルを設定（warning/error）
+            alertBar.RemoveFromClassList("warning");
+            alertBar.RemoveFromClassList("error");
+            alertBar.AddToClassList(isError ? "error" : "warning");
+
+            // フェードイン表示
+            alertBar.style.display = DisplayStyle.Flex;
+            alertBar.style.opacity = 0;
+
+            // 次のフレームでopacity:1に変更してCSSトランジションを発火
+            alertBar.schedule.Execute(() =>
+            {
+                alertBar.AddToClassList("visible");
+                alertBar.style.opacity = 1;
+            }).StartingIn(10);
+
+            Debug.Log($"⚠️ Alert shown: [{code}] {message} (isError: {isError})");
+
+            // Haptic feedback
+            TapticEngine.Impact(isError ? TapticEngine.ImpactStyle.Heavy : TapticEngine.ImpactStyle.Medium);
+
+            // 自動非表示
+            if (autoDismissSeconds > 0)
+            {
+                alertBar.schedule.Execute(() => HideAlert()).StartingIn((long)(autoDismissSeconds * 1000));
+            }
+        }
+
+        /// <summary>
+        /// アラートを非表示（フェードアウト）
+        /// </summary>
+        public void HideAlert()
+        {
+            if (alertBar == null) return;
+
+            alertBar.RemoveFromClassList("visible");
+            alertBar.style.opacity = 0;
+
+            // フェードアウト完了後に非表示
+            alertBar.schedule.Execute(() =>
+            {
+                alertBar.style.display = DisplayStyle.None;
+            }).StartingIn(300);
+
+            Debug.Log("✅ Alert hidden");
+        }
+
+        #endregion
+
+        #region Issue #73: Circular Progress Methods
+
+        /// <summary>
+        /// スロットボタンにプログレス要素を作成
+        /// </summary>
+        private CircularProgressElement CreateProgressForSlot(Button slotButton)
+        {
+            if (slotButton == null || root == null) return null;
+
+            // 既存のプログレス要素があれば返す
+            if (slotProgressMap.TryGetValue(slotButton, out var existingProgress))
+            {
+                return existingProgress;
+            }
+
+            // 新しいプログレス要素を作成
+            var progress = new CircularProgressElement();
+            progress.name = $"progress_{slotButton.name}";
+            progress.RingWidth = 3f;
+            progress.ProgressColor = new Color(0.3f, 0.7f, 1f, 1f); // Light blue
+            progress.ShowBackground = false; // 背景なし、プログレス弧のみ
+
+            // スタイル設定
+            progress.style.position = Position.Absolute;
+            progress.style.display = DisplayStyle.None; // 初期状態は非表示
+
+            // rootに追加（最前面に配置）
+            root.Add(progress);
+
+            // マップに登録
+            slotProgressMap[slotButton] = progress;
+
+            Debug.Log($"[#73] Created progress element for {slotButton.name}");
+
+            return progress;
+        }
+
+        /// <summary>
+        /// スロットのプログレス要素を位置更新
+        /// </summary>
+        private void UpdateProgressPosition(Button slotButton)
+        {
+            if (!slotProgressMap.TryGetValue(slotButton, out var progress)) return;
+
+            var bounds = slotButton.worldBound;
+            float padding = 4f;
+            float size = Mathf.Max(bounds.width, bounds.height) + padding * 2;
+
+            progress.style.width = size;
+            progress.style.height = size;
+            progress.style.left = bounds.x - padding;
+            progress.style.top = bounds.y - padding;
+        }
+
+        /// <summary>
+        /// スロットのロード開始（プログレス表示開始）
+        /// </summary>
+        private void StartSlotLoading(Button slotButton)
+        {
+            var progress = CreateProgressForSlot(slotButton);
+            if (progress == null) return;
+
+            // 位置を更新
+            UpdateProgressPosition(slotButton);
+
+            // 表示開始
+            progress.Progress = 0.01f; // 0より大きい値で開始
+            progress.style.display = DisplayStyle.Flex;
+
+            Debug.Log($"[#73] Loading started for {slotButton.name}");
+        }
+
+        /// <summary>
+        /// スロットのロード進捗を更新
+        /// </summary>
+        private void UpdateSlotProgress(Button slotButton, float progress01)
+        {
+            if (!slotProgressMap.TryGetValue(slotButton, out var progress)) return;
+
+            progress.Progress = progress01;
+
+            Debug.Log($"[#73] Progress updated for {slotButton.name}: {progress01 * 100:F0}%");
+        }
+
+        /// <summary>
+        /// スロットのロード完了（プログレス非表示）
+        /// </summary>
+        private void CompleteSlotLoading(Button slotButton)
+        {
+            if (!slotProgressMap.TryGetValue(slotButton, out var progress)) return;
+
+            progress.Progress = 1f;
+
+            // 少し遅延してから非表示（完了を視覚的に確認できるように）
+            progress.schedule.Execute(() =>
+            {
+                progress.style.display = DisplayStyle.None;
+                progress.Progress = 0f;
+            }).StartingIn(300);
+
+            Debug.Log($"[#73] Loading completed for {slotButton.name}");
+        }
+
+        /// <summary>
+        /// スロットのロードキャンセル（プログレス非表示）
+        /// </summary>
+        private void CancelSlotLoading(Button slotButton)
+        {
+            if (!slotProgressMap.TryGetValue(slotButton, out var progress)) return;
+
+            progress.style.display = DisplayStyle.None;
+            progress.Progress = 0f;
+
+            Debug.Log($"[#73] Loading cancelled for {slotButton.name}");
+        }
+
+        #endregion
+
+        #region IconPreviewPanel Methods
+
+        /// <summary>
+        /// アイコンプレビューパネルを表示（フェードイン）
+        /// </summary>
+        /// <param name="texture">プレビューするテクスチャ</param>
+        /// <param name="onConfirm">確定ボタン押下時のコールバック</param>
+        /// <param name="onRetake">撮り直すボタン押下時のコールバック（nullの場合はボタン非表示）</param>
+        public void ShowIconPreview(Texture2D texture, System.Action onConfirm, System.Action onRetake = null)
+        {
+            if (iconPreviewPanel == null || iconPreviewImage == null)
+            {
+                Debug.LogWarning("⚠️ IconPreviewPanel elements not found");
+                return;
+            }
+
+            // コールバックを保存
+            onIconPreviewConfirm = onConfirm;
+            onIconPreviewRetake = onRetake;
+
+            // 画像を設定
+            iconPreviewImage.style.backgroundImage = new StyleBackground(texture);
+
+            // 撮り直しボタンの表示/非表示
+            if (iconPreviewRetake != null)
+            {
+                iconPreviewRetake.style.display = onRetake != null ? DisplayStyle.Flex : DisplayStyle.None;
+            }
+
+            // フェードイン表示
+            iconPreviewPanel.style.display = DisplayStyle.Flex;
+            iconPreviewPanel.style.opacity = 0;
+
+            // 次のフレームでopacity:1に変更してCSSトランジションを発火
+            iconPreviewPanel.schedule.Execute(() =>
+            {
+                iconPreviewPanel.AddToClassList("visible");
+                iconPreviewPanel.style.opacity = 1;
+            }).StartingIn(10);
+
+            Debug.Log($"🖼 IconPreview shown: {texture.width}x{texture.height}");
+        }
+
+        /// <summary>
+        /// アイコンプレビューパネルを非表示（フェードアウト）
+        /// </summary>
+        public void HideIconPreview()
+        {
+            if (iconPreviewPanel == null) return;
+
+            iconPreviewPanel.RemoveFromClassList("visible");
+            iconPreviewPanel.style.opacity = 0;
+
+            // フェードアウト完了後に非表示
+            iconPreviewPanel.schedule.Execute(() =>
+            {
+                iconPreviewPanel.style.display = DisplayStyle.None;
+                iconPreviewImage.style.backgroundImage = null;
+            }).StartingIn(300);
+
+            onIconPreviewConfirm = null;
+            onIconPreviewRetake = null;
+
+            Debug.Log("✅ IconPreview hidden");
+        }
+
+        private void OnIconPreviewConfirmClicked()
+        {
+            Debug.Log("✅ IconPreview confirm clicked");
+            TapticEngine.Impact(TapticEngine.ImpactStyle.Medium);
+
+            var callback = onIconPreviewConfirm;
+            HideIconPreview();
+            callback?.Invoke();
+        }
+
+        private void OnIconPreviewRetakeClicked()
+        {
+            Debug.Log("🔄 IconPreview retake clicked");
+            TapticEngine.Impact(TapticEngine.ImpactStyle.Light);
+
+            var callback = onIconPreviewRetake;
+            HideIconPreview();
+            callback?.Invoke();
+        }
+
+        /// <summary>
+        /// アイコンプレビューが表示中かどうか
+        /// </summary>
+        public bool IsIconPreviewShowing => iconPreviewPanel != null &&
+            iconPreviewPanel.resolvedStyle.display == DisplayStyle.Flex;
+
+        #endregion
     }
 }

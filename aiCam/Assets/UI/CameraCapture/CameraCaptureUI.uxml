@@ -1,60 +1,54 @@
-<ui:UXML xmlns:ui="UnityEngine.UIElements">
-    <Style src="CameraCaptureUI.uss"/>
-    <ui:VisualElement class="root" picking-mode="Ignore">
-
-        <!-- 🎭 アスペクト比マスク（最背面：全てのパネルの奥側） -->
-        <ui:VisualElement name="topMask" class="aspect-mask" picking-mode="Ignore"/>
-        <ui:VisualElement name="bottomMask" class="aspect-mask" picking-mode="Ignore"/>
-        <ui:VisualElement name="leftMask" class="aspect-mask" picking-mode="Ignore"/>
-        <ui:VisualElement name="rightMask" class="aspect-mask" picking-mode="Ignore"/>
-
-        <!-- 📊 上部パネル -->
-        <ui:VisualElement name="topPanel" class="top-panel" picking-mode="Ignore">
-            <ui:Button name="topButton1" class="top-panel-button" picking-mode="Position"/>
-            <ui:Button name="topButton2" class="top-panel-button" picking-mode="Position"/>
-            <ui:Button name="topButton3" class="top-panel-button" picking-mode="Position"/>
-            <ui:Button name="topButton4" class="top-panel-button" picking-mode="Position"/>
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/CameraCapture/CameraCaptureUI.uss?fileID=7433441132597879392&amp;guid=e67c77dc7fba5436da95aa611de5e651&amp;type=3#CameraCaptureUI" />
+    <ui:VisualElement picking-mode="Ignore" class="root">
+        <ui:VisualElement name="topMask" picking-mode="Ignore" class="aspect-mask" />
+        <ui:VisualElement name="bottomMask" picking-mode="Ignore" class="aspect-mask" />
+        <ui:VisualElement name="leftMask" picking-mode="Ignore" class="aspect-mask" />
+        <ui:VisualElement name="rightMask" picking-mode="Ignore" class="aspect-mask" />
+        <ui:VisualElement name="alertBar" class="alert-bar">
+            <ui:Label name="alertMessage" text="[W001] サンプル警告" class="alert-bar-message" />
+            <ui:Button name="alertClose" text="×" class="alert-bar-close" />
         </ui:VisualElement>
-
-        <!-- 📍 サイドバーパネル（右側） -->
-        <ui:VisualElement name="sidePanel" class="side-panel" picking-mode="Ignore">
-            <ui:Button name="sideButton1" class="side-panel-button" picking-mode="Position"/>
-            <ui:Button name="sideButton2" class="side-panel-button" picking-mode="Position"/>
-            <ui:Button name="sideButton3" class="side-panel-button" picking-mode="Position"/>
+        <ui:VisualElement name="topPanel" picking-mode="Ignore" class="top-panel">
+            <ui:Button name="topButton1" class="top-panel-button" />
+            <ui:Button name="topButton2" class="top-panel-button" />
+            <ui:Button name="topButton3" class="top-panel-button" />
+            <ui:Button name="topButton4" class="top-panel-button" />
         </ui:VisualElement>
-
-        <!-- 📷 左下のサムネイル（直近の写真・動画） -->
-        <ui:VisualElement name="galleryThumbnail" class="gallery-thumbnail" picking-mode="Position"/>
-
-        <!-- 📊 撮影ボタン上のパネル -->
-        <ui:VisualElement name="bottomPanel" class="bottom-panel">
-            <ui:ScrollView name="bottomScrollView" class="bottom-scroll-view" mode="Horizontal" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden">
+        <ui:VisualElement name="sidePanel" picking-mode="Ignore" class="side-panel">
+            <ui:Button name="sideButton1" class="side-panel-button" />
+            <ui:Button name="sideButton2" class="side-panel-button" />
+            <ui:Button name="sideButton3" class="side-panel-button" />
+        </ui:VisualElement>
+        <ui:VisualElement name="galleryThumbnail" class="gallery-thumbnail" />
+        <ui:VisualElement name="AvaterSlot" class="bottom-panel">
+            <ui:ScrollView name="bottomScrollView" mode="Horizontal" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden" class="bottom-scroll-view">
                 <ui:VisualElement name="bottomButtonContainer" class="bottom-button-container">
-                    <ui:Button name="bottomButton1" class="bottom-panel-button"/>
-                    <ui:Button name="bottomButton2" class="bottom-panel-button"/>
-                    <ui:Button name="bottomButton3" class="bottom-panel-button"/>
-                    <ui:Button name="bottomButtonAdd" class="bottom-panel-button bottom-panel-button-add" text="+"/>
+                    <ui:Button name="bottomButton1" class="bottom-panel-button" />
+                    <ui:Button name="bottomButton2" class="bottom-panel-button" />
+                    <ui:Button name="bottomButton3" class="bottom-panel-button" />
+                    <ui:Button name="bottomButtonAdd" text="+" class="bottom-panel-button bottom-panel-button-add" />
                 </ui:VisualElement>
             </ui:ScrollView>
         </ui:VisualElement>
-
-        <!-- 🎯 撮影ボタン（外枠＋内側＋プログレスリング） -->
-        <ui:VisualElement name="captureButton" class="capture-button" picking-mode="Position">
-            <ui:VisualElement name="outerRing" class="outer-ring" picking-mode="Ignore"/>
-            <ui:VisualElement name="innerCircle" class="inner-circle" picking-mode="Ignore"/>
-            <ui:VisualElement name="progressRing" class="progress-ring" picking-mode="Ignore">
-                <ui:VisualElement name="progressRingBg" class="progress-ring-bg" picking-mode="Ignore"/>
-                <ui:VisualElement name="progressArc" class="progress-arc" picking-mode="Ignore"/>
+        <ui:VisualElement name="captureButton" class="capture-button">
+            <ui:VisualElement name="outerRing" picking-mode="Ignore" class="outer-ring" />
+            <ui:VisualElement name="innerCircle" picking-mode="Ignore" class="inner-circle" />
+            <ui:VisualElement name="progressRing" picking-mode="Ignore" class="progress-ring">
+                <ui:VisualElement name="progressRingBg" picking-mode="Ignore" class="progress-ring-bg" />
+                <ui:VisualElement name="progressArc" picking-mode="Ignore" class="progress-arc" />
             </ui:VisualElement>
         </ui:VisualElement>
-
-        <!-- ⚡ 撮影時のフラッシュアニメーション -->
-        <ui:VisualElement name="flashOverlay" class="flash-overlay" picking-mode="Ignore"/>
-
-        <!-- 🖼 写真／動画の全画面ビューア -->
-        <ui:VisualElement name="viewerOverlay" class="viewer-overlay" picking-mode="Position">
-            <ui:Image name="viewerImage" class="viewer-image" picking-mode="Ignore"/>
+        <ui:VisualElement name="flashOverlay" picking-mode="Ignore" class="flash-overlay" />
+        <ui:VisualElement name="viewerOverlay" class="viewer-overlay">
+            <ui:Image name="viewerImage" picking-mode="Ignore" class="viewer-image" />
         </ui:VisualElement>
-
+        <ui:VisualElement name="iconPreviewPanel" class="icon-preview-panel">
+            <ui:VisualElement name="iconPreviewImage" class="icon-preview-image" />
+            <ui:VisualElement class="icon-preview-button-container">
+                <ui:Button name="iconPreviewRetake" text="撮り直す" class="icon-preview-button retake" />
+                <ui:Button name="iconPreviewConfirm" text="確定" class="icon-preview-button confirm" />
+            </ui:VisualElement>
+        </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>
