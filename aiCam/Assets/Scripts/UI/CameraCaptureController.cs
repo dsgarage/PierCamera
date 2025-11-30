@@ -71,6 +71,12 @@ namespace AICam.UI
         // Issue #75: Shadow状態
         private bool isShadowEnabled = true;
 
+        // Issue #120: ライティングパネル
+        private LightingPanelController lightingPanelController;
+        private float topButton1PressTime = 0f;
+        private bool isTopButton1Pressed = false;
+        private const float topButtonLongPressThreshold = 0.5f;
+
         // アスペクト比トグル用のステート（02_01 → 02_02 → 02_03 → 02_01）
         private int aspectRatioState = 0;
         private readonly string[] aspectRatioIcons = new string[]
@@ -328,7 +334,9 @@ namespace AICam.UI
             // Issue #74/#75: トップパネルボタンのイベント登録
             if (topButton1 != null)
             {
-                topButton1.RegisterCallback<ClickEvent>(evt => OnTopButton1Clicked());
+                // 短押し: ON/OFF切り替え、長押し: ライティングパネル表示
+                topButton1.RegisterCallback<PointerDownEvent>(OnTopButton1PointerDown);
+                topButton1.RegisterCallback<PointerUpEvent>(OnTopButton1PointerUp);
                 Debug.Log("✅ Top button 1 (Light Estimation) events registered");
             }
 
@@ -336,6 +344,13 @@ namespace AICam.UI
             {
                 topButton2.RegisterCallback<ClickEvent>(evt => OnTopButton2Clicked());
                 Debug.Log("✅ Top button 2 (Shadow) events registered");
+            }
+
+            // Issue #120: ライティングパネルコントローラーを検索
+            lightingPanelController = FindFirstObjectByType<LightingPanelController>();
+            if (lightingPanelController == null)
+            {
+                Debug.LogWarning("⚠️ LightingPanelController not found in scene");
             }
 
             // 削除ポップアップを作成（初期状態では非表示）
@@ -418,6 +433,19 @@ namespace AICam.UI
 
         void Update()
         {
+            // Issue #120: トップボタン1の長押し検出
+            if (isTopButton1Pressed)
+            {
+                topButton1PressTime += Time.deltaTime;
+
+                // 長押し閾値に達したらパネル表示
+                if (topButton1PressTime >= topButtonLongPressThreshold)
+                {
+                    isTopButton1Pressed = false; // 長押し処理済みフラグ
+                    OnTopButton1LongPress();
+                }
+            }
+
             if (isPressed)
             {
                 pressTime += Time.deltaTime;
@@ -1571,13 +1599,41 @@ namespace AICam.UI
         }
 
         /// <summary>
-        /// Issue #74: トップボタン1（Light Estimation）クリック時の処理
+        /// Issue #74/#120: トップボタン1 PointerDown
+        /// 短押し: ON/OFF切り替え、長押し: ライティングパネル表示
+        /// </summary>
+        void OnTopButton1PointerDown(PointerDownEvent evt)
+        {
+            isTopButton1Pressed = true;
+            topButton1PressTime = 0f;
+            TapticEngine.Impact(TapticEngine.ImpactStyle.Light);
+        }
+
+        /// <summary>
+        /// Issue #74/#120: トップボタン1 PointerUp
+        /// </summary>
+        void OnTopButton1PointerUp(PointerUpEvent evt)
+        {
+            if (!isTopButton1Pressed) return;
+
+            isTopButton1Pressed = false;
+
+            // 長押し閾値未満なら短押し処理（ON/OFFトグル）
+            if (topButton1PressTime < topButtonLongPressThreshold)
+            {
+                OnTopButton1ShortPress();
+            }
+            // 長押しはUpdateで処理済み
+        }
+
+        /// <summary>
+        /// Issue #74: トップボタン1（Light Estimation）短押し時の処理
         /// ON/OFFをトグル、OFFのとき半透明表示
         /// </summary>
-        void OnTopButton1Clicked()
+        void OnTopButton1ShortPress()
         {
             isLightEstimationEnabled = !isLightEstimationEnabled;
-            Debug.Log($"💡 Top button 1 (Light Estimation) clicked: {(isLightEstimationEnabled ? "ON" : "OFF")}");
+            Debug.Log($"💡 Top button 1 (Light Estimation) short press: {(isLightEstimationEnabled ? "ON" : "OFF")}");
             TapticEngine.Selection();
 
             // ボタンの透明度を更新
@@ -1585,6 +1641,25 @@ namespace AICam.UI
 
             // Light Estimation設定を適用
             ApplyLightEstimationSetting();
+        }
+
+        /// <summary>
+        /// Issue #120: トップボタン1 長押し時の処理
+        /// ライティングパネルを表示
+        /// </summary>
+        void OnTopButton1LongPress()
+        {
+            Debug.Log("💡 Top button 1 (Light Estimation) long press: Opening Lighting Panel");
+            TapticEngine.Impact(TapticEngine.ImpactStyle.Medium);
+
+            if (lightingPanelController != null)
+            {
+                lightingPanelController.Show();
+            }
+            else
+            {
+                Debug.LogWarning("⚠️ LightingPanelController not found");
+            }
         }
 
         /// <summary>

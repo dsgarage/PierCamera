@@ -1,0 +1,353 @@
+/* ================================
+   Issue #120: ライティングパネルスタイル
+================================ */
+
+/* オーバーレイ背景 */
+.lighting-panel-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+.lighting-panel-overlay.visible {
+    display: flex;
+}
+
+/* メインパネル */
+.lighting-panel {
+    width: 320px;
+    max-height: 90%;
+    background-color: rgba(30, 30, 30, 0.95);
+    border-radius: 16px;
+    padding: 16px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ヘッダー */
+.lighting-panel-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.lighting-panel-title {
+    font-size: 18px;
+    color: white;
+    -unity-font-style: bold;
+}
+
+.lighting-panel-close {
+    width: 28px;
+    height: 28px;
+    border-radius: 14px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-width: 0;
+    color: white;
+    font-size: 16px;
+    -unity-text-align: middle-center;
+}
+
+.lighting-panel-close:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* セクション */
+.lighting-section {
+    margin-bottom: 16px;
+}
+
+.section-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 8px;
+    -unity-font-style: bold;
+    letter-spacing: 0.5px;
+}
+
+.section-label-small {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 4px;
+}
+
+/* プリセットボタン */
+.preset-container {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin: -2px;
+}
+
+.preset-button {
+    flex-grow: 0;
+    width: 88px;
+    height: 32px;
+    margin: 2px;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 11px;
+    -unity-text-align: middle-center;
+}
+
+.preset-button:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+.preset-button.preset-selected {
+    background-color: rgba(76, 175, 255, 0.3);
+    border-color: rgba(76, 175, 255, 0.8);
+    color: white;
+}
+
+/* スライダー共通 */
+.slider-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.slider-value {
+    font-size: 12px;
+    color: rgba(76, 175, 255, 1);
+    -unity-font-style: bold;
+}
+
+.lighting-slider {
+    margin-top: 4px;
+    margin-bottom: 8px;
+}
+
+.lighting-slider > .unity-base-slider__dragger {
+    width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    background-color: white;
+    border-width: 2px;
+    border-color: rgba(76, 175, 255, 1);
+    margin-top: -7px;
+}
+
+.lighting-slider > .unity-base-slider__tracker {
+    height: 4px;
+    border-radius: 2px;
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.lighting-slider > .unity-base-slider__drag-container > .unity-base-slider__dragger-border {
+    display: none;
+}
+
+/* 色温度グラデーション */
+.color-temp-gradient {
+    height: 8px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    background: linear-gradient(to right, #ff9500, #ffcc00, #ffffff, #aaccff, #6699ff);
+}
+
+/* ライト方向コントロール */
+.light-direction-control {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.light-direction-background {
+    width: 140px;
+    height: 140px;
+    border-radius: 70px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.2);
+    position: relative;
+}
+
+.direction-label {
+    position: absolute;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    -unity-text-align: middle-center;
+}
+
+.direction-n {
+    top: 8px;
+    left: 50%;
+    translate: -50% 0;
+}
+
+.direction-s {
+    bottom: 8px;
+    left: 50%;
+    translate: -50% 0;
+}
+
+.direction-e {
+    right: 8px;
+    top: 50%;
+    translate: 0 -50%;
+}
+
+.direction-w {
+    left: 8px;
+    top: 50%;
+    translate: 0 -50%;
+}
+
+.light-direction-knob {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
+    background-color: rgba(255, 200, 50, 1);
+    border-width: 2px;
+    border-color: white;
+    left: 50%;
+    top: 25%;
+    translate: -50% -50%;
+    /* 影効果 */
+    -unity-background-image-tint-color: rgba(255, 200, 50, 1);
+}
+
+.light-direction-knob:hover {
+    scale: 1.1;
+}
+
+/* Elevation コントロール */
+.elevation-control {
+    flex-direction: column;
+    align-items: center;
+    width: 60px;
+}
+
+.elevation-label {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 4px;
+}
+
+.elevation-slider {
+    height: 100px;
+    width: 30px;
+}
+
+.elevation-slider > .unity-base-slider__dragger {
+    width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    background-color: white;
+    border-width: 2px;
+    border-color: rgba(76, 175, 255, 1);
+    margin-left: -5px;
+}
+
+.elevation-slider > .unity-base-slider__tracker {
+    width: 4px;
+    border-radius: 2px;
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.elevation-value {
+    font-size: 11px;
+    color: rgba(76, 175, 255, 1);
+    margin-top: 4px;
+}
+
+/* シャドウトグル */
+.toggle-row {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.toggle-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.shadow-toggle > .unity-toggle__input > .unity-toggle__checkmark {
+    width: 44px;
+    height: 24px;
+    border-radius: 12px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-width: 0;
+}
+
+.shadow-toggle:checked > .unity-toggle__input > .unity-toggle__checkmark {
+    background-color: rgba(76, 175, 255, 1);
+}
+
+/* ソフトネスボタン */
+.softness-container {
+    margin-top: 8px;
+}
+
+.softness-buttons {
+    flex-direction: row;
+    margin-top: 4px;
+}
+
+.softness-button {
+    flex-grow: 1;
+    height: 28px;
+    margin-right: 4px;
+    border-radius: 6px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 11px;
+}
+
+.softness-button:last-child {
+    margin-right: 0;
+}
+
+.softness-button:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+.softness-button.softness-selected {
+    background-color: rgba(76, 175, 255, 0.3);
+    border-color: rgba(76, 175, 255, 0.8);
+    color: white;
+}
+
+/* AR同期セクション */
+.ar-sync-section {
+    padding-top: 12px;
+    border-top-width: 1px;
+    border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+.ar-sync-toggle > .unity-toggle__input > .unity-toggle__checkmark {
+    width: 44px;
+    height: 24px;
+    border-radius: 12px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-width: 0;
+}
+
+.ar-sync-toggle:checked > .unity-toggle__input > .unity-toggle__checkmark {
+    background-color: rgba(76, 175, 255, 1);
+}
+
+.ar-sync-description {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.4);
+    margin-top: 4px;
+}

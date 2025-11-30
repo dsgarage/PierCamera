@@ -1,0 +1,104 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/CameraCapture/LightingPanel.uss" />
+
+    <!-- ライティングパネル（オーバーレイ） -->
+    <ui:VisualElement name="lightingPanelOverlay" class="lighting-panel-overlay">
+        <ui:VisualElement name="lightingPanel" class="lighting-panel">
+
+            <!-- ヘッダー -->
+            <ui:VisualElement class="lighting-panel-header">
+                <ui:Label text="Lighting" class="lighting-panel-title" />
+                <ui:Button name="lightingPanelClose" text="×" class="lighting-panel-close" />
+            </ui:VisualElement>
+
+            <!-- プリセット選択 -->
+            <ui:VisualElement class="lighting-section">
+                <ui:Label text="Preset" class="section-label" />
+                <ui:VisualElement name="presetContainer" class="preset-container">
+                    <ui:Button name="presetAuto" text="Auto" class="preset-button preset-selected" />
+                    <ui:Button name="presetSunny" text="Sunny" class="preset-button" />
+                    <ui:Button name="presetCloudy" text="Cloudy" class="preset-button" />
+                    <ui:Button name="presetIndoor" text="Indoor" class="preset-button" />
+                    <ui:Button name="presetWarm" text="Warm" class="preset-button" />
+                    <ui:Button name="presetSunset" text="Sunset" class="preset-button" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <!-- 色温度スライダー -->
+            <ui:VisualElement class="lighting-section">
+                <ui:VisualElement class="slider-header">
+                    <ui:Label text="Color Temperature" class="section-label" />
+                    <ui:Label name="colorTempValue" text="5500K" class="slider-value" />
+                </ui:VisualElement>
+                <ui:VisualElement class="color-temp-gradient" />
+                <ui:Slider name="colorTempSlider" low-value="2000" high-value="10000" value="5500" class="lighting-slider" />
+            </ui:VisualElement>
+
+            <!-- 明るさスライダー -->
+            <ui:VisualElement class="lighting-section">
+                <ui:VisualElement class="slider-header">
+                    <ui:Label text="Brightness" class="section-label" />
+                    <ui:Label name="brightnessValue" text="1.0" class="slider-value" />
+                </ui:VisualElement>
+                <ui:Slider name="brightnessSlider" low-value="0.1" high-value="2.0" value="1.0" class="lighting-slider" />
+            </ui:VisualElement>
+
+            <!-- ライト方向コントロール -->
+            <ui:VisualElement class="lighting-section">
+                <ui:Label text="Light Direction" class="section-label" />
+                <ui:VisualElement name="lightDirectionControl" class="light-direction-control">
+                    <ui:VisualElement name="lightDirectionBackground" class="light-direction-background">
+                        <ui:Label text="N" class="direction-label direction-n" />
+                        <ui:Label text="S" class="direction-label direction-s" />
+                        <ui:Label text="E" class="direction-label direction-e" />
+                        <ui:Label text="W" class="direction-label direction-w" />
+                        <ui:VisualElement name="lightDirectionKnob" class="light-direction-knob" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="elevation-control">
+                        <ui:Label text="Elevation" class="elevation-label" />
+                        <ui:Slider name="elevationSlider" low-value="10" high-value="90" value="50" direction="Vertical" class="elevation-slider" />
+                        <ui:Label name="elevationValue" text="50°" class="elevation-value" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <!-- シャドウセクション -->
+            <ui:VisualElement class="lighting-section">
+                <ui:Label text="Shadow" class="section-label" />
+
+                <!-- シャドウ有効/無効 -->
+                <ui:VisualElement class="toggle-row">
+                    <ui:Label text="Enable Shadow" class="toggle-label" />
+                    <ui:Toggle name="shadowToggle" value="true" class="shadow-toggle" />
+                </ui:VisualElement>
+
+                <!-- 影の濃さ -->
+                <ui:VisualElement class="slider-header">
+                    <ui:Label text="Intensity" class="section-label-small" />
+                    <ui:Label name="shadowIntensityValue" text="0.6" class="slider-value" />
+                </ui:VisualElement>
+                <ui:Slider name="shadowIntensitySlider" low-value="0" high-value="1" value="0.6" class="lighting-slider" />
+
+                <!-- ソフトネス -->
+                <ui:VisualElement class="softness-container">
+                    <ui:Label text="Softness" class="section-label-small" />
+                    <ui:VisualElement class="softness-buttons">
+                        <ui:Button name="softHard" text="Hard" class="softness-button" />
+                        <ui:Button name="softMedium" text="Medium" class="softness-button softness-selected" />
+                        <ui:Button name="softSoft" text="Soft" class="softness-button" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <!-- AR同期トグル -->
+            <ui:VisualElement class="lighting-section ar-sync-section">
+                <ui:VisualElement class="toggle-row">
+                    <ui:Label text="AR Light Sync" class="toggle-label" />
+                    <ui:Toggle name="arSyncToggle" value="true" class="ar-sync-toggle" />
+                </ui:VisualElement>
+                <ui:Label text="Automatically match scene lighting" class="ar-sync-description" />
+            </ui:VisualElement>
+
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
