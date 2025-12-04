@@ -216,37 +216,37 @@
 
 /* Issue #74: EWSN方向ラベル
    親: 65x65px, border: 1px → 内部(contentRect): 63x63px
-   ラベル: 10x10px
-   水平中央: (63-10)/2 = 26.5 ≈ 26px
-   垂直中央: (63-10)/2 = 26.5 ≈ 26px
+   ラベル: 8x8px (フォントサイズ7pxに合わせる)
+   水平中央: (63-8)/2 = 27.5 ≈ 27px
+   垂直中央: (63-8)/2 = 27.5 ≈ 27px
 */
 .direction-label {
     position: absolute;
     font-size: 7px;
     color: rgba(255, 255, 255, 0.5);
     -unity-text-align: middle-center;
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
 }
 
 .direction-n {
     top: 1px;
-    left: 26px;
+    left: 27px;
 }
 
 .direction-s {
     bottom: 1px;
-    left: 26px;
+    left: 27px;
 }
 
 .direction-e {
     right: 1px;
-    top: 26px;
+    top: 27px;
 }
 
 .direction-w {
     left: 1px;
-    top: 26px;
+    top: 27px;
 }
 
 /* Issue #74: ノブの初期位置
