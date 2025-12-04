@@ -512,30 +512,41 @@ namespace AICam.UI
         {
             if (lightDirectionBackground == null || lightDirectionKnob == null) return;
 
-            // Issue #74: resolvedStyleを使用して実際のレイアウトサイズを取得
-            float width = lightDirectionBackground.resolvedStyle.width;
-            float height = lightDirectionBackground.resolvedStyle.height;
+            // Issue #74: contentRectを使用（パディング/ボーダー内部の領域）
+            // localPositionはボーダーを含む要素の左上からの座標なので、
+            // ボーダー幅を引いてcontentRect内の座標に変換する
+            var contentRect = lightDirectionBackground.contentRect;
+            float contentWidth = contentRect.width;
+            float contentHeight = contentRect.height;
 
-            // レイアウトが完了していない場合はcontentRectにフォールバック
-            if (float.IsNaN(width) || width <= 0)
+            // レイアウトが完了していない場合はスキップ
+            if (contentWidth <= 0 || contentHeight <= 0)
             {
-                var bounds = lightDirectionBackground.contentRect;
-                width = bounds.width;
-                height = bounds.height;
+                Debug.LogWarning("[LightingPanel] contentRect not ready yet");
+                return;
             }
 
-            float centerX = width / 2f;
-            float centerY = height / 2f;
+            // ボーダー幅を取得（USS: border-width: 1px）
+            float borderLeft = lightDirectionBackground.resolvedStyle.borderLeftWidth;
+            float borderTop = lightDirectionBackground.resolvedStyle.borderTopWidth;
+
+            // localPositionからボーダー分を引いてcontentRect内座標に変換
+            float contentX = localPosition.x - borderLeft;
+            float contentY = localPosition.y - borderTop;
+
+            // contentRectの中心
+            float centerX = contentWidth / 2f;
+            float centerY = contentHeight / 2f;
 
             // ノブサイズ（USS: width: 14px, height: 14px）
             float knobRadius = 7f;
 
-            // 方向ラベル用のマージン（10px）を考慮した有効半径
-            float effectiveRadius = Mathf.Min(centerX, centerY) - 15f;
+            // 方向ラベル用のマージン（12px）を考慮した有効半径
+            float effectiveRadius = Mathf.Min(centerX, centerY) - 12f;
 
-            // 中心からのオフセット
-            float dx = localPosition.x - centerX;
-            float dy = localPosition.y - centerY;
+            // 中心からのオフセット（contentRect内座標）
+            float dx = contentX - centerX;
+            float dy = contentY - centerY;
 
             // 半径内に制限
             float distance = Mathf.Sqrt(dx * dx + dy * dy);
@@ -545,13 +556,15 @@ namespace AICam.UI
                 dy = dy / distance * effectiveRadius;
             }
 
-            // ノブ位置を更新（ノブの中心が指定位置に来るようにする）
+            // ノブ位置を更新（style.left/topはcontentRect基準）
             lightDirectionKnob.style.left = centerX + dx - knobRadius;
             lightDirectionKnob.style.top = centerY + dy - knobRadius;
             lightDirectionKnob.style.translate = StyleKeyword.None;
 
             // 角度を計算（北=0°、時計回りで増加）
             lightAzimuth = Mathf.Atan2(dx, -dy) * Mathf.Rad2Deg;
+
+            Debug.Log($"[LightingPanel] Knob: content({contentX:F1},{contentY:F1}), center({centerX:F1},{centerY:F1}), dx={dx:F1}, dy={dy:F1}");
 
             ApplyLightDirection();
             ClearPresetSelection();

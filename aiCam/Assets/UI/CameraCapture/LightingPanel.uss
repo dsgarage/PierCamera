@@ -260,7 +260,14 @@
     height: 10px;
 }
 
-/* Issue #74: ノブの初期位置 - translateを使わず直接配置 */
+/* Issue #74: ノブの初期位置
+   contentRect基準で計算:
+   - background: 65x65px, border: 1px → contentRect: 63x63px
+   - contentRect中心: 31.5px
+   - ノブ半径: 7px
+   - 有効半径: min(31.5, 31.5) - 12 = 19.5px
+   - 北方向（上）初期位置: left=31.5-7=24.5px, top=31.5-19.5-7=5px
+*/
 .light-direction-knob {
     position: absolute;
     width: 14px;
@@ -269,9 +276,7 @@
     background-color: rgba(255, 200, 50, 1);
     border-width: 2px;
     border-color: white;
-    /* 65pxの円の中心(32.5px)から、ノブ半径(7px)を引いた位置 */
-    /* 初期位置は北（上方向）: left=中心-7=25.5px, top=上端+余白=5px */
-    left: 25px;
+    left: 24px;
     top: 5px;
 }
 
