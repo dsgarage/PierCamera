@@ -214,7 +214,12 @@
     position: relative;
 }
 
-/* Issue #74: EWSN方向ラベル - translateを使わずマージンで配置 */
+/* Issue #74: EWSN方向ラベル
+   background: 65x65px の中央配置
+   各ラベル: 10x10px
+   N/S: 水平中央 = (65-10)/2 = 27.5px
+   E/W: 垂直中央 = (65-10)/2 = 27.5px
+*/
 .direction-label {
     position: absolute;
     font-size: 7px;
@@ -226,38 +231,22 @@
 
 .direction-n {
     top: 2px;
-    left: 0;
-    right: 0;
-    margin-left: auto;
-    margin-right: auto;
-    width: 10px;
+    left: 27px;
 }
 
 .direction-s {
     bottom: 2px;
-    left: 0;
-    right: 0;
-    margin-left: auto;
-    margin-right: auto;
-    width: 10px;
+    left: 27px;
 }
 
 .direction-e {
     right: 2px;
-    top: 0;
-    bottom: 0;
-    margin-top: auto;
-    margin-bottom: auto;
-    height: 10px;
+    top: 27px;
 }
 
 .direction-w {
     left: 2px;
-    top: 0;
-    bottom: 0;
-    margin-top: auto;
-    margin-bottom: auto;
-    height: 10px;
+    top: 27px;
 }
 
 /* Issue #74: ノブの初期位置
