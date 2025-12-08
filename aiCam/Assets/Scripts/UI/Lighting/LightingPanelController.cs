@@ -34,7 +34,6 @@ namespace AICam.UI
 
         // lilToon対応状態
         private bool lilToonSupported = false;
-        private bool warningShown = false;
 
         // Issue #75: AR平面シャドウレシーバー
         private ARPlaneShadowReceiver arPlaneShadowReceiver;
@@ -706,7 +705,6 @@ namespace AICam.UI
         {
             // シーン内のすべてのRendererを検索
             var renderers = FindObjectsByType<Renderer>(FindObjectsSortMode.None);
-            bool anyMaterialUpdated = false;
 
             foreach (var renderer in renderers)
             {
@@ -720,7 +718,6 @@ namespace AICam.UI
                     if (mat.HasProperty("_LightMaxLimit"))
                     {
                         mat.SetFloat("_LightMaxLimit", brightness * 1.5f);
-                        anyMaterialUpdated = true;
                     }
 
                     if (mat.HasProperty("_LightMinLimit"))
@@ -742,13 +739,9 @@ namespace AICam.UI
                 }
             }
 
-            // マテリアルが更新されなかった場合、警告を表示
-            if (!anyMaterialUpdated && !warningShown)
-            {
-                warningShown = true;
-                OnWarning?.Invoke("W120", "対応シェーダーが見つかりません。ライティング効果が制限されます。");
-                Debug.LogWarning("[LightingPanel] No compatible shader properties found on materials");
-            }
+            // Issue #397: グローバルシェーダープロパティとUnityライトで十分に機能するため、
+            // マテリアル固有プロパティの有無に関わらず警告は不要
+            // lilToonSupported または mainLight が存在すればライティングは機能する
         }
 
         void ApplyLightDirection()
@@ -895,7 +888,6 @@ namespace AICam.UI
         public void ShowLighting()
         {
             HideAll();
-            warningShown = false; // 警告フラグをリセット
             if (settingsPanelBackdrop != null)
             {
                 settingsPanelBackdrop.AddToClassList("visible");
@@ -906,7 +898,7 @@ namespace AICam.UI
                 TapticEngine.Impact(TapticEngine.ImpactStyle.Light);
                 Debug.Log("[LightingPanel] ShowLighting");
 
-                // 現在の設定を適用（シェーダー検出のため）
+                // 現在の設定を適用
                 ApplyLighting();
             }
         }
@@ -917,7 +909,6 @@ namespace AICam.UI
         public void ShowShadow()
         {
             HideAll();
-            warningShown = false; // 警告フラグをリセット
             if (settingsPanelBackdrop != null)
             {
                 settingsPanelBackdrop.AddToClassList("visible");
@@ -928,7 +919,7 @@ namespace AICam.UI
                 TapticEngine.Impact(TapticEngine.ImpactStyle.Light);
                 Debug.Log("[LightingPanel] ShowShadow");
 
-                // 現在の設定を適用（シェーダー検出のため）
+                // 現在の設定を適用
                 ApplyShadow();
             }
         }
