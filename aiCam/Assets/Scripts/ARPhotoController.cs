@@ -143,8 +143,8 @@ public sealed class ARPhotoController : MonoBehaviour
                 yield break;
             }
 
-            // サムネイル用のコピーを作成（64x64にリサイズ）
-            Texture2D thumbnail = CreateThumbnail(tex, 64, 64);
+            // サムネイル用のコピーを作成（256x256にリサイズ、アスペクト比を維持）
+            Texture2D thumbnail = CreateThumbnailWithAspectRatio(tex, 256);
             OnPhotoCaptured?.Invoke(thumbnail);
 
             // JPEGでエンコード（品質90）
@@ -460,7 +460,43 @@ public sealed class ARPhotoController : MonoBehaviour
     }
 #endif
 
-    // サムネイル作成用のヘルパーメソッド
+    // サムネイル作成用のヘルパーメソッド（アスペクト比維持版）
+    private static Texture2D CreateThumbnailWithAspectRatio(Texture2D source, int maxSize)
+    {
+        // 元画像のアスペクト比を計算
+        float sourceAspect = (float)source.width / source.height;
+
+        // maxSize内に収まるサイズを計算（アスペクト比を維持）
+        int targetWidth, targetHeight;
+        if (source.width > source.height)
+        {
+            targetWidth = maxSize;
+            targetHeight = Mathf.RoundToInt(maxSize / sourceAspect);
+        }
+        else
+        {
+            targetHeight = maxSize;
+            targetWidth = Mathf.RoundToInt(maxSize * sourceAspect);
+        }
+
+        RenderTexture rt = RenderTexture.GetTemporary(targetWidth, targetHeight, 0, RenderTextureFormat.ARGB32);
+        rt.filterMode = FilterMode.Bilinear;
+
+        RenderTexture.active = rt;
+        Graphics.Blit(source, rt);
+
+        Texture2D thumbnail = new Texture2D(targetWidth, targetHeight, TextureFormat.RGBA32, false);
+        thumbnail.ReadPixels(new Rect(0, 0, targetWidth, targetHeight), 0, 0);
+        thumbnail.Apply();
+
+        RenderTexture.active = null;
+        RenderTexture.ReleaseTemporary(rt);
+
+        Debug.Log($"🖼️ Created thumbnail: {source.width}x{source.height} → {targetWidth}x{targetHeight} (aspect: {sourceAspect:F3})");
+        return thumbnail;
+    }
+
+    // サムネイル作成用のヘルパーメソッド（従来版・互換性のため残す）
     private static Texture2D CreateThumbnail(Texture2D source, int width, int height)
     {
         RenderTexture rt = RenderTexture.GetTemporary(width, height);

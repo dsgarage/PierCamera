@@ -14,6 +14,7 @@ namespace AICam.UI
     /// タップで写真撮影、長押しで動画撮影を行う
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
+    [RequireComponent(typeof(UIToolkitInputBlocker))]
     public class CameraCaptureController : MonoBehaviour
     {
         [Header("Capture Settings")]
@@ -64,18 +65,27 @@ namespace AICam.UI
         // Issue #74/#75: トップパネルボタン要素
         private Button topButton1; // Light Estimation ON/OFF
         private Button topButton2; // Shadow ON/OFF
+        private Button topButton5; // Issue #345: Plane Visibility ON/OFF
+
+        // Issue #345: 平面表示状態
+        private bool isPlaneVisible = true;
+        private ARPlaneVisibilityController cachedPlaneVisibilityController;
 
         // Issue #74: Light Estimation状態
         private bool isLightEstimationEnabled = true;
+        private ARLightEstimationController cachedLightEstimationController;
 
         // Issue #75: Shadow状態
         private bool isShadowEnabled = true;
+        private Light cachedMainLight;
+        private ARPlaneShadowReceiver cachedPlaneShadowReceiver;
 
-        // Issue #120: ライティングパネル
+        // Issue #120: ライティング/シャドウパネル
         private LightingPanelController lightingPanelController;
-        private float topButton1PressTime = 0f;
-        private bool isTopButton1Pressed = false;
-        private const float topButtonLongPressThreshold = 0.5f;
+        private VisualElement settingsPanelBackdrop;
+        private VisualElement lightingPanelOverlay;
+        private VisualElement shadowPanelOverlay;
+        // Issue #74/#75 修正: 長押し関連変数は不要になったため削除
 
         // アスペクト比トグル用のステート（02_01 → 02_02 → 02_03 → 02_01）
         private int aspectRatioState = 0;
@@ -151,6 +161,37 @@ namespace AICam.UI
             public bool IsConfigured => !string.IsNullOrEmpty(filePath);
         }
 
+        #region Lazy Initialization
+
+        /// <summary>
+        /// LightingPanelControllerを遅延取得・初期化
+        /// パネルを開くときに呼び出す
+        /// </summary>
+        private LightingPanelController GetLightingPanelController()
+        {
+            if (lightingPanelController == null)
+            {
+                lightingPanelController = FindFirstObjectByType<LightingPanelController>();
+                if (lightingPanelController == null)
+                {
+                    Debug.Log("💡 LightingPanelController not found - creating automatically (lazy)");
+                    var lightingObj = new GameObject("LightingPanelController");
+                    lightingPanelController = lightingObj.AddComponent<LightingPanelController>();
+                }
+
+                if (lightingPanelController != null)
+                {
+                    lightingPanelController.Initialize();
+                    lightingPanelController.OnWarning += (code, message) => ShowWarning(code, message);
+                    lightingPanelController.OnError += (code, message) => ShowError(code, message);
+                    Debug.Log("💡 LightingPanelController initialized lazily");
+                }
+            }
+            return lightingPanelController;
+        }
+
+        #endregion
+
         void OnEnable()
         {
             Debug.Log("🔧 CameraCaptureController OnEnable called");
@@ -183,6 +224,11 @@ namespace AICam.UI
             progressArc = root.Q<VisualElement>("progressArc");
             flashOverlay = root.Q<VisualElement>("flashOverlay");
             galleryThumbnail = root.Q<VisualElement>("galleryThumbnail");
+            if (galleryThumbnail != null)
+            {
+                // サムネイルのアスペクト比を維持するためにScaleModeを設定
+                galleryThumbnail.style.unityBackgroundScaleMode = UnityEngine.UIElements.ScaleMode.ScaleToFit;
+            }
 
             viewerOverlay = root.Q<VisualElement>("viewerOverlay");
             viewerImage = root.Q<Image>("viewerImage");
@@ -212,6 +258,7 @@ namespace AICam.UI
             // Issue #74/#75: トップパネルボタンの取得
             topButton1 = root.Q<Button>("topButton1");
             topButton2 = root.Q<Button>("topButton2");
+            topButton5 = root.Q<Button>("topButton5"); // Issue #345: Plane Visibility
 
             // アスペクト比マスク要素の取得
             topMask = root.Q<VisualElement>("topMask");
@@ -332,26 +379,75 @@ namespace AICam.UI
             }
 
             // Issue #74/#75: トップパネルボタンのイベント登録
+            Debug.Log($"🔘 topButton1: {(topButton1 != null ? "✅ found" : "❌ NOT FOUND")}");
+            Debug.Log($"🔘 topButton2: {(topButton2 != null ? "✅ found" : "❌ NOT FOUND")}");
+
             if (topButton1 != null)
             {
-                // 短押し: ON/OFF切り替え、長押し: ライティングパネル表示
-                topButton1.RegisterCallback<PointerDownEvent>(OnTopButton1PointerDown);
-                topButton1.RegisterCallback<PointerUpEvent>(OnTopButton1PointerUp);
-                Debug.Log("✅ Top button 1 (Light Estimation) events registered");
+                // Issue #74 修正: 短押しでライティングパネル表示（パネル内にON/OFFトグルあり）
+                topButton1.RegisterCallback<ClickEvent>(evt => OnTopButton1Click());
+                Debug.Log("✅ Top button 1 (Light Estimation) click event registered");
             }
 
             if (topButton2 != null)
             {
-                topButton2.RegisterCallback<ClickEvent>(evt => OnTopButton2Clicked());
-                Debug.Log("✅ Top button 2 (Shadow) events registered");
+                // Issue #75 修正: 短押しでシャドウパネル表示（パネル内にON/OFFトグルあり）
+                topButton2.RegisterCallback<ClickEvent>(evt => OnTopButton2Click());
+                Debug.Log("✅ Top button 2 (Shadow) click event registered");
             }
 
-            // Issue #120: ライティングパネルコントローラーを検索
-            lightingPanelController = FindFirstObjectByType<LightingPanelController>();
-            if (lightingPanelController == null)
+            // Issue #345: 平面表示切り替えボタンのイベント登録
+            Debug.Log($"🔘 topButton5: {(topButton5 != null ? "✅ found" : "❌ NOT FOUND")}");
+            if (topButton5 != null)
             {
-                Debug.LogWarning("⚠️ LightingPanelController not found in scene");
+                topButton5.RegisterCallback<ClickEvent>(evt => OnTopButton5Click());
+                Debug.Log("✅ Top button 5 (Plane Visibility) click event registered");
+
+                // 初期アイコンを設定
+                UpdatePlaneVisibilityIcon();
             }
+
+            // Issue #120: パネル要素を直接取得
+            settingsPanelBackdrop = root.Q<VisualElement>("settingsPanelBackdrop");
+            lightingPanelOverlay = root.Q<VisualElement>("lightingPanelOverlay");
+            shadowPanelOverlay = root.Q<VisualElement>("shadowPanelOverlay");
+
+            if (settingsPanelBackdrop != null)
+            {
+                // バックドロップ自体がクリックされた場合のみパネルを閉じる（子要素のクリックは無視）
+                settingsPanelBackdrop.RegisterCallback<PointerDownEvent>(evt =>
+                {
+                    // クリックがバックドロップ自体の場合のみ閉じる
+                    if (evt.target == settingsPanelBackdrop)
+                    {
+                        Debug.Log("🔲 Backdrop clicked directly - closing panels");
+                        HideAllPanels();
+                        evt.StopPropagation();
+                    }
+                });
+                Debug.Log("✅ Settings panel backdrop events registered");
+            }
+
+            var lightingCloseButton = root.Q<Button>("lightingPanelClose");
+            if (lightingCloseButton != null)
+            {
+                lightingCloseButton.RegisterCallback<ClickEvent>(evt => HideAllPanels());
+                Debug.Log("✅ Lighting panel close button events registered");
+            }
+
+            var shadowCloseButton = root.Q<Button>("shadowPanelClose");
+            if (shadowCloseButton != null)
+            {
+                shadowCloseButton.RegisterCallback<ClickEvent>(evt => HideAllPanels());
+                Debug.Log("✅ Shadow panel close button events registered");
+            }
+
+            // LightingPanelControllerは初回使用時に遅延初期化
+            // 起動時間短縮のためFindFirstObjectByTypeをここでは呼ばない
+            // InitializeLightingPanelControllerAsync().Forget() は必要時に呼び出される
+            Debug.Log($"💡 SettingsPanelBackdrop: {(settingsPanelBackdrop != null ? "✅" : "❌")}");
+            Debug.Log($"💡 LightingPanelOverlay: {(lightingPanelOverlay != null ? "✅" : "❌")}");
+            Debug.Log($"🌑 ShadowPanelOverlay: {(shadowPanelOverlay != null ? "✅" : "❌")}");
 
             // 削除ポップアップを作成（初期状態では非表示）
             Debug.Log("🔧 Creating delete popup...");
@@ -433,18 +529,8 @@ namespace AICam.UI
 
         void Update()
         {
-            // Issue #120: トップボタン1の長押し検出
-            if (isTopButton1Pressed)
-            {
-                topButton1PressTime += Time.deltaTime;
-
-                // 長押し閾値に達したらパネル表示
-                if (topButton1PressTime >= topButtonLongPressThreshold)
-                {
-                    isTopButton1Pressed = false; // 長押し処理済みフラグ
-                    OnTopButton1LongPress();
-                }
-            }
+            // Issue #74/#75 修正: 長押し検出は不要になったため削除
+            // 短押しでパネル表示、パネル内にON/OFFトグルあり
 
             if (isPressed)
             {
@@ -995,45 +1081,92 @@ namespace AICam.UI
 
         /// <summary>
         /// Check if screen position is over UI Toolkit panel (top, side, or bottom)
-        /// Issue #71: Unity Screen座標とUIToolkit座標のY軸変換を追加
+        /// Issue #71: Unity Screen座標とUIToolkit座標の変換
         /// - Unity Screen: Y=0が画面下部、上に向かって増加
         /// - UIToolkit worldBound: Y=0が画面上部、下に向かって増加
+        /// - PanelSettingsのScaleWithScreenSizeを考慮
         /// </summary>
         public bool IsPointOverUIPanel(Vector2 screenPosition)
         {
-            // Issue #71 A案: Y座標を反転してUIToolkit座標系に変換
-            Vector2 uiToolkitPosition = new Vector2(
-                screenPosition.x,
-                Screen.height - screenPosition.y
+            if (root == null) return false;
+
+            // RuntimePanelUtilsを使用してスクリーン座標をパネル座標に変換
+            // これによりPanelSettingsのスケーリングが自動的に考慮される
+            var uiDoc = GetComponent<UIDocument>();
+            if (uiDoc == null || uiDoc.rootVisualElement == null) return false;
+
+            // スクリーン座標をパネル座標に変換
+            // UIToolkit: Y軸が上から下（画面上部が0）
+            // Unity Screen: Y軸が下から上（画面下部が0）
+            Vector2 panelPosition = RuntimePanelUtils.ScreenToPanel(
+                uiDoc.rootVisualElement.panel,
+                new Vector2(screenPosition.x, Screen.height - screenPosition.y)
             );
 
-            if (topPanel != null && topPanel.worldBound.Contains(uiToolkitPosition))
+            // 汎用的なUIToolkit要素ヒット判定
+            if (IsPointOverElement(topPanel, panelPosition, "topPanel")) return true;
+            if (IsPointOverElement(sidePanel, panelPosition, "sidePanel")) return true;
+            if (IsPointOverElement(bottomPanel, panelPosition, "bottomPanel")) return true;
+            if (IsPointOverElement(captureButton, panelPosition, "captureButton")) return true;
+            if (IsPointOverElement(galleryThumbnail, panelPosition, "galleryThumbnail")) return true;
+
+            // Issue #120: ライティング/シャドウパネルのチェックを追加
+            // バックドロップが表示中の場合、全画面をブロック
+            if (settingsPanelBackdrop != null && settingsPanelBackdrop.ClassListContains("visible"))
             {
-                Debug.Log($"[#71] Touch over topPanel: Unity({screenPosition}) → UIToolkit({uiToolkitPosition})");
+                Debug.Log($"[#71] Touch over settingsPanelBackdrop (visible)");
                 return true;
             }
 
-            if (sidePanel != null && sidePanel.worldBound.Contains(uiToolkitPosition))
+            // ライティングパネルオーバーレイ
+            if (lightingPanelOverlay != null && lightingPanelOverlay.ClassListContains("visible"))
             {
-                Debug.Log($"[#71] Touch over sidePanel: Unity({screenPosition}) → UIToolkit({uiToolkitPosition})");
+                Debug.Log($"[#71] Touch over lightingPanelOverlay (visible)");
                 return true;
             }
 
-            if (bottomPanel != null && bottomPanel.worldBound.Contains(uiToolkitPosition))
+            // シャドウパネルオーバーレイ
+            if (shadowPanelOverlay != null && shadowPanelOverlay.ClassListContains("visible"))
             {
-                Debug.Log($"[#71] Touch over bottomPanel: Unity({screenPosition}) → UIToolkit({uiToolkitPosition})");
+                Debug.Log($"[#71] Touch over shadowPanelOverlay (visible)");
                 return true;
             }
 
-            if (captureButton != null && captureButton.worldBound.Contains(uiToolkitPosition))
+            // アラートバーのチェック
+            if (alertBar != null && alertBar.ClassListContains("visible") && alertBar.worldBound.Contains(panelPosition))
             {
-                Debug.Log($"[#71] Touch over captureButton: Unity({screenPosition}) → UIToolkit({uiToolkitPosition})");
+                Debug.Log($"[#71] Touch over alertBar");
                 return true;
             }
 
-            if (galleryThumbnail != null && galleryThumbnail.worldBound.Contains(uiToolkitPosition))
+            // アイコンプレビューパネルのチェック
+            if (iconPreviewPanel != null && iconPreviewPanel.ClassListContains("visible"))
             {
-                Debug.Log($"[#71] Touch over galleryThumbnail: Unity({screenPosition}) → UIToolkit({uiToolkitPosition})");
+                Debug.Log($"[#71] Touch over iconPreviewPanel (visible)");
+                return true;
+            }
+
+            // ビューアオーバーレイのチェック
+            if (viewerOverlay != null && viewerOverlay.resolvedStyle.display == DisplayStyle.Flex)
+            {
+                Debug.Log($"[#71] Touch over viewerOverlay (visible)");
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 指定された要素がタッチ位置に重なっているかチェック
+        /// </summary>
+        private bool IsPointOverElement(VisualElement element, Vector2 panelPosition, string debugName)
+        {
+            if (element == null) return false;
+
+            // 要素の境界をチェック（worldBoundはパネル座標系）
+            if (element.worldBound.Contains(panelPosition))
+            {
+                Debug.Log($"[#71] Touch over {debugName}: bounds={element.worldBound}, pos={panelPosition}");
                 return true;
             }
 
@@ -1599,84 +1732,150 @@ namespace AICam.UI
         }
 
         /// <summary>
-        /// Issue #74/#120: トップボタン1 PointerDown
-        /// 短押し: ON/OFF切り替え、長押し: ライティングパネル表示
+        /// Issue #74 修正: トップボタン1 クリック時の処理
+        /// ライティングパネルを表示（パネル内にLight Estimation ON/OFFトグルあり）
         /// </summary>
-        void OnTopButton1PointerDown(PointerDownEvent evt)
+        void OnTopButton1Click()
         {
-            isTopButton1Pressed = true;
-            topButton1PressTime = 0f;
-            TapticEngine.Impact(TapticEngine.ImpactStyle.Light);
-        }
-
-        /// <summary>
-        /// Issue #74/#120: トップボタン1 PointerUp
-        /// </summary>
-        void OnTopButton1PointerUp(PointerUpEvent evt)
-        {
-            if (!isTopButton1Pressed) return;
-
-            isTopButton1Pressed = false;
-
-            // 長押し閾値未満なら短押し処理（ON/OFFトグル）
-            if (topButton1PressTime < topButtonLongPressThreshold)
-            {
-                OnTopButton1ShortPress();
-            }
-            // 長押しはUpdateで処理済み
-        }
-
-        /// <summary>
-        /// Issue #74: トップボタン1（Light Estimation）短押し時の処理
-        /// ON/OFFをトグル、OFFのとき半透明表示
-        /// </summary>
-        void OnTopButton1ShortPress()
-        {
-            isLightEstimationEnabled = !isLightEstimationEnabled;
-            Debug.Log($"💡 Top button 1 (Light Estimation) short press: {(isLightEstimationEnabled ? "ON" : "OFF")}");
+            Debug.Log("💡 Top button 1 clicked: Opening Lighting Panel");
             TapticEngine.Selection();
-
-            // ボタンの透明度を更新
-            UpdateTopButtonOpacity(topButton1, isLightEstimationEnabled);
-
-            // Light Estimation設定を適用
-            ApplyLightEstimationSetting();
+            ShowLightingPanel();
         }
 
         /// <summary>
-        /// Issue #120: トップボタン1 長押し時の処理
-        /// ライティングパネルを表示
+        /// Issue #75 修正: トップボタン2 クリック時の処理
+        /// シャドウパネルを表示（パネル内にShadow ON/OFFトグルあり）
         /// </summary>
-        void OnTopButton1LongPress()
+        void OnTopButton2Click()
         {
-            Debug.Log("💡 Top button 1 (Light Estimation) long press: Opening Lighting Panel");
-            TapticEngine.Impact(TapticEngine.ImpactStyle.Medium);
+            Debug.Log("🌑 Top button 2 clicked: Opening Shadow Panel");
+            TapticEngine.Selection();
+            ShowShadowPanel();
+        }
 
-            if (lightingPanelController != null)
+        /// <summary>
+        /// Issue #345: トップボタン5 クリック時の処理
+        /// 平面表示/非表示を切り替え
+        /// </summary>
+        void OnTopButton5Click()
+        {
+            Debug.Log($"🔲 Top button 5 clicked: Toggle Plane Visibility (current: {isPlaneVisible})");
+            TapticEngine.Selection();
+            TogglePlaneVisibility();
+        }
+
+        /// <summary>
+        /// Issue #345: 平面表示/非表示を切り替え
+        /// </summary>
+        void TogglePlaneVisibility()
+        {
+            isPlaneVisible = !isPlaneVisible;
+            Debug.Log($"🔲 Plane visibility toggled to: {isPlaneVisible}");
+
+            // ARPlaneVisibilityControllerを取得して表示を切り替え
+            if (cachedPlaneVisibilityController == null)
             {
-                lightingPanelController.Show();
+                cachedPlaneVisibilityController = FindFirstObjectByType<ARPlaneVisibilityController>();
+            }
+
+            if (cachedPlaneVisibilityController != null)
+            {
+                cachedPlaneVisibilityController.SetPlanesVisible(isPlaneVisible);
+                Debug.Log($"✅ Plane visibility set to: {isPlaneVisible}");
             }
             else
             {
-                Debug.LogWarning("⚠️ LightingPanelController not found");
+                Debug.LogWarning("⚠️ ARPlaneVisibilityController not found in scene");
+            }
+
+            // アイコンを更新
+            UpdatePlaneVisibilityIcon();
+        }
+
+        /// <summary>
+        /// Issue #345: 平面表示ボタンのアイコンを更新
+        /// </summary>
+        void UpdatePlaneVisibilityIcon()
+        {
+            if (topButton5 == null) return;
+
+            // 表示状態に応じてスタイルを切り替え
+            if (isPlaneVisible)
+            {
+                topButton5.RemoveFromClassList("plane-hidden");
+                topButton5.AddToClassList("plane-visible");
+            }
+            else
+            {
+                topButton5.RemoveFromClassList("plane-visible");
+                topButton5.AddToClassList("plane-hidden");
+            }
+
+            Debug.Log($"🔲 Plane button icon updated: {(isPlaneVisible ? "visible" : "hidden")}");
+        }
+
+        /// <summary>
+        /// Issue #120: ライティングパネルを表示
+        /// </summary>
+        void ShowLightingPanel()
+        {
+            Debug.Log($"📋 ShowLightingPanel called");
+            HideAllPanels(); // 他のパネルを閉じる
+
+            // パネル表示時にLightingPanelControllerを遅延初期化
+            GetLightingPanelController();
+
+            if (settingsPanelBackdrop != null)
+            {
+                settingsPanelBackdrop.AddToClassList("visible");
+            }
+            if (lightingPanelOverlay != null)
+            {
+                lightingPanelOverlay.AddToClassList("visible");
+                Debug.Log("💡 Lighting panel shown");
             }
         }
 
         /// <summary>
-        /// Issue #75: トップボタン2（Shadow）クリック時の処理
-        /// ON/OFFをトグル、OFFのとき半透明表示
+        /// Issue #120: シャドウパネルを表示
         /// </summary>
-        void OnTopButton2Clicked()
+        void ShowShadowPanel()
         {
-            isShadowEnabled = !isShadowEnabled;
-            Debug.Log($"🌑 Top button 2 (Shadow) clicked: {(isShadowEnabled ? "ON" : "OFF")}");
-            TapticEngine.Selection();
+            Debug.Log($"📋 ShowShadowPanel called");
+            HideAllPanels(); // 他のパネルを閉じる
 
-            // ボタンの透明度を更新
-            UpdateTopButtonOpacity(topButton2, isShadowEnabled);
+            // パネル表示時にLightingPanelControllerを遅延初期化
+            GetLightingPanelController();
 
-            // Shadow設定を適用
-            ApplyShadowSetting();
+            if (settingsPanelBackdrop != null)
+            {
+                settingsPanelBackdrop.AddToClassList("visible");
+            }
+            if (shadowPanelOverlay != null)
+            {
+                shadowPanelOverlay.AddToClassList("visible");
+                Debug.Log("🌑 Shadow panel shown");
+            }
+        }
+
+        /// <summary>
+        /// Issue #120: すべてのパネルを非表示
+        /// </summary>
+        void HideAllPanels()
+        {
+            if (settingsPanelBackdrop != null)
+            {
+                settingsPanelBackdrop.RemoveFromClassList("visible");
+            }
+            if (lightingPanelOverlay != null)
+            {
+                lightingPanelOverlay.RemoveFromClassList("visible");
+            }
+            if (shadowPanelOverlay != null)
+            {
+                shadowPanelOverlay.RemoveFromClassList("visible");
+            }
+            Debug.Log("📋 All panels hidden");
         }
 
         /// <summary>
@@ -1694,11 +1893,15 @@ namespace AICam.UI
         /// </summary>
         void ApplyLightEstimationSetting()
         {
-            // ARLightEstimationControllerがあれば設定を適用
-            var lightEstimation = FindFirstObjectByType<ARLightEstimationController>();
-            if (lightEstimation != null)
+            // キャッシュがない場合のみ検索（lazy initialization）
+            if (cachedLightEstimationController == null)
             {
-                lightEstimation.enabled = isLightEstimationEnabled;
+                cachedLightEstimationController = FindFirstObjectByType<ARLightEstimationController>();
+            }
+
+            if (cachedLightEstimationController != null)
+            {
+                cachedLightEstimationController.enabled = isLightEstimationEnabled;
                 Debug.Log($"💡 ARLightEstimationController.enabled = {isLightEstimationEnabled}");
             }
             else
@@ -1712,16 +1915,32 @@ namespace AICam.UI
         /// </summary>
         void ApplyShadowSetting()
         {
-            // メインライトのシャドウを制御
-            var mainLight = FindMainDirectionalLight();
-            if (mainLight != null)
+            // キャッシュがない場合のみ検索（lazy initialization）
+            if (cachedMainLight == null)
             {
-                mainLight.shadows = isShadowEnabled ? LightShadows.Soft : LightShadows.None;
-                Debug.Log($"🌑 Main light shadows = {mainLight.shadows}");
+                cachedMainLight = FindMainDirectionalLight();
+            }
+
+            if (cachedMainLight != null)
+            {
+                cachedMainLight.shadows = isShadowEnabled ? LightShadows.Soft : LightShadows.None;
+                Debug.Log($"🌑 Main light shadows = {cachedMainLight.shadows}");
             }
             else
             {
                 Debug.LogWarning("⚠️ Main Directional Light not found in scene");
+            }
+
+            // AR平面の落ち影レシーバーも制御
+            if (cachedPlaneShadowReceiver == null)
+            {
+                cachedPlaneShadowReceiver = FindFirstObjectByType<ARPlaneShadowReceiver>();
+            }
+
+            if (cachedPlaneShadowReceiver != null)
+            {
+                cachedPlaneShadowReceiver.SetShadowEnabled(isShadowEnabled);
+                Debug.Log($"🌑 AR Plane shadow receiver = {isShadowEnabled}");
             }
         }
 
@@ -1730,7 +1949,6 @@ namespace AICam.UI
         /// </summary>
         Light FindMainDirectionalLight()
         {
-            // タグでメインライトを検索
             var lights = FindObjectsByType<Light>(FindObjectsSortMode.None);
             foreach (var light in lights)
             {
