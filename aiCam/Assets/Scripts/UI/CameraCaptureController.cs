@@ -24,6 +24,10 @@ namespace AICam.UI
         [SerializeField] private AICam.VRM.RuntimeAvatarLoader avatarLoader;
         [SerializeField] private AICam.FBXLoader.RuntimeFBXLoaderBridge fbxLoaderBridge;
 
+        [Header("Pose Animation (Issue #407)")]
+        [SerializeField] private RuntimeAnimatorController poseAnimatorController;
+        [SerializeField] private AnimatorOverrideController[] poseOverrideControllers;
+
         private VisualElement root;
         private VisualElement captureButton;
         private VisualElement innerCircle;
@@ -65,7 +69,19 @@ namespace AICam.UI
         // Issue #74/#75: トップパネルボタン要素
         private Button topButton1; // Light Estimation ON/OFF
         private Button topButton2; // Shadow ON/OFF
+        private Button topButton4; // Issue #407: Pose切り替え
         private Button topButton5; // Issue #345: Plane Visibility ON/OFF
+
+        // Issue #407: ポーズ切り替え
+        private int currentPoseIndex = 0;
+        private int currentOverrideIndex = 0;  // 現在のOverrideControllerインデックス
+        private GameObject cachedCurrentAvatar;  // 現在のアバター参照
+        private System.Collections.Generic.List<string> cachedStateNames;  // キャッシュされたState名
+
+        // Issue #407: ダブルタップ検出用
+        private const float DOUBLE_TAP_THRESHOLD = 0.3f;  // 300ms以内でダブルタップ判定
+        private int tapCount = 0;
+        private System.Threading.CancellationTokenSource tapCts;
 
         // Issue #345: 平面表示状態
         private bool isPlaneVisible = true;
@@ -224,11 +240,6 @@ namespace AICam.UI
             progressArc = root.Q<VisualElement>("progressArc");
             flashOverlay = root.Q<VisualElement>("flashOverlay");
             galleryThumbnail = root.Q<VisualElement>("galleryThumbnail");
-            if (galleryThumbnail != null)
-            {
-                // サムネイルのアスペクト比を維持するためにScaleModeを設定
-                galleryThumbnail.style.unityBackgroundScaleMode = UnityEngine.UIElements.ScaleMode.ScaleToFit;
-            }
 
             viewerOverlay = root.Q<VisualElement>("viewerOverlay");
             viewerImage = root.Q<Image>("viewerImage");
@@ -258,6 +269,7 @@ namespace AICam.UI
             // Issue #74/#75: トップパネルボタンの取得
             topButton1 = root.Q<Button>("topButton1");
             topButton2 = root.Q<Button>("topButton2");
+            topButton4 = root.Q<Button>("topButton4"); // Issue #407: Pose
             topButton5 = root.Q<Button>("topButton5"); // Issue #345: Plane Visibility
 
             // アスペクト比マスク要素の取得
@@ -396,6 +408,14 @@ namespace AICam.UI
                 Debug.Log("✅ Top button 2 (Shadow) click event registered");
             }
 
+            // Issue #407: ポーズ切り替えボタンのイベント登録
+            Debug.Log($"🔘 topButton4: {(topButton4 != null ? "✅ found" : "❌ NOT FOUND")}");
+            if (topButton4 != null)
+            {
+                topButton4.RegisterCallback<ClickEvent>(evt => OnTopButton4Click());
+                Debug.Log("✅ Top button 4 (Pose) click event registered");
+            }
+
             // Issue #345: 平面表示切り替えボタンのイベント登録
             Debug.Log($"🔘 topButton5: {(topButton5 != null ? "✅ found" : "❌ NOT FOUND")}");
             if (topButton5 != null)
@@ -469,6 +489,14 @@ namespace AICam.UI
                 photoController.SetAspectRatio(targetAspect);
                 Debug.Log($"✅ Initial aspect ratio set to: {targetAspect:F3}");
             }
+
+            // Issue #407: AvatarSlotManagerのイベント購読
+            if (AICam.FBXLoader.AvatarSlotManager.Instance != null)
+            {
+                AICam.FBXLoader.AvatarSlotManager.Instance.OnSlotLoadComplete += OnAvatarSlotLoadComplete;
+                AICam.FBXLoader.AvatarSlotManager.Instance.OnSlotCleared += OnAvatarSlotCleared;
+                Debug.Log("🎭 Subscribed to AvatarSlotManager events");
+            }
         }
 
         void OnDisable()
@@ -483,6 +511,13 @@ namespace AICam.UI
             if (root != null)
             {
                 root.UnregisterCallback<GeometryChangedEvent>(OnGeometryChanged);
+            }
+
+            // Issue #407: AvatarSlotManagerのイベント解除
+            if (AICam.FBXLoader.AvatarSlotManager.Instance != null)
+            {
+                AICam.FBXLoader.AvatarSlotManager.Instance.OnSlotLoadComplete -= OnAvatarSlotLoadComplete;
+                AICam.FBXLoader.AvatarSlotManager.Instance.OnSlotCleared -= OnAvatarSlotCleared;
             }
         }
 
@@ -1812,6 +1847,353 @@ namespace AICam.UI
             }
 
             Debug.Log($"🔲 Plane button icon updated: {(isPlaneVisible ? "visible" : "hidden")}");
+        }
+
+        /// <summary>
+        /// Issue #407: アバタースロットロード完了時のハンドラ
+        /// </summary>
+        void OnAvatarSlotLoadComplete(int slotIndex, bool success)
+        {
+            if (success)
+            {
+                // AvatarMemoryCacheから現在のアバターを取得してキャッシュ
+                var memoryCache = AICam.FBXLoader.AvatarMemoryCache.Instance;
+                if (memoryCache != null)
+                {
+                    cachedCurrentAvatar = memoryCache.GetCachedAvatar(slotIndex);
+                    currentPoseIndex = 0;  // ポーズインデックスをリセット
+                    cachedStateNames = null;  // State名キャッシュをリセット
+                    Debug.Log($"🎭 Avatar cached from slot {slotIndex}: {(cachedCurrentAvatar != null ? cachedCurrentAvatar.name : "null")}");
+
+                    // Issue #407: PoseAnimatorControllerを設定
+                    if (cachedCurrentAvatar != null && poseAnimatorController != null)
+                    {
+                        AssignPoseAnimatorController(cachedCurrentAvatar);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Issue #407: アバターにPoseAnimatorControllerを設定
+        /// </summary>
+        void AssignPoseAnimatorController(GameObject avatar)
+        {
+            if (avatar == null || poseAnimatorController == null) return;
+
+            var animator = avatar.GetComponent<Animator>();
+            if (animator == null)
+            {
+                animator = avatar.AddComponent<Animator>();
+                Debug.Log($"🎭 Added Animator component to {avatar.name}");
+            }
+
+            animator.runtimeAnimatorController = poseAnimatorController;
+            Debug.Log($"🎭 Assigned PoseAnimatorController to {avatar.name}");
+        }
+
+        /// <summary>
+        /// Issue #407: アバタースロットクリア時のハンドラ
+        /// </summary>
+        void OnAvatarSlotCleared(int slotIndex)
+        {
+            cachedCurrentAvatar = null;
+            cachedStateNames = null;
+            currentPoseIndex = 0;
+            Debug.Log($"🎭 Avatar cache cleared (slot {slotIndex} was cleared)");
+        }
+
+        /// <summary>
+        /// Issue #407: topButton4クリック時のポーズ切り替え
+        /// ダブルタップでOverrideController切り替え、シングルタップでポーズ切り替え
+        /// </summary>
+        void OnTopButton4Click()
+        {
+            tapCount++;
+            Debug.Log($"🔘 topButton4 clicked - tapCount: {tapCount}");
+
+            if (tapCount == 1)
+            {
+                // 1回目のタップ - 遅延処理を開始
+                tapCts?.Cancel();
+                tapCts = new System.Threading.CancellationTokenSource();
+                HandleTapAsync(tapCts.Token).Forget();
+            }
+            // 2回目以降のタップはtapCountが増えるだけ（HandleTapAsyncで処理）
+        }
+
+        async UniTaskVoid HandleTapAsync(System.Threading.CancellationToken ct)
+        {
+            try
+            {
+                // ダブルタップ待機
+                await UniTask.Delay((int)(DOUBLE_TAP_THRESHOLD * 1000), cancellationToken: ct);
+
+                // 待機完了後、タップ数に応じて処理
+                int finalTapCount = tapCount;
+                tapCount = 0;  // リセット
+
+                if (finalTapCount >= 2)
+                {
+                    // ダブルタップ
+                    Debug.Log("🔘 Double tap detected! Switching OverrideController...");
+                    TapticEngine.Impact(TapticEngine.ImpactStyle.Medium);
+                    SwitchToNextOverrideController();
+                }
+                else
+                {
+                    // シングルタップ
+                    Debug.Log("🔘 Single tap confirmed - Switching pose...");
+                    TapticEngine.Selection();
+                    SwitchToNextPose();
+                }
+            }
+            catch (System.OperationCanceledException)
+            {
+                // キャンセルされた場合は何もしない
+            }
+        }
+
+        /// <summary>
+        /// Issue #407: 次のポーズに切り替え
+        /// </summary>
+        void SwitchToNextPose()
+        {
+            Debug.Log("🎭 SwitchToNextPose called");
+
+            GameObject avatar = null;
+
+            // 方法0: キャッシュされたアバターを使用（最優先）
+            if (cachedCurrentAvatar != null && cachedCurrentAvatar.activeInHierarchy)
+            {
+                avatar = cachedCurrentAvatar;
+                Debug.Log($"🎭 Using cached avatar: {avatar.name}");
+            }
+
+            // 方法1: AvatarSlotManager + AvatarMemoryCacheから取得
+            if (avatar == null)
+            {
+                var slotManager = AICam.FBXLoader.AvatarSlotManager.Instance;
+                var memoryCache = AICam.FBXLoader.AvatarMemoryCache.Instance;
+
+                if (slotManager != null && memoryCache != null)
+                {
+                    int currentSlot = slotManager.CurrentSlotIndex;
+                    Debug.Log($"🎭 CurrentSlotIndex: {currentSlot}");
+
+                    if (currentSlot >= 0)
+                    {
+                        avatar = memoryCache.GetCachedAvatar(currentSlot);
+                        if (avatar != null)
+                        {
+                            cachedCurrentAvatar = avatar;  // キャッシュを更新
+                        }
+                        Debug.Log($"🎭 From MemoryCache: {(avatar != null ? avatar.name : "null")}");
+                    }
+                }
+            }
+
+            // 方法2: RuntimeFBXLoaderBridgeから取得（フォールバック）
+            if (avatar == null)
+            {
+                if (fbxLoaderBridge == null)
+                {
+                    fbxLoaderBridge = FindFirstObjectByType<AICam.FBXLoader.RuntimeFBXLoaderBridge>();
+                }
+                if (fbxLoaderBridge != null)
+                {
+                    avatar = fbxLoaderBridge.CurrentModel;
+                    if (avatar != null)
+                    {
+                        cachedCurrentAvatar = avatar;  // キャッシュを更新
+                    }
+                    Debug.Log($"🎭 From RuntimeFBXLoaderBridge: {(avatar != null ? avatar.name : "null")}");
+                }
+            }
+
+            // 方法3: シーン内のAnimatorを持つアクティブなアバターを検索（最終フォールバック）
+            if (avatar == null)
+            {
+                var animators = FindObjectsByType<Animator>(FindObjectsSortMode.None);
+                foreach (var anim in animators)
+                {
+                    // Humanoidアバターを探す
+                    if (anim.avatar != null && anim.avatar.isHuman && anim.gameObject.activeInHierarchy)
+                    {
+                        avatar = anim.gameObject;
+                        cachedCurrentAvatar = avatar;  // キャッシュを更新
+                        Debug.Log($"🎭 Found Humanoid avatar in scene: {avatar.name}");
+                        break;
+                    }
+                }
+            }
+
+            Animator animator = null;
+            if (avatar != null)
+            {
+                animator = avatar.GetComponent<Animator>();
+            }
+            Debug.Log($"🎭 avatar: {(avatar != null ? avatar.name : "null")}, animator: {animator != null}");
+
+            if (avatar == null)
+            {
+                Debug.LogWarning("⚠️ No avatar placed");
+                return;
+            }
+
+            if (animator == null)
+            {
+                animator = avatar.GetComponent<Animator>();
+                if (animator == null)
+                {
+                    Debug.LogWarning("⚠️ Avatar has no Animator component");
+                    return;
+                }
+            }
+
+            // AnimatorControllerのClip一覧を取得
+            var controller = animator.runtimeAnimatorController;
+            Debug.Log($"🎭 runtimeAnimatorController: {(controller != null ? controller.name : "null")}");
+
+            if (controller == null)
+            {
+                Debug.LogWarning("⚠️ Animator has no RuntimeAnimatorController");
+                return;
+            }
+
+            // PoseAnimatorControllerのState名は固定（Pose00〜Pose11）
+            // ランタイムではAnimatorControllerのState名を直接取得できないため、固定配列を使用
+            const int POSE_COUNT = 12;
+
+            // 次のポーズインデックスに進む
+            int previousIndex = currentPoseIndex;
+            currentPoseIndex = (currentPoseIndex + 1) % POSE_COUNT;
+            var targetState = $"Pose{currentPoseIndex:D2}";
+
+            Debug.Log($"🎭 Pose: {targetState} ({currentPoseIndex + 1}/{POSE_COUNT})");
+
+            // Pose11からPose00に戻った場合はアラートバーを表示
+            if (previousIndex == POSE_COUNT - 1 && currentPoseIndex == 0)
+            {
+                ShowInfo("Pose", "Loop - Back to Pose00", 1.5f);
+            }
+
+            // State名で再生
+            animator.Play(targetState, 0, 0f);
+        }
+
+        /// <summary>
+        /// Issue #407: 次のOverrideControllerに切り替え（ダブルタップ時）
+        /// </summary>
+        void SwitchToNextOverrideController()
+        {
+            Debug.Log($"🎭 SwitchToNextOverrideController called - poseOverrideControllers: {(poseOverrideControllers != null ? poseOverrideControllers.Length.ToString() : "null")}");
+
+            if (poseOverrideControllers == null || poseOverrideControllers.Length == 0)
+            {
+                Debug.LogWarning("⚠️ No OverrideControllers configured - please set poseOverrideControllers in Inspector");
+                return;
+            }
+
+            // アバター取得
+            GameObject avatar = cachedCurrentAvatar;
+            if (avatar == null || !avatar.activeInHierarchy)
+            {
+                // アバターを検索
+                var animators = FindObjectsByType<Animator>(FindObjectsSortMode.None);
+                foreach (var anim in animators)
+                {
+                    if (anim.avatar != null && anim.avatar.isHuman && anim.gameObject.activeInHierarchy)
+                    {
+                        avatar = anim.gameObject;
+                        cachedCurrentAvatar = avatar;
+                        break;
+                    }
+                }
+            }
+
+            if (avatar == null)
+            {
+                Debug.LogWarning("⚠️ No avatar found for OverrideController switch");
+                return;
+            }
+
+            var animator = avatar.GetComponent<Animator>();
+            if (animator == null)
+            {
+                Debug.LogWarning("⚠️ Avatar has no Animator component");
+                return;
+            }
+
+            // 次のOverrideControllerに進む
+            currentOverrideIndex = (currentOverrideIndex + 1) % poseOverrideControllers.Length;
+            var nextOverride = poseOverrideControllers[currentOverrideIndex];
+
+            if (nextOverride == null)
+            {
+                Debug.LogWarning($"⚠️ OverrideController at index {currentOverrideIndex} is null");
+                return;
+            }
+
+            // OverrideControllerを適用
+            var previousController = animator.runtimeAnimatorController;
+            Debug.Log($"🎭 Before switch - current controller: {(previousController != null ? previousController.name : "null")}");
+
+            animator.runtimeAnimatorController = nextOverride;
+
+            Debug.Log($"🎭 After switch - new controller: {(animator.runtimeAnimatorController != null ? animator.runtimeAnimatorController.name : "null")}");
+
+            // ポーズインデックスをリセットしてPose00を再生
+            currentPoseIndex = 0;
+            animator.Play("Pose00", 0, 0f);
+
+            // State名キャッシュをクリア（新しいコントローラー用に再取得）
+            cachedStateNames = null;
+
+            Debug.Log($"🎭 Switched to OverrideController: {nextOverride.name} ({currentOverrideIndex + 1}/{poseOverrideControllers.Length})");
+
+            // 水色のアラートバーで表示
+            ShowInfo("Change", nextOverride.name, 2f);
+        }
+
+        /// <summary>
+        /// Issue #407: 情報アラートを表示（水色）
+        /// </summary>
+        public void ShowInfo(string code, string message, float autoDismissSeconds = 3f)
+        {
+            if (alertBar == null || alertMessage == null)
+            {
+                Debug.LogWarning("⚠️ AlertBar elements not found");
+                return;
+            }
+
+            // メッセージを設定
+            alertMessage.text = $"{code}:{message}";
+
+            // スタイルを設定（info = 水色）
+            alertBar.RemoveFromClassList("warning");
+            alertBar.RemoveFromClassList("error");
+            alertBar.RemoveFromClassList("info");
+            alertBar.AddToClassList("info");
+
+            // フェードイン表示
+            alertBar.style.display = DisplayStyle.Flex;
+            alertBar.style.opacity = 0;
+
+            // 次のフレームでopacity:1に変更してCSSトランジションを発火
+            alertBar.schedule.Execute(() =>
+            {
+                alertBar.AddToClassList("visible");
+                alertBar.style.opacity = 1;
+            }).StartingIn(10);
+
+            Debug.Log($"ℹ️ Info shown: {code}:{message}");
+
+            // 自動非表示
+            if (autoDismissSeconds > 0)
+            {
+                alertBar.schedule.Execute(() => HideAlert()).StartingIn((long)(autoDismissSeconds * 1000));
+            }
         }
 
         /// <summary>

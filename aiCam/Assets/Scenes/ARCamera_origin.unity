@@ -1055,7 +1055,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6aa18451eedb84631b06f44b2e3d25ab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  avatarPrefab: {fileID: 3448142631616145395, guid: 79394c4ca4eb06b47a2ef642893df631, type: 3}
+  avatarPrefab: {fileID: 0}
   avatarLoader: {fileID: 236828916}
   planeManager: {fileID: 207520395}
   anchorManager: {fileID: 207520396}
@@ -1288,8 +1288,10 @@ MonoBehaviour:
   arPlacementTarget: {fileID: 207520392}
   defaultScale: {x: 1, y: 1, z: 1}
   faceAnimatorController: {fileID: 0}
-  bodyAnimatorController: {fileID: 9100000, guid: 8d5a0e0d58f4e4176a844a1a03976c19, type: 2}
+  bodyAnimatorController: {fileID: 9100000, guid: ab9aa655adf9f4598a93a90aa357a414, type: 2}
   initialStateName: Idle
+  autoSetupExpression: 1
+  expressionSetup: {fileID: 0}
 --- !u!1001 &241748527
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1464,7 +1466,7 @@ MonoBehaviour:
   scrollRect: {fileID: 1475416358}
   content: {fileID: 283220587}
   buttonPrefab: {fileID: 115120875880075045, guid: 777bdd6ec73164a32bf804ba89e1a7c6, type: 3}
-  editorTargetController: {fileID: -5691299883411984982, guid: 79394c4ca4eb06b47a2ef642893df631, type: 3}
+  editorTargetController: {fileID: 0}
 --- !u!1 &283220586
 GameObject:
   m_ObjectHideFlags: 0
@@ -4816,6 +4818,7 @@ GameObject:
   - component: {fileID: 811129446}
   - component: {fileID: 811129445}
   - component: {fileID: 811129447}
+  - component: {fileID: 811129448}
   m_Layer: 0
   m_Name: Directional Light
   m_TagString: Untagged
@@ -4932,6 +4935,26 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!114 &811129448
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 811129444}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 593f3fcdacc404d29b0c342d10933782, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AICam.AR.ARLightEstimationController
+  arCameraManager: {fileID: 431550392}
+  applyColorTemperature: 1
+  applyMainLightDirection: 1
+  applyMainLightIntensity: 1
+  applyAmbientLight: 1
+  applyToToonShaders: 1
+  materialUpdateInterval: 5
+  smoothSpeed: 5
 --- !u!1 &833482380
 GameObject:
   m_ObjectHideFlags: 0
@@ -8271,10 +8294,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6c6886a648bee43648a51a0aa5e400a4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  activeActionList: []
-  references:
-    version: 2
-    RefIds: []
 --- !u!1 &1400256203
 GameObject:
   m_ObjectHideFlags: 0
@@ -9147,6 +9166,7 @@ GameObject:
   - component: {fileID: 1479651380}
   - component: {fileID: 1479651379}
   - component: {fileID: 1479651378}
+  - component: {fileID: 1479651381}
   m_Layer: 0
   m_Name: CameraCaptureController
   m_TagString: Untagged
@@ -9191,6 +9211,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AICam.UI.CameraCaptureController
   photoController: {fileID: 431550395}
   avatarLoader: {fileID: 236828916}
+  fbxLoaderBridge: {fileID: 0}
+  poseAnimatorController: {fileID: 0}
 --- !u!4 &1479651380
 Transform:
   m_ObjectHideFlags: 0
@@ -9206,6 +9228,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1479651381
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1479651377}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f2931657fba0d4b36907a2ee5c9d86dd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AICam.UI.UIToolkitInputBlocker
+  debugLog: 0
 --- !u!1 &1481093349
 GameObject:
   m_ObjectHideFlags: 0
@@ -10099,6 +10134,89 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d94174f0864c043d7880f6f3ff1ca852, type: 3}
+--- !u!1 &1662580357
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1662580360}
+  - component: {fileID: 1662580359}
+  - component: {fileID: 1662580358}
+  - component: {fileID: 1662580361}
+  m_Layer: 0
+  m_Name: RuntimeManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1662580358
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1662580357}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aef101114c89c4e1eb44d26754c7d1c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: AICam.FBXLoader::AICam.FBXLoader.RuntimeFBXLoaderBridge
+  browser: {fileID: 1662580359}
+  memoryCache: {fileID: 0}
+  modelParent: {fileID: 0}
+  modelPosition: {x: 0, y: -0.3, z: 1.5}
+  modelRotation: {x: 0, y: 0, z: 0}
+  modelScale: {x: 1, y: 1, z: 1}
+  animatorController: {fileID: 0}
+  initialStateName: Idle
+  avatarTemplate: {fileID: 0}
+--- !u!114 &1662580359
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1662580357}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4577ce403bd504d9395625793e237363, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: AICam.FBXLoader::AICam.FBXLoader.FileBrowserController
+--- !u!4 &1662580360
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1662580357}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1662580361
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1662580357}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 618fe01b9590b46aaab19bb475b6e240, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DeviceScreenAdapter
+  autoDetectOnStart: 0
+  applyToCanvasScalers: 0
+  applyToPanelSettings: 0
+  showDebugInfo: 0
 --- !u!1 &1677303369
 GameObject:
   m_ObjectHideFlags: 0
@@ -15102,3 +15220,4 @@ SceneRoots:
   - {fileID: 478162762}
   - {fileID: 662378336}
   - {fileID: 1479651380}
+  - {fileID: 1662580360}
