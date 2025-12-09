@@ -497,6 +497,10 @@ namespace AICam.UI
                 AICam.FBXLoader.AvatarSlotManager.Instance.OnSlotCleared += OnAvatarSlotCleared;
                 Debug.Log("🎭 Subscribed to AvatarSlotManager events");
             }
+            else
+            {
+                Debug.LogWarning("🎭 AvatarSlotManager.Instance is null - cannot subscribe to events");
+            }
         }
 
         void OnDisable()
@@ -1854,6 +1858,7 @@ namespace AICam.UI
         /// </summary>
         void OnAvatarSlotLoadComplete(int slotIndex, bool success)
         {
+            Debug.Log($"🎭 OnAvatarSlotLoadComplete called: slotIndex={slotIndex}, success={success}");
             if (success)
             {
                 // AvatarMemoryCacheから現在のアバターを取得してキャッシュ
@@ -1865,8 +1870,8 @@ namespace AICam.UI
                     cachedStateNames = null;  // State名キャッシュをリセット
                     Debug.Log($"🎭 Avatar cached from slot {slotIndex}: {(cachedCurrentAvatar != null ? cachedCurrentAvatar.name : "null")}");
 
-                    // Issue #407: PoseAnimatorControllerを設定
-                    if (cachedCurrentAvatar != null && poseAnimatorController != null)
+                    // Issue #407: PoseAnimatorController/OverrideControllerを設定
+                    if (cachedCurrentAvatar != null)
                     {
                         AssignPoseAnimatorController(cachedCurrentAvatar);
                     }
@@ -1879,7 +1884,7 @@ namespace AICam.UI
         /// </summary>
         void AssignPoseAnimatorController(GameObject avatar)
         {
-            if (avatar == null || poseAnimatorController == null) return;
+            if (avatar == null) return;
 
             var animator = avatar.GetComponent<Animator>();
             if (animator == null)
@@ -1888,8 +1893,19 @@ namespace AICam.UI
                 Debug.Log($"🎭 Added Animator component to {avatar.name}");
             }
 
-            animator.runtimeAnimatorController = poseAnimatorController;
-            Debug.Log($"🎭 Assigned PoseAnimatorController to {avatar.name}");
+            // poseOverrideControllersの最初（b010）を設定、なければposeAnimatorControllerを使用
+            if (poseOverrideControllers != null && poseOverrideControllers.Length > 0 && poseOverrideControllers[0] != null)
+            {
+                animator.runtimeAnimatorController = poseOverrideControllers[0];
+                currentOverrideIndex = 0;
+                currentPoseIndex = 0;
+                Debug.Log($"🎭 Assigned OverrideController '{poseOverrideControllers[0].name}' to {avatar.name}");
+            }
+            else if (poseAnimatorController != null)
+            {
+                animator.runtimeAnimatorController = poseAnimatorController;
+                Debug.Log($"🎭 Assigned PoseAnimatorController to {avatar.name}");
+            }
         }
 
         /// <summary>
@@ -2054,6 +2070,20 @@ namespace AICam.UI
             // AnimatorControllerのClip一覧を取得
             var controller = animator.runtimeAnimatorController;
             Debug.Log($"🎭 runtimeAnimatorController: {(controller != null ? controller.name : "null")}");
+
+            // OverrideControllerが設定されていない場合、b010を自動設定
+            if (poseOverrideControllers != null && poseOverrideControllers.Length > 0 && poseOverrideControllers[0] != null)
+            {
+                bool isOverrideController = controller is AnimatorOverrideController;
+                if (!isOverrideController)
+                {
+                    animator.runtimeAnimatorController = poseOverrideControllers[0];
+                    controller = animator.runtimeAnimatorController;
+                    currentOverrideIndex = 0;
+                    currentPoseIndex = 0;
+                    Debug.Log($"🎭 Auto-assigned OverrideController: {poseOverrideControllers[0].name}");
+                }
+            }
 
             if (controller == null)
             {
