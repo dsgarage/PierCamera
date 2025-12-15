@@ -345,8 +345,7 @@
 }
 
 .bug-report-button {
-    background-color: rgba(200, 50, 50, 0.3);
-    border-radius: 5px;
+    background-color: transparent;
 }
 
 /* ================================
@@ -416,7 +415,9 @@
 .bottom-panel-button {
     width: 27px;
     height: 27px;
-    background-color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(128, 128, 128, 0.6);
+    background-image: resource('Sprite/PictIcon/AvatarSlot/EmptySlotIcon');
+    -unity-background-scale-mode: scale-to-fit;
     border-width: 0;
     border-top-left-radius: 50%;
     border-top-right-radius: 50%;
