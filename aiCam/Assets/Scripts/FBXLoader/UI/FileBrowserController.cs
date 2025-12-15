@@ -41,7 +41,16 @@ namespace AICam.FBXLoader
             ProcessSelectedFile(path);
 #else
             // モバイル（iOS/Android）での動作
-            NativeFilePicker.Permission permission = NativeFilePicker.PickFile((path) =>
+            // NativeFilePicker v1.5.0+ では PickFile は void を返す
+            NativeFilePicker.Permission permission = NativeFilePicker.CheckPermission();
+            if (permission == NativeFilePicker.Permission.Denied)
+            {
+                Debug.LogError("[FileBrowserController] File picker permission denied");
+                onFileSelectedCallback?.Invoke(false, null);
+                return;
+            }
+
+            NativeFilePicker.PickFile((path) =>
             {
                 if (path == null)
                 {
@@ -51,13 +60,7 @@ namespace AICam.FBXLoader
                 }
 
                 ProcessSelectedFile(path);
-            }, new string[] { "vrm", "fbx", "zip" });
-
-            if (permission == NativeFilePicker.Permission.Denied)
-            {
-                Debug.LogError("[FileBrowserController] File picker permission denied");
-                onFileSelectedCallback?.Invoke(false, null);
-            }
+            }, new string[] { "public.data" });  // iOS UTI for generic files
 #endif
         }
 
