@@ -18,18 +18,19 @@
     display: flex;
 }
 
-/* オーバーレイ（パネルコンテナ） - 画面下50%に配置 */
+/* オーバーレイ（パネルコンテナ） - 画面下部に配置、Safe Area対応 */
 .lighting-panel-overlay {
     position: absolute;
     left: 8px;
     right: 8px;
-    top: 50%;        /* 画面上端から50%の位置から開始 */
-    bottom: 8px;     /* 画面下端から8pxまで */
+    top: auto;       /* topは自動 */
+    bottom: 34px;    /* Safe Area: ホームインジケーター分の余白（iPhone X以降） */
     background-color: transparent;
     display: none;
     flex-direction: column;
     justify-content: flex-end;  /* パネルを下揃え */
     align-items: stretch;
+    max-height: 50%;  /* 画面の50%を超えない */
 }
 
 .lighting-panel-overlay.visible {
@@ -42,12 +43,13 @@
     max-height: 100%;  /* オーバーレイ内に収まる範囲で最大化 */
     background-color: rgba(20, 20, 20, 0.95);
     border-radius: 10px;
-    padding: 10px;
+    padding: 8px 10px;  /* 上下を少し詰める */
     border-width: 1px;
     border-color: rgba(255, 255, 255, 0.2);
     flex-direction: column;
     overflow: scroll;
     flex-shrink: 1;    /* 必要に応じて縮小 */
+    flex-grow: 0;      /* 必要以上に拡大しない */
 }
 
 /* ヘッダー */
@@ -90,7 +92,7 @@
 
 /* セクション - コンパクト */
 .lighting-section {
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     flex-shrink: 0;
 }
 
