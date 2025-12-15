@@ -62,6 +62,15 @@
                     <ui:Button name="lightingPanelClose" text="×" class="lighting-panel-close" />
                 </ui:VisualElement>
 
+                <!-- AR同期トグル（ヘッダー直下） -->
+                <ui:VisualElement class="lighting-section ar-sync-section-top">
+                    <ui:VisualElement class="toggle-row-compact">
+                        <ui:Label text="AR Light Sync" class="toggle-label" />
+                        <ui:Toggle name="arSyncToggle" value="true" class="ar-sync-toggle" />
+                    </ui:VisualElement>
+                    <ui:Label text="Automatically match scene lighting" class="ar-sync-description" />
+                </ui:VisualElement>
+
                 <!-- プリセット選択 -->
                 <ui:VisualElement class="lighting-section">
                     <ui:Label text="Preset" class="section-label" />
@@ -133,15 +142,6 @@
                             <ui:Button name="softSoft" text="Soft" class="softness-button" />
                         </ui:VisualElement>
                     </ui:VisualElement>
-                </ui:VisualElement>
-
-                <!-- AR同期トグル -->
-                <ui:VisualElement class="lighting-section ar-sync-section">
-                    <ui:VisualElement class="toggle-row">
-                        <ui:Label text="AR Light Sync" class="toggle-label" />
-                        <ui:Toggle name="arSyncToggle" value="true" class="ar-sync-toggle" />
-                    </ui:VisualElement>
-                    <ui:Label text="Automatically match scene lighting" class="ar-sync-description" />
                 </ui:VisualElement>
 
             </ui:VisualElement>
