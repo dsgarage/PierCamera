@@ -18,16 +18,15 @@
     display: flex;
 }
 
-/* オーバーレイ（パネルコンテナ） - topPanel(75px)より下、bottomPanel(140px)より上 */
+/* オーバーレイ（パネルコンテナ） - 画面下部に配置、下端を基準に */
 .lighting-panel-overlay {
     position: absolute;
     left: 8px;
-    top: 60px;
     right: 8px;
-    bottom: 120px;
+    bottom: 8px;
     background-color: transparent;
     display: none;
-    justify-content: flex-start;
+    justify-content: flex-end;
     align-items: flex-start;
 }
 
@@ -35,17 +34,17 @@
     display: flex;
 }
 
-/* メインパネル：中身を角丸内にクリップ */
+/* メインパネル：中身を角丸内にクリップ、画面下半分に収まるよう高さ制限 */
 .lighting-panel {
     width: 100%;
-    max-height: 100%;
+    max-height: 50%;
     background-color: rgba(20, 20, 20, 0.95);
     border-radius: 10px;
     padding: 10px;
     border-width: 1px;
     border-color: rgba(255, 255, 255, 0.2);
     flex-direction: column;
-    overflow: hidden;
+    overflow: scroll;
 }
 
 /* ヘッダー */
