@@ -470,6 +470,7 @@
 
 /* bottomButton1にアバターアイコンを表示 */
 #bottomButton1 {
+    background-color: rgba(255, 255, 255, 0.9);
     background-image: resource('Sprite/PictIcon/AvatarSlot/EmptySlotIcon');
 }
 
