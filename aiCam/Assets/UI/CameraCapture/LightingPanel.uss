@@ -490,11 +490,19 @@
     -unity-font-style: bold;
 }
 
-/* AR同期セクション - コンパクト */
+/* AR同期セクション - コンパクト（下部用・未使用） */
 .ar-sync-section {
     padding-top: 4px;
     border-top-width: 1px;
     border-top-color: rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
+}
+
+/* AR同期セクション - ヘッダー直下用 */
+.ar-sync-section-top {
+    margin-top: 2px;
+    margin-bottom: 8px;
+    padding-bottom: 0;
     flex-shrink: 0;
 }
 
