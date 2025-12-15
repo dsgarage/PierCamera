@@ -416,7 +416,6 @@
     width: 27px;
     height: 27px;
     background-color: rgba(128, 128, 128, 0.6);
-    background-image: resource('Sprite/PictIcon/AvatarSlot/EmptySlotIcon');
     -unity-background-scale-mode: scale-to-fit;
     border-width: 0;
     border-top-left-radius: 50%;
@@ -458,14 +457,20 @@
     opacity: 1;
 }
 
-/* +ボタン専用スタイル */
+/* +ボタン専用スタイル（アイコンなし、+テキストのみ） */
 .bottom-panel-button-add {
     font-size: 14px;
     background-color: rgba(200, 200, 200, 0.8);
+    background-image: none;
 }
 
 .bottom-panel-button-add:hover {
     background-color: rgba(220, 220, 220, 1);
+}
+
+/* bottomButton1にアバターアイコンを表示 */
+#bottomButton1 {
+    background-image: resource('Sprite/PictIcon/AvatarSlot/EmptySlotIcon');
 }
 
 /* ================================
