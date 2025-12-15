@@ -41,15 +41,34 @@ namespace AICam.FBXLoader
             ProcessSelectedFile(path);
 #else
             // モバイル（iOS/Android）での動作
-            // NativeFilePicker v1.5.0+ では PickFile は void を返す
-            NativeFilePicker.Permission permission = NativeFilePicker.CheckPermission();
-            if (permission == NativeFilePicker.Permission.Denied)
+            // NativeFilePicker v1.5.0+ では CheckPermission は bool を返す
+            bool hasPermission = NativeFilePicker.CheckPermission();
+            if (!hasPermission)
             {
-                Debug.LogError("[FileBrowserController] File picker permission denied");
-                onFileSelectedCallback?.Invoke(false, null);
-                return;
-            }
+                // 権限がない場合は非同期で権限リクエスト
+                NativeFilePicker.RequestPermissionAsync((permission) =>
+                {
+                    if (permission != NativeFilePicker.Permission.Granted)
+                    {
+                        Debug.LogError("[FileBrowserController] File picker permission denied");
+                        onFileSelectedCallback?.Invoke(false, null);
+                        return;
+                    }
 
+                    // 権限取得後にファイルピッカーを開く
+                    OpenFilePicker();
+                });
+            }
+            else
+            {
+                // 既に権限がある場合は直接ファイルピッカーを開く
+                OpenFilePicker();
+            }
+#endif
+        }
+
+        private void OpenFilePicker()
+        {
             NativeFilePicker.PickFile((path) =>
             {
                 if (path == null)
@@ -61,7 +80,6 @@ namespace AICam.FBXLoader
 
                 ProcessSelectedFile(path);
             }, new string[] { "public.data" });  // iOS UTI for generic files
-#endif
         }
 
         private void ProcessSelectedFile(string path)
