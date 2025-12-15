@@ -15,11 +15,13 @@
             <ui:Button name="topButton2" class="top-panel-button" />
             <ui:Button name="topButton3" class="top-panel-button" />
             <ui:Button name="topButton4" class="top-panel-button" />
+            <ui:Button name="topButton5" class="top-panel-button" />
         </ui:VisualElement>
         <ui:VisualElement name="sidePanel" picking-mode="Ignore" class="side-panel">
             <ui:Button name="sideButton1" class="side-panel-button" />
             <ui:Button name="sideButton2" class="side-panel-button" />
             <ui:Button name="sideButton3" class="side-panel-button" />
+            <ui:Button name="sideButtonBugReport" class="side-panel-button bug-report-button" />
         </ui:VisualElement>
         <ui:VisualElement name="galleryThumbnail" class="gallery-thumbnail" />
         <ui:VisualElement name="AvaterSlot" class="bottom-panel">

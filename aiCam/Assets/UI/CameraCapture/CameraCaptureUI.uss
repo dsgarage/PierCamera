@@ -339,6 +339,16 @@
     background-image: resource('Sprite/PictIcon/SideBear/03_Flash');
 }
 
+/* Issue #413: バグレポートボタン */
+#sideButtonBugReport {
+    background-image: resource('Sprite/PictIcon/SideBear/04_BugReport');
+}
+
+.bug-report-button {
+    background-color: rgba(200, 50, 50, 0.3);
+    border-radius: 5px;
+}
+
 /* ================================
    撮影ボタン上のパネル - 30%縮小
 ================================ */
