@@ -1442,6 +1442,9 @@ namespace AICam.UI
 
                 Debug.Log($"💾 Slot data saved for {targetButton.name}: {filePath} (VRM)");
 
+                // Issue #416: AvatarSlotManagerのキャッシュにも保存（永続化のため）
+                SaveToAvatarSlotManager(targetButton, filePath, AICam.FBXLoader.AvatarFileType.VRM, avatar?.name ?? "VRM");
+
                 if (thumbnail != null)
                 {
                     // ボタンアイコンを更新
@@ -2808,6 +2811,70 @@ namespace AICam.UI
         /// </summary>
         public bool IsIconPreviewShowing => iconPreviewPanel != null &&
             iconPreviewPanel.resolvedStyle.display == DisplayStyle.Flex;
+
+        #endregion
+
+        #region Issue #416: AvatarSlotManager Persistence
+
+        /// <summary>
+        /// Issue #416: AvatarSlotManagerのキャッシュに保存して永続化
+        /// Play Mode終了後も復元できるようにする
+        /// </summary>
+        private void SaveToAvatarSlotManager(Button targetButton, string filePath, AICam.FBXLoader.AvatarFileType fileType, string avatarName)
+        {
+            var slotManager = AICam.FBXLoader.AvatarSlotManager.Instance;
+            if (slotManager == null)
+            {
+                Debug.LogWarning("[CameraCaptureController] AvatarSlotManager.Instance is null - cannot save to cache");
+                return;
+            }
+
+            // ボタン名からスロットインデックスを取得
+            int slotIndex = GetSlotIndexFromButton(targetButton);
+            if (slotIndex < 0)
+            {
+                Debug.LogWarning($"[CameraCaptureController] Invalid slot index for button: {targetButton.name}");
+                return;
+            }
+
+            // AvatarSlotManagerのキャッシュに保存
+            var cache = slotManager.Cache;
+            if (cache != null)
+            {
+                var slotData = cache.GetSlot(slotIndex);
+                if (slotData != null)
+                {
+                    slotData.modelFilePath = filePath;
+                    slotData.fileType = fileType;
+                    slotData.avatarName = avatarName;
+                    slotData.isValid = true;
+
+                    cache.SetLastActiveSlot(slotIndex);
+                    cache.SaveToFile();
+
+                    Debug.Log($"[💾 PERSIST ✅] Saved to AvatarSlotManager cache: slot={slotIndex}, path={filePath}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// ボタン名からスロットインデックスを取得
+        /// </summary>
+        private int GetSlotIndexFromButton(Button button)
+        {
+            if (button == null) return -1;
+
+            string name = button.name;
+            // bottomButton1 -> 0, bottomButton2 -> 1, etc.
+            if (name.StartsWith("bottomButton"))
+            {
+                if (int.TryParse(name.Replace("bottomButton", ""), out int num))
+                {
+                    return num - 1; // 1-based to 0-based
+                }
+            }
+            return -1;
+        }
 
         #endregion
     }
