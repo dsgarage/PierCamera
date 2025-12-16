@@ -1049,6 +1049,9 @@ namespace AICam.FBXLoader
                     if (bridge != null && result.Avatar != null)
                     {
                         bridge.SetCurrentModel(result.Avatar, slotIndex);
+
+                        // Issue #416: AnimatorControllerを設定
+                        SetupAnimatorController(result.Avatar, bridge);
                     }
 
                     slotData.UpdateLastLoadedAt();
@@ -1236,6 +1239,34 @@ namespace AICam.FBXLoader
 
             OnSlotCleared?.Invoke(slotIndex);
             Debug.Log($"[AvatarSlotManager] Cleared slot {slotIndex}");
+        }
+
+        /// <summary>
+        /// Issue #416: アバターにAnimatorControllerを設定
+        /// RuntimeFBXLoaderBridgeからAnimatorControllerを取得して設定
+        /// </summary>
+        private void SetupAnimatorController(GameObject avatar, RuntimeFBXLoaderBridge bridge)
+        {
+            if (avatar == null) return;
+
+            var animator = avatar.GetComponent<Animator>();
+            if (animator == null)
+            {
+                animator = avatar.AddComponent<Animator>();
+                Debug.Log($"[AvatarSlotManager] Added Animator component to {avatar.name}");
+            }
+
+            // RuntimeFBXLoaderBridgeからAnimatorControllerを取得
+            var controller = bridge?.GetAnimatorController();
+            if (controller != null)
+            {
+                animator.runtimeAnimatorController = controller;
+                Debug.Log($"[🎭 ANIMATOR ✅] Set AnimatorController '{controller.name}' to {avatar.name}");
+            }
+            else
+            {
+                Debug.LogWarning($"[🎭 ANIMATOR ⚠️] No AnimatorController available for {avatar.name}");
+            }
         }
 
         /// <summary>

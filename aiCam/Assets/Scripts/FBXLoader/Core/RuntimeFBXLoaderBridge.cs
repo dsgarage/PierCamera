@@ -53,6 +53,11 @@ namespace AICam.FBXLoader
         public GameObject CurrentModel => currentModel;
 
         /// <summary>
+        /// Issue #416: AnimatorControllerを取得
+        /// </summary>
+        public RuntimeAnimatorController GetAnimatorController() => animatorController;
+
+        /// <summary>
         /// 現在のVRMバージョンを取得
         /// </summary>
         public VrmVersion LoadedVrmVersion => loadedVrmVersion;
