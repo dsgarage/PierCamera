@@ -491,16 +491,53 @@ namespace AICam.UI
             }
 
             // Issue #407: AvatarSlotManagerのイベント購読
+            SubscribeToAvatarSlotManager();
+        }
+
+        /// <summary>
+        /// Issue #416: AvatarSlotManagerへのイベント購読（遅延対応）
+        /// AvatarSlotManagerが先に初期化されていない場合、コルーチンで再試行
+        /// </summary>
+        private bool avatarSlotManagerSubscribed = false;
+
+        private void SubscribeToAvatarSlotManager()
+        {
+            if (avatarSlotManagerSubscribed) return;
+
             if (AICam.FBXLoader.AvatarSlotManager.Instance != null)
             {
                 AICam.FBXLoader.AvatarSlotManager.Instance.OnSlotLoadComplete += OnAvatarSlotLoadComplete;
                 AICam.FBXLoader.AvatarSlotManager.Instance.OnSlotCleared += OnAvatarSlotCleared;
+                avatarSlotManagerSubscribed = true;
                 Debug.Log("🎭 Subscribed to AvatarSlotManager events");
             }
             else
             {
-                Debug.LogWarning("🎭 AvatarSlotManager.Instance is null - cannot subscribe to events");
+                Debug.LogWarning("🎭 AvatarSlotManager.Instance is null - starting retry coroutine");
+                StartCoroutine(RetrySubscribeToAvatarSlotManager());
             }
+        }
+
+        private System.Collections.IEnumerator RetrySubscribeToAvatarSlotManager()
+        {
+            int maxRetries = 10;
+            float retryInterval = 0.2f;
+
+            for (int i = 0; i < maxRetries; i++)
+            {
+                yield return new WaitForSeconds(retryInterval);
+
+                if (AICam.FBXLoader.AvatarSlotManager.Instance != null)
+                {
+                    AICam.FBXLoader.AvatarSlotManager.Instance.OnSlotLoadComplete += OnAvatarSlotLoadComplete;
+                    AICam.FBXLoader.AvatarSlotManager.Instance.OnSlotCleared += OnAvatarSlotCleared;
+                    avatarSlotManagerSubscribed = true;
+                    Debug.Log($"🎭 Subscribed to AvatarSlotManager events (retry {i + 1})");
+                    yield break;
+                }
+            }
+
+            Debug.LogError("🎭 Failed to subscribe to AvatarSlotManager after retries");
         }
 
         void OnDisable()
@@ -523,6 +560,7 @@ namespace AICam.UI
                 AICam.FBXLoader.AvatarSlotManager.Instance.OnSlotLoadComplete -= OnAvatarSlotLoadComplete;
                 AICam.FBXLoader.AvatarSlotManager.Instance.OnSlotCleared -= OnAvatarSlotCleared;
             }
+            avatarSlotManagerSubscribed = false;
         }
 
         void OnPhotoCapturedHandler(Texture2D thumbnail)
@@ -1443,7 +1481,7 @@ namespace AICam.UI
                 Debug.Log($"💾 Slot data saved for {targetButton.name}: {filePath} (VRM)");
 
                 // Issue #416: AvatarSlotManagerのキャッシュにも保存（永続化のため）
-                SaveToAvatarSlotManager(targetButton, filePath, AICam.FBXLoader.AvatarFileType.VRM, avatar?.name ?? "VRM");
+                SaveToAvatarSlotManager(targetButton, filePath, AICam.FBXLoader.AvatarFileType.VRM, avatar?.name ?? "VRM", thumbnail);
 
                 if (thumbnail != null)
                 {
@@ -1557,6 +1595,9 @@ namespace AICam.UI
                 slotData.loadedAvatar = loadedModel;
 
                 Debug.Log($"💾 Slot data saved for {targetButton.name}: {filePath} (FBX)");
+
+                // Issue #416: AvatarSlotManagerのキャッシュにも保存（永続化のため）
+                SaveToAvatarSlotManager(targetButton, filePath, AICam.FBXLoader.AvatarFileType.FBX, loadedModel?.name ?? "FBX", thumbnail);
 
                 if (thumbnail != null)
                 {
@@ -1879,7 +1920,71 @@ namespace AICam.UI
                         AssignPoseAnimatorController(cachedCurrentAvatar);
                     }
                 }
+
+                // Issue #416: UI Toolkitのボタンアイコンを更新
+                UpdateSlotButtonIcon(slotIndex);
             }
+        }
+
+        /// <summary>
+        /// Issue #416: スロットボタンのアイコンを更新（復元時用）
+        /// </summary>
+        private void UpdateSlotButtonIcon(int slotIndex)
+        {
+            // ボタン名を取得
+            string buttonName = $"bottomButton{slotIndex + 1}";
+            var button = root?.Q<Button>(buttonName);
+            if (button == null)
+            {
+                Debug.LogWarning($"[🎭 UI] Button not found: {buttonName}");
+                return;
+            }
+
+            // AvatarSlotCacheからアイコンパスを取得
+            var slotManager = AICam.FBXLoader.AvatarSlotManager.Instance;
+            if (slotManager?.Cache == null) return;
+
+            var slotData = slotManager.Cache.GetSlot(slotIndex);
+            if (slotData == null || !slotData.HasIcon)
+            {
+                Debug.Log($"[🎭 UI] No icon for slot {slotIndex}");
+                return;
+            }
+
+            // アイコンをロードしてボタンに設定
+            var iconTexture = LoadIconTexture(slotData.iconFilePath);
+            if (iconTexture != null)
+            {
+                UpdateButtonIcon(button, iconTexture);
+                Debug.Log($"[🎭 UI ✅] Updated button icon: {buttonName}");
+            }
+        }
+
+        /// <summary>
+        /// Issue #416: アイコンテクスチャをロード
+        /// </summary>
+        private Texture2D LoadIconTexture(string path)
+        {
+            try
+            {
+                if (!System.IO.File.Exists(path))
+                {
+                    Debug.LogWarning($"[🎭 UI] Icon file not found: {path}");
+                    return null;
+                }
+
+                byte[] data = System.IO.File.ReadAllBytes(path);
+                var texture = new Texture2D(2, 2);
+                if (texture.LoadImage(data))
+                {
+                    return texture;
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[🎭 UI ❌] Failed to load icon: {e.Message}");
+            }
+            return null;
         }
 
         /// <summary>
@@ -2820,7 +2925,7 @@ namespace AICam.UI
         /// Issue #416: AvatarSlotManagerのキャッシュに保存して永続化
         /// Play Mode終了後も復元できるようにする
         /// </summary>
-        private void SaveToAvatarSlotManager(Button targetButton, string filePath, AICam.FBXLoader.AvatarFileType fileType, string avatarName)
+        private void SaveToAvatarSlotManager(Button targetButton, string filePath, AICam.FBXLoader.AvatarFileType fileType, string avatarName, Texture2D thumbnail = null)
         {
             var slotManager = AICam.FBXLoader.AvatarSlotManager.Instance;
             if (slotManager == null)
@@ -2849,11 +2954,45 @@ namespace AICam.UI
                     slotData.avatarName = avatarName;
                     slotData.isValid = true;
 
+                    // アイコンをファイルに保存
+                    if (thumbnail != null)
+                    {
+                        string iconPath = AICam.FBXLoader.AvatarSlotCache.GetIconPath(slotIndex);
+                        SaveIconToFile(thumbnail, iconPath);
+                        slotData.iconFilePath = iconPath;
+                        Debug.Log($"[💾 PERSIST] Icon saved: {iconPath}");
+                    }
+
                     cache.SetLastActiveSlot(slotIndex);
                     cache.SaveToFile();
 
                     Debug.Log($"[💾 PERSIST ✅] Saved to AvatarSlotManager cache: slot={slotIndex}, path={filePath}");
                 }
+            }
+        }
+
+        /// <summary>
+        /// Issue #416: アイコンをファイルに保存
+        /// </summary>
+        private void SaveIconToFile(Texture2D texture, string path)
+        {
+            try
+            {
+                // ディレクトリを作成
+                string directory = System.IO.Path.GetDirectoryName(path);
+                if (!System.IO.Directory.Exists(directory))
+                {
+                    System.IO.Directory.CreateDirectory(directory);
+                }
+
+                // PNG形式で保存
+                byte[] pngData = texture.EncodeToPNG();
+                System.IO.File.WriteAllBytes(path, pngData);
+                Debug.Log($"[💾 ICON] Saved icon to: {path} ({pngData.Length} bytes)");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[💾 ICON ❌] Failed to save icon: {e.Message}");
             }
         }
 
