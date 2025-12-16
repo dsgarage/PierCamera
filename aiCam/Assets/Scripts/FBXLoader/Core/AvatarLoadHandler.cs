@@ -58,7 +58,7 @@ namespace AICam.FBXLoader
         /// <summary>
         /// アバターロード完了時に発火
         /// </summary>
-        public event Action<AvatarLoadResult> OnLoadComplete;
+        public event Action<HandlerLoadResult> OnLoadComplete;
 
         /// <summary>
         /// ロード進捗更新時に発火 (0.0 - 1.0)
@@ -129,11 +129,11 @@ namespace AICam.FBXLoader
         /// <summary>
         /// 統一ロードエントリポイント
         /// </summary>
-        public async UniTask<AvatarLoadResult> LoadAsync(AvatarLoadRequest request)
+        public async UniTask<HandlerLoadResult> LoadAsync(AvatarLoadRequest request)
         {
             if (request == null)
             {
-                return AvatarLoadResult.Failed(-1, "LoadRequest is null");
+                return HandlerLoadResult.Failed(-1, "LoadRequest is null");
             }
 
             Debug.Log($"[📦 LOAD] ==========================================");
@@ -153,7 +153,7 @@ namespace AICam.FBXLoader
 
             try
             {
-                AvatarLoadResult result;
+                HandlerLoadResult result;
 
                 switch (request.Source)
                 {
@@ -170,11 +170,11 @@ namespace AICam.FBXLoader
                         break;
 
                     case AvatarLoadSource.FromUnityPackage:
-                        result = AvatarLoadResult.Failed(request.TargetSlotIndex, "UnityPackage loading not yet implemented");
+                        result = HandlerLoadResult.Failed(request.TargetSlotIndex, "UnityPackage loading not yet implemented");
                         break;
 
                     default:
-                        result = AvatarLoadResult.Failed(request.TargetSlotIndex, $"Unknown LoadSource: {request.Source}");
+                        result = HandlerLoadResult.Failed(request.TargetSlotIndex, $"Unknown LoadSource: {request.Source}");
                         break;
                 }
 
@@ -191,13 +191,13 @@ namespace AICam.FBXLoader
             catch (OperationCanceledException)
             {
                 Debug.Log("[📦 LOAD] Load cancelled");
-                return AvatarLoadResult.Failed(request.TargetSlotIndex, "Load cancelled");
+                return HandlerLoadResult.Failed(request.TargetSlotIndex, "Load cancelled");
             }
             catch (Exception e)
             {
                 Debug.LogError($"[📦 LOAD ❌] Exception: {e.Message}");
                 Debug.LogException(e);
-                return AvatarLoadResult.Failed(request.TargetSlotIndex, e.Message);
+                return HandlerLoadResult.Failed(request.TargetSlotIndex, e.Message);
             }
             finally
             {
@@ -208,7 +208,7 @@ namespace AICam.FBXLoader
         /// <summary>
         /// ファイルピッカーからロード（新規ファイル選択時）
         /// </summary>
-        public async UniTask<AvatarLoadResult> LoadFromFilePickerAsync(string filePath, int targetSlot)
+        public async UniTask<HandlerLoadResult> LoadFromFilePickerAsync(string filePath, int targetSlot)
         {
             var request = new AvatarLoadRequest
             {
@@ -224,7 +224,7 @@ namespace AICam.FBXLoader
         /// <summary>
         /// スロットからロード（スロットタップ時）
         /// </summary>
-        public async UniTask<AvatarLoadResult> LoadFromSlotAsync(int slotIndex)
+        public async UniTask<HandlerLoadResult> LoadFromSlotAsync(int slotIndex)
         {
             var cache = slotManager?.Cache;
             var slotData = cache?.GetSlot(slotIndex);
@@ -243,19 +243,19 @@ namespace AICam.FBXLoader
         /// <summary>
         /// アプリ復帰時に最後にアクティブだったスロットを復元
         /// </summary>
-        public async UniTask<AvatarLoadResult> RestoreLastActiveAsync()
+        public async UniTask<HandlerLoadResult> RestoreLastActiveAsync()
         {
             var cache = slotManager?.Cache;
             if (cache == null)
             {
-                return AvatarLoadResult.Failed(-1, "Cache not available");
+                return HandlerLoadResult.Failed(-1, "Cache not available");
             }
 
             int slotToRestore = cache.GetSlotToRestore();
             if (slotToRestore < 0)
             {
                 Debug.Log("[📦 RESTORE] No valid slot to restore");
-                return AvatarLoadResult.Failed(-1, "No valid slot to restore");
+                return HandlerLoadResult.Failed(-1, "No valid slot to restore");
             }
 
             var slotData = cache.GetSlot(slotToRestore);
@@ -278,12 +278,12 @@ namespace AICam.FBXLoader
         /// <summary>
         /// ファイルピッカーからのロード実装
         /// </summary>
-        private async UniTask<AvatarLoadResult> LoadFromFilePickerInternalAsync(AvatarLoadRequest request, CancellationToken ct)
+        private async UniTask<HandlerLoadResult> LoadFromFilePickerInternalAsync(AvatarLoadRequest request, CancellationToken ct)
         {
             // 1. ファイル存在確認
             if (string.IsNullOrEmpty(request.FilePath) || !File.Exists(request.FilePath))
             {
-                return AvatarLoadResult.Failed(request.TargetSlotIndex, $"File not found: {request.FilePath}");
+                return HandlerLoadResult.Failed(request.TargetSlotIndex, $"File not found: {request.FilePath}");
             }
 
             OnLoadProgress?.Invoke(0.1f);
@@ -292,7 +292,7 @@ namespace AICam.FBXLoader
             GameObject avatar = await LoadAvatarByTypeAsync(request, ct);
             if (avatar == null)
             {
-                return AvatarLoadResult.Failed(request.TargetSlotIndex, "Failed to load avatar");
+                return HandlerLoadResult.Failed(request.TargetSlotIndex, "Failed to load avatar");
             }
 
             OnLoadProgress?.Invoke(0.6f);
@@ -319,25 +319,25 @@ namespace AICam.FBXLoader
             slotManager?.SelectSlot(request.TargetSlotIndex);
             OnLoadProgress?.Invoke(1.0f);
 
-            return AvatarLoadResult.Succeeded(request.TargetSlotIndex, avatar);
+            return HandlerLoadResult.Succeeded(request.TargetSlotIndex, avatar);
         }
 
         /// <summary>
         /// スロットからのロード実装
         /// </summary>
-        private async UniTask<AvatarLoadResult> LoadFromSlotInternalAsync(AvatarLoadRequest request, CancellationToken ct)
+        private async UniTask<HandlerLoadResult> LoadFromSlotInternalAsync(AvatarLoadRequest request, CancellationToken ct)
         {
             var cache = slotManager?.Cache;
             var slotData = cache?.GetSlot(request.TargetSlotIndex);
 
             if (slotData == null || !slotData.IsConfigured)
             {
-                return AvatarLoadResult.Failed(request.TargetSlotIndex, "Slot is not configured");
+                return HandlerLoadResult.Failed(request.TargetSlotIndex, "Slot is not configured");
             }
 
             if (!slotData.ModelFileExists)
             {
-                return AvatarLoadResult.Failed(request.TargetSlotIndex, $"Model file not found: {slotData.modelFilePath}");
+                return HandlerLoadResult.Failed(request.TargetSlotIndex, $"Model file not found: {slotData.modelFilePath}");
             }
 
             OnLoadProgress?.Invoke(0.1f);
@@ -354,7 +354,7 @@ namespace AICam.FBXLoader
                         SetupAnimatorController(cachedAvatar);
                         slotManager?.SelectSlot(request.TargetSlotIndex);
                         OnLoadProgress?.Invoke(1.0f);
-                        return AvatarLoadResult.Succeeded(request.TargetSlotIndex, cachedAvatar, wasCacheHit: true);
+                        return HandlerLoadResult.Succeeded(request.TargetSlotIndex, cachedAvatar, wasCacheHit: true);
                     }
                 }
                 else
@@ -371,7 +371,7 @@ namespace AICam.FBXLoader
             GameObject avatar = await LoadAvatarByTypeAsync(request, ct);
             if (avatar == null)
             {
-                return AvatarLoadResult.Failed(request.TargetSlotIndex, "Failed to load avatar from slot");
+                return HandlerLoadResult.Failed(request.TargetSlotIndex, "Failed to load avatar from slot");
             }
 
             OnLoadProgress?.Invoke(0.7f);
@@ -396,13 +396,13 @@ namespace AICam.FBXLoader
             slotManager?.SelectSlot(request.TargetSlotIndex);
             OnLoadProgress?.Invoke(1.0f);
 
-            return AvatarLoadResult.Succeeded(request.TargetSlotIndex, avatar);
+            return HandlerLoadResult.Succeeded(request.TargetSlotIndex, avatar);
         }
 
         /// <summary>
         /// アプリ復帰時のロード実装
         /// </summary>
-        private async UniTask<AvatarLoadResult> LoadFromRestoreInternalAsync(AvatarLoadRequest request, CancellationToken ct)
+        private async UniTask<HandlerLoadResult> LoadFromRestoreInternalAsync(AvatarLoadRequest request, CancellationToken ct)
         {
             Debug.Log($"[📦 RESTORE] Restoring slot {request.TargetSlotIndex}...");
 
@@ -597,9 +597,9 @@ namespace AICam.FBXLoader
     }
 
     /// <summary>
-    /// ロード結果
+    /// ロード結果（AvatarLoadHandler用）
     /// </summary>
-    public class AvatarLoadResult
+    public class HandlerLoadResult
     {
         public bool Success { get; private set; }
         public GameObject Avatar { get; private set; }
@@ -607,11 +607,11 @@ namespace AICam.FBXLoader
         public string ErrorMessage { get; private set; }
         public bool WasCacheHit { get; private set; }
 
-        private AvatarLoadResult() { }
+        private HandlerLoadResult() { }
 
-        public static AvatarLoadResult Succeeded(int slotIndex, GameObject avatar, bool wasCacheHit = false)
+        public static HandlerLoadResult Succeeded(int slotIndex, GameObject avatar, bool wasCacheHit = false)
         {
-            return new AvatarLoadResult
+            return new HandlerLoadResult
             {
                 Success = true,
                 SlotIndex = slotIndex,
@@ -621,9 +621,9 @@ namespace AICam.FBXLoader
             };
         }
 
-        public static AvatarLoadResult Failed(int slotIndex, string errorMessage)
+        public static HandlerLoadResult Failed(int slotIndex, string errorMessage)
         {
-            return new AvatarLoadResult
+            return new HandlerLoadResult
             {
                 Success = false,
                 SlotIndex = slotIndex,
@@ -637,9 +637,9 @@ namespace AICam.FBXLoader
         {
             if (Success)
             {
-                return $"AvatarLoadResult(Success, Slot={SlotIndex}, Avatar={Avatar?.name ?? "null"}, CacheHit={WasCacheHit})";
+                return $"HandlerLoadResult(Success, Slot={SlotIndex}, Avatar={Avatar?.name ?? "null"}, CacheHit={WasCacheHit})";
             }
-            return $"AvatarLoadResult(Failed, Slot={SlotIndex}, Error={ErrorMessage})";
+            return $"HandlerLoadResult(Failed, Slot={SlotIndex}, Error={ErrorMessage})";
         }
     }
 
