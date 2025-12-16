@@ -7,6 +7,15 @@
       "dependencies": {},
       "hash": "73a63b7f672b88f7e9992f6917eb458a8cbb6fa9"
     },
+    "com.dsgarage.unisil": {
+      "version": "git@github.com:dsgarage/UniSIL.git?path=/Packages/com.dsgarage.unisil",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.unity.render-pipelines.universal": "14.0.0"
+      },
+      "hash": "c650f5f43d0ebf11eb5f731ccfb5258552d75f65"
+    },
     "com.frozenstorminteractive.assimp": {
       "version": "4.1.0",
       "depth": 0,
