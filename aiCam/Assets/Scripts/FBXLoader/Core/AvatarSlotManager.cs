@@ -72,16 +72,29 @@ namespace AICam.FBXLoader
 
             try
             {
+                // 起動時のプラットフォーム・パス情報を出力
+                Debug.Log($"[🚀 STARTUP] ==========================================");
+                Debug.Log($"[🚀 STARTUP] Platform: {Application.platform}");
+                Debug.Log($"[🚀 STARTUP] persistentDataPath: {Application.persistentDataPath}");
+                Debug.Log($"[🚀 STARTUP] Cache path: {AvatarSlotCache.GetCacheFilePath()}");
+                #if UNITY_EDITOR
+                Debug.Log($"[🚀 STARTUP] Running in EDITOR");
+                #else
+                Debug.Log($"[🚀 STARTUP] Running in BUILD");
+                #endif
+                Debug.Log($"[🚀 STARTUP] ==========================================");
+
                 // キャッシュを非同期で読み込み
                 cache = await AvatarSlotCache.LoadFromFileAsync();
 
                 if (cache.maxSlots != maxSlots)
                 {
+                    Debug.Log($"[🚀 STARTUP] Adjusting maxSlots: {cache.maxSlots} -> {maxSlots}");
                     cache.Initialize(maxSlots);
                     cache.SaveToFile();
                 }
 
-                Debug.Log($"[AvatarSlotManager] Cache loaded async with {cache.GetConfiguredSlotCount()} configured slots");
+                Debug.Log($"[🚀 STARTUP] Cache loaded: {cache.GetConfiguredSlotCount()} configured, lastActive={cache.lastActiveSlotIndex}");
 
                 // 次のフレームまで待機してUIが準備完了するのを待つ
                 await UniTask.Yield();
@@ -312,15 +325,24 @@ namespace AICam.FBXLoader
         {
             try
             {
+                Debug.Log($"[🔄 RESTORE] ==========================================");
+                Debug.Log($"[🔄 RESTORE] Checking for slot to restore...");
+                Debug.Log($"[🔄 RESTORE] lastActiveSlotIndex in cache: {cache.lastActiveSlotIndex}");
+
                 int slotToRestore = cache.GetSlotToRestore();
 
                 if (slotToRestore < 0)
                 {
-                    Debug.Log("[AvatarSlotManager] No slot to restore on startup");
+                    Debug.Log("[🔄 RESTORE] No valid slot to restore");
+                    Debug.Log($"[🔄 RESTORE] ==========================================");
                     return;
                 }
 
-                Debug.Log($"[AvatarSlotManager] Restoring slot {slotToRestore} on startup...");
+                var slotData = cache.GetSlot(slotToRestore);
+                Debug.Log($"[🔄 RESTORE] Will restore slot {slotToRestore}");
+                Debug.Log($"[🔄 RESTORE] Avatar: {slotData?.avatarName ?? "null"}");
+                Debug.Log($"[🔄 RESTORE] Path: {slotData?.modelFilePath ?? "null"}");
+                Debug.Log($"[🔄 RESTORE] IsValid: {slotData?.isValid}");
 
                 // 少し待機してUIの準備完了を確実にする
                 await UniTask.Delay(100);
@@ -328,25 +350,29 @@ namespace AICam.FBXLoader
                 // スロットを復元
                 if (operationQueue != null)
                 {
+                    Debug.Log($"[🔄 RESTORE] Loading via operation queue...");
                     var result = await operationQueue.EnqueueLoad(slotToRestore, AvatarOperationQueue.OperationPriority.Normal);
                     if (result.Success)
                     {
-                        Debug.Log($"[AvatarSlotManager] Successfully restored slot {slotToRestore} on startup");
+                        Debug.Log($"[🔄 RESTORE ✅] Successfully restored slot {slotToRestore}");
                     }
                     else
                     {
-                        Debug.LogWarning($"[AvatarSlotManager] Failed to restore slot {slotToRestore}: {result.ErrorMessage}");
+                        Debug.LogWarning($"[🔄 RESTORE ❌] Failed to restore: {result.ErrorMessage}");
                     }
                 }
                 else
                 {
                     // キューがない場合は直接実行
+                    Debug.Log($"[🔄 RESTORE] Loading directly (no queue)...");
                     await LoadAvatarFromSlotInternal(slotToRestore, CancellationToken.None);
+                    Debug.Log($"[🔄 RESTORE ✅] Direct load complete");
                 }
+                Debug.Log($"[🔄 RESTORE] ==========================================");
             }
             catch (Exception e)
             {
-                Debug.LogError($"[AvatarSlotManager] Error restoring slot on startup: {e.Message}");
+                Debug.LogError($"[🔄 RESTORE ❌] Error: {e.Message}");
                 Debug.LogException(e);
             }
         }
@@ -1164,11 +1190,12 @@ namespace AICam.FBXLoader
                 avatarSlots[slotIndex].SetSelected(true);
             }
 
-            // Issue #416: 最後にアクティブだったスロットを記録
+            // Issue #416: 最後にアクティブだったスロットを記録して保存
             if (cache != null && slotIndex >= 0)
             {
                 cache.SetLastActiveSlot(slotIndex);
                 cache.SaveToFile();
+                Debug.Log($"[💾 SELECT] Slot {slotIndex} selected and saved to cache");
             }
 
             OnSlotSelected?.Invoke(slotIndex);
