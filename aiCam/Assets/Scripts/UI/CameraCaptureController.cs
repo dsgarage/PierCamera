@@ -1394,8 +1394,90 @@ namespace AICam.UI
 
         /// <summary>
         /// VRMファイルをロード
+        /// Issue #419: AvatarLoadHandler経由でロード
         /// </summary>
         async UniTask LoadVRMFileAsync(string filePath, Button targetButton)
+        {
+            Debug.Log($"🎭 Loading VRM file via AvatarLoadHandler: {filePath}");
+
+            // Issue #73: プログレス表示開始
+            StartSlotLoading(targetButton);
+
+            try
+            {
+                int slotIndex = GetSlotIndexFromButton(targetButton);
+
+                // AvatarLoadHandler経由でロード
+                var handler = AICam.FBXLoader.AvatarLoadHandler.Instance;
+                if (handler != null)
+                {
+                    // プログレス購読
+                    void OnProgress(float progress)
+                    {
+                        UpdateSlotProgress(targetButton, progress);
+                    }
+                    handler.OnLoadProgress += OnProgress;
+
+                    try
+                    {
+                        var result = await handler.LoadFromFilePickerAsync(filePath, slotIndex);
+
+                        if (result.Success)
+                        {
+                            Debug.Log($"✅ VRM avatar loaded via handler: {result.Avatar?.name}");
+
+                            // ローカルスロットデータを更新
+                            if (!slotDataMap.ContainsKey(targetButton))
+                            {
+                                slotDataMap[targetButton] = new SlotData();
+                            }
+                            var slotData = slotDataMap[targetButton];
+                            slotData.filePath = filePath;
+                            slotData.fileType = SlotFileType.VRM;
+                            slotData.loadedAvatar = result.Avatar;
+
+                            // アイコンをキャッシュからロード
+                            UpdateSlotButtonIcon(slotIndex);
+
+                            // 選択状態を更新
+                            UpdateSlotSelection(targetButton);
+
+                            // Issue #73: プログレス完了
+                            CompleteSlotLoading(targetButton);
+
+                            // Heavy impact for successful load
+                            TapticEngine.Impact(TapticEngine.ImpactStyle.Heavy);
+                        }
+                        else
+                        {
+                            Debug.LogError($"❌ Failed to load VRM via handler: {result.ErrorMessage}");
+                            CancelSlotLoading(targetButton);
+                        }
+                    }
+                    finally
+                    {
+                        handler.OnLoadProgress -= OnProgress;
+                    }
+                }
+                else
+                {
+                    // フォールバック: 従来の方法
+                    Debug.LogWarning("⚠️ AvatarLoadHandler not found, using legacy method");
+                    await LoadVRMFileLegacyAsync(filePath, targetButton);
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"❌ Error loading VRM: {e.Message}");
+                Debug.LogException(e);
+                CancelSlotLoading(targetButton);
+            }
+        }
+
+        /// <summary>
+        /// VRMファイルをロード（レガシー/フォールバック）
+        /// </summary>
+        async UniTask LoadVRMFileLegacyAsync(string filePath, Button targetButton)
         {
             if (avatarLoader == null)
             {
@@ -1403,117 +1485,167 @@ namespace AICam.UI
                 return;
             }
 
-            Debug.Log($"🎭 Loading VRM file: {filePath}");
+            UpdateSlotProgress(targetButton, 0.1f);
 
-            // Issue #73: プログレス表示開始
-            StartSlotLoading(targetButton);
-            UpdateSlotProgress(targetButton, 0.1f); // 10%: 開始
+            // 既存のアバターをクリア
+            avatarLoader.ClearCurrentAvatar();
+            ClearExistingAvatarInPlacer();
 
-            try
+            UpdateSlotProgress(targetButton, 0.3f);
+
+            var avatar = await avatarLoader.LoadVRMFromPathAsync(filePath);
+            if (avatar == null)
             {
-                // 既存のアバターをクリアしてから新しいVRMをロード
-                Debug.Log("🗑️ Clearing existing avatar before loading new VRM...");
-                avatarLoader.ClearCurrentAvatar();
-
-                // PlaceAvatarOnPlaneOnlyのavatarもクリア
-                var placer = FindFirstObjectByType<PlaceAvatarOnPlaneOnly>();
-                if (placer != null)
-                {
-                    // Reflectionを使ってprivateフィールドにアクセス
-                    var avatarField = typeof(PlaceAvatarOnPlaneOnly).GetField("avatar",
-                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-
-                    if (avatarField != null)
-                    {
-                        var existingAvatar = avatarField.GetValue(placer) as GameObject;
-                        if (existingAvatar != null)
-                        {
-                            Debug.Log($"🗑️ Destroying existing avatar in PlaceAvatarOnPlaneOnly: {existingAvatar.name}");
-                            Destroy(existingAvatar);
-                            avatarField.SetValue(placer, null);
-                        }
-                    }
-                }
-
-                // Issue #73: プログレス更新
-                UpdateSlotProgress(targetButton, 0.3f); // 30%: バイト読込開始
-
-                // VRMをロード
-                var avatar = await avatarLoader.LoadVRMFromPathAsync(filePath);
-
-                if (avatar == null)
-                {
-                    Debug.LogError("❌ Failed to load VRM avatar");
-                    CancelSlotLoading(targetButton); // Issue #73: キャンセル
-                    return;
-                }
-
-                Debug.Log($"✅ VRM avatar loaded successfully: {avatar.name}");
-
-                // Issue #73: プログレス更新
-                UpdateSlotProgress(targetButton, 0.7f); // 70%: VRM生成完了
-
-                // レンダリングが安定するまで待機
-                await UniTask.DelayFrame(3);
-
-                // Issue #73: プログレス更新
-                UpdateSlotProgress(targetButton, 0.85f); // 85%: 配置完了
-
-                // サムネイルを生成（AvatarIconCaptureを使用）
-                Debug.Log($"🖼 Starting thumbnail capture for: {avatar.name}");
-                var thumbnail = await AICam.FBXLoader.AvatarIconCapture.Instance.CaptureAsTextureAsync(avatar);
-                Debug.Log($"🖼 Thumbnail capture result: {(thumbnail != null ? $"{thumbnail.width}x{thumbnail.height}" : "NULL")}");
-
-                // Issue #73: プログレス完了
-                CompleteSlotLoading(targetButton);
-
-                // スロットデータを保存
-                if (!slotDataMap.ContainsKey(targetButton))
-                {
-                    slotDataMap[targetButton] = new SlotData();
-                }
-                var slotData = slotDataMap[targetButton];
-                slotData.filePath = filePath;
-                slotData.fileType = SlotFileType.VRM;
-                slotData.thumbnail = thumbnail;
-                slotData.loadedAvatar = avatar;
-
-                Debug.Log($"💾 Slot data saved for {targetButton.name}: {filePath} (VRM)");
-
-                // Issue #416: AvatarSlotManagerのキャッシュにも保存（永続化のため）
-                SaveToAvatarSlotManager(targetButton, filePath, AICam.FBXLoader.AvatarFileType.VRM, avatar?.name ?? "VRM", thumbnail);
-
-                if (thumbnail != null)
-                {
-                    // ボタンアイコンを更新
-                    UpdateButtonIcon(targetButton, thumbnail);
-                    Debug.Log($"🖼 Thumbnail generated and applied to button: {targetButton.name}");
-                }
-
-                // 選択状態を更新
-                UpdateSlotSelection(targetButton);
-
-                // Heavy impact for successful load
-                TapticEngine.Impact(TapticEngine.ImpactStyle.Heavy);
+                CancelSlotLoading(targetButton);
+                return;
             }
-            catch (Exception e)
+
+            UpdateSlotProgress(targetButton, 0.7f);
+            await UniTask.DelayFrame(3);
+            UpdateSlotProgress(targetButton, 0.85f);
+
+            Texture2D thumbnail = null;
+            var iconCapture = AICam.FBXLoader.AvatarIconCapture.Instance;
+            if (iconCapture != null)
             {
-                Debug.LogError($"❌ Error loading VRM: {e.Message}");
-                Debug.LogException(e);
-                CancelSlotLoading(targetButton); // Issue #73: エラー時はキャンセル
+                thumbnail = await iconCapture.CaptureAsTextureAsync(avatar);
+            }
+            CompleteSlotLoading(targetButton);
+
+            if (!slotDataMap.ContainsKey(targetButton))
+            {
+                slotDataMap[targetButton] = new SlotData();
+            }
+            var slotData = slotDataMap[targetButton];
+            slotData.filePath = filePath;
+            slotData.fileType = SlotFileType.VRM;
+            slotData.thumbnail = thumbnail;
+            slotData.loadedAvatar = avatar;
+
+            SaveToAvatarSlotManager(targetButton, filePath, AICam.FBXLoader.AvatarFileType.VRM, avatar?.name ?? "VRM", thumbnail);
+
+            if (thumbnail != null)
+            {
+                UpdateButtonIcon(targetButton, thumbnail);
+            }
+
+            UpdateSlotSelection(targetButton);
+            TapticEngine.Impact(TapticEngine.ImpactStyle.Heavy);
+        }
+
+        /// <summary>
+        /// PlaceAvatarOnPlaneOnlyの既存アバターをクリア
+        /// </summary>
+        private void ClearExistingAvatarInPlacer()
+        {
+            var placer = FindFirstObjectByType<PlaceAvatarOnPlaneOnly>();
+            if (placer == null) return;
+
+            var avatarField = typeof(PlaceAvatarOnPlaneOnly).GetField("avatar",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+            if (avatarField != null)
+            {
+                var existingAvatar = avatarField.GetValue(placer) as GameObject;
+                if (existingAvatar != null)
+                {
+                    Debug.Log($"🗑️ Destroying existing avatar in PlaceAvatarOnPlaneOnly: {existingAvatar.name}");
+                    Destroy(existingAvatar);
+                    avatarField.SetValue(placer, null);
+                }
             }
         }
 
         /// <summary>
         /// FBXファイルをロード
+        /// Issue #419: AvatarLoadHandler経由でロード
         /// </summary>
         async UniTask LoadFBXFileAsync(string filePath, Button targetButton)
         {
+            Debug.Log($"📦 Loading FBX file via AvatarLoadHandler: {filePath}");
+
+            // Issue #73: プログレス表示開始
+            StartSlotLoading(targetButton);
+
+            try
+            {
+                int slotIndex = GetSlotIndexFromButton(targetButton);
+
+                // AvatarLoadHandler経由でロード
+                var handler = AICam.FBXLoader.AvatarLoadHandler.Instance;
+                if (handler != null)
+                {
+                    // プログレス購読
+                    void OnProgress(float progress)
+                    {
+                        UpdateSlotProgress(targetButton, progress);
+                    }
+                    handler.OnLoadProgress += OnProgress;
+
+                    try
+                    {
+                        var result = await handler.LoadFromFilePickerAsync(filePath, slotIndex);
+
+                        if (result.Success)
+                        {
+                            Debug.Log($"✅ FBX loaded via handler: {result.Avatar?.name}");
+
+                            // ローカルスロットデータを更新
+                            if (!slotDataMap.ContainsKey(targetButton))
+                            {
+                                slotDataMap[targetButton] = new SlotData();
+                            }
+                            var slotData = slotDataMap[targetButton];
+                            slotData.filePath = filePath;
+                            slotData.fileType = SlotFileType.FBX;
+                            slotData.loadedAvatar = result.Avatar;
+
+                            // アイコンをキャッシュからロード
+                            UpdateSlotButtonIcon(slotIndex);
+
+                            // 選択状態を更新
+                            UpdateSlotSelection(targetButton);
+
+                            // Issue #73: プログレス完了
+                            CompleteSlotLoading(targetButton);
+
+                            // Heavy impact for successful load
+                            TapticEngine.Impact(TapticEngine.ImpactStyle.Heavy);
+                        }
+                        else
+                        {
+                            Debug.LogError($"❌ Failed to load FBX via handler: {result.ErrorMessage}");
+                            CancelSlotLoading(targetButton);
+                        }
+                    }
+                    finally
+                    {
+                        handler.OnLoadProgress -= OnProgress;
+                    }
+                }
+                else
+                {
+                    // フォールバック: 従来の方法
+                    Debug.LogWarning("⚠️ AvatarLoadHandler not found, using legacy method");
+                    await LoadFBXFileLegacyAsync(filePath, targetButton);
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"❌ Error loading FBX: {e.Message}");
+                Debug.LogException(e);
+                CancelSlotLoading(targetButton);
+            }
+        }
+
+        /// <summary>
+        /// FBXファイルをロード（レガシー/フォールバック）
+        /// </summary>
+        async UniTask LoadFBXFileLegacyAsync(string filePath, Button targetButton)
+        {
             if (fbxLoaderBridge == null)
             {
-                // RuntimeFBXLoaderBridgeを探す
                 fbxLoaderBridge = FindFirstObjectByType<AICam.FBXLoader.RuntimeFBXLoaderBridge>();
-
                 if (fbxLoaderBridge == null)
                 {
                     Debug.LogError("❌ RuntimeFBXLoaderBridge is not found!");
@@ -1521,102 +1653,62 @@ namespace AICam.UI
                 }
             }
 
-            Debug.Log($"📦 Loading FBX file: {filePath}");
-
-            // Issue #73: プログレス表示開始
-            StartSlotLoading(targetButton);
-            UpdateSlotProgress(targetButton, 0.1f); // 10%: 開始
+            UpdateSlotProgress(targetButton, 0.1f);
 
             bool loadSuccess = false;
             var tcs = new UniTaskCompletionSource();
 
-            try
+            fbxLoaderBridge.StartRuntimeLoadFromPath(
+                filePath, -1, null,
+                progress => UpdateSlotProgress(targetButton, 0.1f + (progress / 100f) * 0.8f),
+                success => { loadSuccess = success; tcs.TrySetResult(); }
+            );
+
+            await tcs.Task;
+
+            if (!loadSuccess)
             {
-                // RuntimeFBXLoaderBridgeを使用してFBXをロード
-                fbxLoaderBridge.StartRuntimeLoadFromPath(
-                    filePath,
-                    -1,  // スロットインデックスは使わない
-                    null, // アイコンパスは自前で処理
-                    progress =>
-                    {
-                        Debug.Log($"📦 FBX load progress: {progress}%");
-                        // Issue #73: FBXローダーの進捗をUIに反映（0-100を0.1-0.9にマップ）
-                        UpdateSlotProgress(targetButton, 0.1f + (progress / 100f) * 0.8f);
-                    },
-                    success =>
-                    {
-                        loadSuccess = success;
-                        tcs.TrySetResult();
-                    }
-                );
-
-                await tcs.Task;
-
-                if (!loadSuccess)
-                {
-                    Debug.LogError("❌ Failed to load FBX");
-                    CancelSlotLoading(targetButton); // Issue #73: キャンセル
-                    return;
-                }
-
-                var loadedModel = fbxLoaderBridge.CurrentModel;
-                if (loadedModel == null)
-                {
-                    Debug.LogError("❌ FBX model is null after loading");
-                    CancelSlotLoading(targetButton); // Issue #73: キャンセル
-                    return;
-                }
-
-                Debug.Log($"✅ FBX loaded successfully: {loadedModel.name}");
-
-                // Issue #73: プログレス更新
-                UpdateSlotProgress(targetButton, 0.9f); // 90%: FBX生成完了
-
-                // レンダリングが安定するまで待機
-                await UniTask.DelayFrame(3);
-
-                // サムネイルを生成（AvatarIconCaptureを使用）
-                Debug.Log($"🖼 Starting thumbnail capture for: {loadedModel.name}");
-                Texture2D thumbnail = await AICam.FBXLoader.AvatarIconCapture.Instance.CaptureAsTextureAsync(loadedModel);
-                Debug.Log($"🖼 Thumbnail capture result: {(thumbnail != null ? $"{thumbnail.width}x{thumbnail.height}" : "NULL")}");
-
-                // Issue #73: プログレス完了
-                CompleteSlotLoading(targetButton);
-
-                // スロットデータを保存
-                if (!slotDataMap.ContainsKey(targetButton))
-                {
-                    slotDataMap[targetButton] = new SlotData();
-                }
-                var slotData = slotDataMap[targetButton];
-                slotData.filePath = filePath;
-                slotData.fileType = SlotFileType.FBX;
-                slotData.thumbnail = thumbnail;
-                slotData.loadedAvatar = loadedModel;
-
-                Debug.Log($"💾 Slot data saved for {targetButton.name}: {filePath} (FBX)");
-
-                // Issue #416: AvatarSlotManagerのキャッシュにも保存（永続化のため）
-                SaveToAvatarSlotManager(targetButton, filePath, AICam.FBXLoader.AvatarFileType.FBX, loadedModel?.name ?? "FBX", thumbnail);
-
-                if (thumbnail != null)
-                {
-                    UpdateButtonIcon(targetButton, thumbnail);
-                    Debug.Log($"🖼 Thumbnail generated and applied to button: {targetButton.name}");
-                }
-
-                // 選択状態を更新
-                UpdateSlotSelection(targetButton);
-
-                // Heavy impact for successful load
-                TapticEngine.Impact(TapticEngine.ImpactStyle.Heavy);
+                CancelSlotLoading(targetButton);
+                return;
             }
-            catch (Exception e)
+
+            var loadedModel = fbxLoaderBridge.CurrentModel;
+            if (loadedModel == null)
             {
-                Debug.LogError($"❌ Error loading FBX: {e.Message}");
-                Debug.LogException(e);
-                CancelSlotLoading(targetButton); // Issue #73: エラー時はキャンセル
+                CancelSlotLoading(targetButton);
+                return;
             }
+
+            UpdateSlotProgress(targetButton, 0.9f);
+            await UniTask.DelayFrame(3);
+
+            Texture2D thumbnail = null;
+            var iconCaptureFbx = AICam.FBXLoader.AvatarIconCapture.Instance;
+            if (iconCaptureFbx != null)
+            {
+                thumbnail = await iconCaptureFbx.CaptureAsTextureAsync(loadedModel);
+            }
+            CompleteSlotLoading(targetButton);
+
+            if (!slotDataMap.ContainsKey(targetButton))
+            {
+                slotDataMap[targetButton] = new SlotData();
+            }
+            var slotData = slotDataMap[targetButton];
+            slotData.filePath = filePath;
+            slotData.fileType = SlotFileType.FBX;
+            slotData.thumbnail = thumbnail;
+            slotData.loadedAvatar = loadedModel;
+
+            SaveToAvatarSlotManager(targetButton, filePath, AICam.FBXLoader.AvatarFileType.FBX, loadedModel?.name ?? "FBX", thumbnail);
+
+            if (thumbnail != null)
+            {
+                UpdateButtonIcon(targetButton, thumbnail);
+            }
+
+            UpdateSlotSelection(targetButton);
+            TapticEngine.Impact(TapticEngine.ImpactStyle.Heavy);
         }
 
         /// <summary>

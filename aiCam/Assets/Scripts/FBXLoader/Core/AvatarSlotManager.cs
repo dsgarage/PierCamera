@@ -108,8 +108,8 @@ namespace AICam.FBXLoader
                 isInitialized = true;
                 Debug.Log("[AvatarSlotManager] Async initialization complete");
 
-                // Issue #416: 最後にアクティブだったスロットを自動復元
-                await RestoreLastActiveSlotAsync();
+                // Issue #419: AvatarLoadHandler経由で最後にアクティブだったスロットを自動復元
+                await RestoreLastActiveSlotViaHandlerAsync();
             }
             catch (Exception e)
             {
@@ -318,7 +318,52 @@ namespace AICam.FBXLoader
         }
 
         /// <summary>
-        /// Issue #416: 最後にアクティブだったスロットを自動復元
+        /// Issue #419: AvatarLoadHandler経由で最後にアクティブだったスロットを自動復元
+        /// </summary>
+        private async UniTask RestoreLastActiveSlotViaHandlerAsync()
+        {
+            try
+            {
+                Debug.Log($"[🔄 RESTORE] ==========================================");
+                Debug.Log($"[🔄 RESTORE] Using AvatarLoadHandler for restore...");
+
+                // AvatarLoadHandlerのインスタンス待機
+                int maxWait = 20; // 最大2秒待機
+                while (AvatarLoadHandler.Instance == null && maxWait > 0)
+                {
+                    await UniTask.Delay(100);
+                    maxWait--;
+                }
+
+                if (AvatarLoadHandler.Instance == null)
+                {
+                    Debug.LogWarning("[🔄 RESTORE] AvatarLoadHandler not found, falling back to legacy method");
+                    await RestoreLastActiveSlotAsync();
+                    return;
+                }
+
+                var result = await AvatarLoadHandler.Instance.RestoreLastActiveAsync();
+
+                if (result.Success)
+                {
+                    Debug.Log($"[🔄 RESTORE ✅] Successfully restored via handler: slot={result.SlotIndex}");
+                }
+                else if (result.ErrorMessage != "No valid slot to restore")
+                {
+                    Debug.LogWarning($"[🔄 RESTORE ⚠️] Handler restore failed: {result.ErrorMessage}");
+                }
+
+                Debug.Log($"[🔄 RESTORE] ==========================================");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[🔄 RESTORE ❌] Error: {e.Message}");
+                Debug.LogException(e);
+            }
+        }
+
+        /// <summary>
+        /// Issue #416: 最後にアクティブだったスロットを自動復元（レガシー/フォールバック）
         /// アプリ再起動時に以前使用していたアバターを自動的にロードする
         /// </summary>
         private async UniTask RestoreLastActiveSlotAsync()
