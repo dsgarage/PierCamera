@@ -235,23 +235,8 @@ namespace AICam.VRM
                 Debug.Log("[RuntimeAvatarLoader] Added Animator component");
             }
 
-            // ボディ用AnimatorControllerを設定（ベースコントローラー）
-            if (bodyAnimatorController != null)
-            {
-                animator.runtimeAnimatorController = bodyAnimatorController;
-                Debug.Log($"[RuntimeAvatarLoader] Set body animator controller: {bodyAnimatorController.name}");
-
-                // 初期ステートの再生
-                if (!string.IsNullOrEmpty(initialStateName))
-                {
-                    animator.Play(initialStateName, 0, 0f);
-                    Debug.Log($"[RuntimeAvatarLoader] Playing initial state: {initialStateName}");
-                }
-            }
-            else
-            {
-                Debug.LogWarning("[RuntimeAvatarLoader] Body animator controller not assigned");
-            }
+            // Issue #407: AnimatorControllerはCameraCaptureController.ApplyDefaultAOCで設定するため、ここでは設定しない
+            Debug.Log($"[RuntimeAvatarLoader] Animator setup complete. Controller will be assigned by CameraCaptureController.ApplyDefaultAOC()");
 
             // 表情用AnimatorControllerは別途Animatorレイヤーとして追加することも可能
             // 現在は単純実装のため、bodyAnimatorControllerのみを使用

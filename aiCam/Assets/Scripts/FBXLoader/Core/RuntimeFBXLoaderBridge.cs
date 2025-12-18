@@ -868,34 +868,8 @@ namespace AICam.FBXLoader
                 Debug.LogWarning("[RuntimeFBXLoaderBridge] ⚠ Avatar is NOT assigned! Humanoid animation will not work.");
             }
 
-            Debug.Log($"[RuntimeFBXLoaderBridge] animatorController field is: {(animatorController != null ? animatorController.name : "NULL - NOT ASSIGNED IN INSPECTOR!")}");
-
-            if (animatorController != null)
-            {
-                animator.runtimeAnimatorController = animatorController;
-                Debug.Log($"[RuntimeFBXLoaderBridge] ✓ Set animator controller: {animatorController.name}");
-
-                // Animator設定後の確認
-                if (animator.runtimeAnimatorController == animatorController)
-                {
-                    Debug.Log($"[RuntimeFBXLoaderBridge] ✓ Animator controller successfully applied");
-                }
-                else
-                {
-                    Debug.LogError($"[RuntimeFBXLoaderBridge] ✗ Failed to apply animator controller!");
-                }
-
-                // 初期ステートの再生
-                if (!string.IsNullOrEmpty(initialStateName))
-                {
-                    animator.Play(initialStateName, 0, 0f);
-                    Debug.Log($"[RuntimeFBXLoaderBridge] Playing initial state: {initialStateName}");
-                }
-            }
-            else
-            {
-                Debug.LogWarning("[RuntimeFBXLoaderBridge] ⚠ Animator controller NOT assigned in Inspector! Please assign AnimatorController in RuntimeFBXLoaderBridge component.");
-            }
+            // Issue #407: AnimatorControllerはCameraCaptureController.ApplyDefaultAOCで設定するため、ここでは設定しない
+            Debug.Log($"[RuntimeFBXLoaderBridge] Animator setup complete. Controller will be assigned by CameraCaptureController.ApplyDefaultAOC()");
         }
 
         /// <summary>

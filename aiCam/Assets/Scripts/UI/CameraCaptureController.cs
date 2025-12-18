@@ -25,8 +25,10 @@ namespace AICam.UI
         [SerializeField] private AICam.FBXLoader.RuntimeFBXLoaderBridge fbxLoaderBridge;
 
         [Header("Pose Animation (Issue #407)")]
-        [SerializeField] private RuntimeAnimatorController poseAnimatorController;
         [SerializeField] private AnimatorOverrideController[] poseOverrideControllers;
+
+        [Header("Expression System (Issue #145/#411)")]
+        [SerializeField] private AICam.Expression.VrmExpressionSetup expressionSetup;
 
         private VisualElement root;
         private VisualElement captureButton;
@@ -69,6 +71,7 @@ namespace AICam.UI
         // Issue #74/#75: トップパネルボタン要素
         private Button topButton1; // Light Estimation ON/OFF
         private Button topButton2; // Shadow ON/OFF
+        private Button topButton3; // Issue #33/#405: Expression切り替え
         private Button topButton4; // Issue #407: Pose切り替え
         private Button topButton5; // Issue #345: Plane Visibility ON/OFF
 
@@ -78,10 +81,14 @@ namespace AICam.UI
         private GameObject cachedCurrentAvatar;  // 現在のアバター参照
         private System.Collections.Generic.List<string> cachedStateNames;  // キャッシュされたState名
 
-        // Issue #407: ダブルタップ検出用
+        // Issue #407: ダブルタップ検出用（ポーズ）
         private const float DOUBLE_TAP_THRESHOLD = 0.3f;  // 300ms以内でダブルタップ判定
         private int tapCount = 0;
         private System.Threading.CancellationTokenSource tapCts;
+
+        // Issue #33/#405: ダブルタップ検出用（表情）
+        private int expressionTapCount = 0;
+        private System.Threading.CancellationTokenSource expressionTapCts;
 
         // Issue #345: 平面表示状態
         private bool isPlaneVisible = true;
@@ -269,6 +276,7 @@ namespace AICam.UI
             // Issue #74/#75: トップパネルボタンの取得
             topButton1 = root.Q<Button>("topButton1");
             topButton2 = root.Q<Button>("topButton2");
+            topButton3 = root.Q<Button>("topButton3"); // Issue #33/#405: Expression
             topButton4 = root.Q<Button>("topButton4"); // Issue #407: Pose
             topButton5 = root.Q<Button>("topButton5"); // Issue #345: Plane Visibility
 
@@ -406,6 +414,14 @@ namespace AICam.UI
                 // Issue #75 修正: 短押しでシャドウパネル表示（パネル内にON/OFFトグルあり）
                 topButton2.RegisterCallback<ClickEvent>(evt => OnTopButton2Click());
                 Debug.Log("✅ Top button 2 (Shadow) click event registered");
+            }
+
+            // Issue #33/#405: 表情切り替えボタンのイベント登録
+            Debug.Log($"🔘 topButton3: {(topButton3 != null ? "✅ found" : "❌ NOT FOUND")}");
+            if (topButton3 != null)
+            {
+                topButton3.RegisterCallback<ClickEvent>(evt => OnTopButton3Click());
+                Debug.Log("✅ Top button 3 (Expression) click event registered");
             }
 
             // Issue #407: ポーズ切り替えボタンのイベント登録
@@ -1412,6 +1428,12 @@ namespace AICam.UI
 
                 Debug.Log($"✅ VRM avatar loaded successfully: {avatar.name}");
 
+                // Issue #407: デフォルトのAOCを適用
+                ApplyDefaultAOC(avatar);
+
+                // Issue #145/#411: 表情システムをセットアップ
+                SetupExpressionSystem(avatar);
+
                 // Issue #73: プログレス更新
                 UpdateSlotProgress(targetButton, 0.7f); // 70%: VRM生成完了
 
@@ -1527,6 +1549,12 @@ namespace AICam.UI
                 }
 
                 Debug.Log($"✅ FBX loaded successfully: {loadedModel.name}");
+
+                // Issue #407: デフォルトのAOCを適用
+                ApplyDefaultAOC(loadedModel);
+
+                // Issue #145/#411: 表情システムをセットアップ
+                SetupExpressionSystem(loadedModel);
 
                 // Issue #73: プログレス更新
                 UpdateSlotProgress(targetButton, 0.9f); // 90%: FBX生成完了
@@ -1677,6 +1705,10 @@ namespace AICam.UI
             if (slotData?.loadedAvatar != null)
             {
                 slotData.loadedAvatar.SetActive(true);
+
+                // Issue #407: キャッシュを更新してポーズ切り替えが動作するようにする
+                cachedCurrentAvatar = slotData.loadedAvatar;
+                Debug.Log($"🎭 Updated cachedCurrentAvatar: {cachedCurrentAvatar.name}");
             }
         }
 
@@ -1880,32 +1912,12 @@ namespace AICam.UI
         }
 
         /// <summary>
-        /// Issue #407: アバターにPoseAnimatorControllerを設定
+        /// Issue #407: アバターにAnimatorOverrideControllerを設定
         /// </summary>
         void AssignPoseAnimatorController(GameObject avatar)
         {
-            if (avatar == null) return;
-
-            var animator = avatar.GetComponent<Animator>();
-            if (animator == null)
-            {
-                animator = avatar.AddComponent<Animator>();
-                Debug.Log($"🎭 Added Animator component to {avatar.name}");
-            }
-
-            // poseOverrideControllersの最初（b010）を設定、なければposeAnimatorControllerを使用
-            if (poseOverrideControllers != null && poseOverrideControllers.Length > 0 && poseOverrideControllers[0] != null)
-            {
-                animator.runtimeAnimatorController = poseOverrideControllers[0];
-                currentOverrideIndex = 0;
-                currentPoseIndex = 0;
-                Debug.Log($"🎭 Assigned OverrideController '{poseOverrideControllers[0].name}' to {avatar.name}");
-            }
-            else if (poseAnimatorController != null)
-            {
-                animator.runtimeAnimatorController = poseAnimatorController;
-                Debug.Log($"🎭 Assigned PoseAnimatorController to {avatar.name}");
-            }
+            // ApplyDefaultAOCに委譲
+            ApplyDefaultAOC(avatar);
         }
 
         /// <summary>
@@ -1917,6 +1929,133 @@ namespace AICam.UI
             cachedStateNames = null;
             currentPoseIndex = 0;
             Debug.Log($"🎭 Avatar cache cleared (slot {slotIndex} was cleared)");
+        }
+
+        /// <summary>
+        /// Issue #33/#405: topButton3クリック時の表情切り替え
+        /// ダブルタップで表情リセット、シングルタップで次の表情に切り替え
+        /// </summary>
+        void OnTopButton3Click()
+        {
+            expressionTapCount++;
+            Debug.Log($"🔘 topButton3 clicked - expressionTapCount: {expressionTapCount}");
+
+            if (expressionTapCount == 1)
+            {
+                // 1回目のタップ - 遅延処理を開始
+                expressionTapCts?.Cancel();
+                expressionTapCts = new System.Threading.CancellationTokenSource();
+                HandleExpressionTapAsync(expressionTapCts.Token).Forget();
+            }
+            // 2回目以降のタップはexpressionTapCountが増えるだけ（HandleExpressionTapAsyncで処理）
+        }
+
+        async UniTaskVoid HandleExpressionTapAsync(System.Threading.CancellationToken ct)
+        {
+            try
+            {
+                // ダブルタップ待機
+                await UniTask.Delay((int)(DOUBLE_TAP_THRESHOLD * 1000), cancellationToken: ct);
+
+                // 待機完了後、タップ数に応じて処理
+                int finalTapCount = expressionTapCount;
+                expressionTapCount = 0;  // リセット
+
+                if (finalTapCount >= 2)
+                {
+                    // ダブルタップ → 表情リセット（Neutral）
+                    Debug.Log("🔘 Double tap detected! Resetting expression to neutral...");
+                    TapticEngine.Impact(TapticEngine.ImpactStyle.Medium);
+                    ResetExpression();
+                }
+                else
+                {
+                    // シングルタップ → 次の表情
+                    Debug.Log("🔘 Single tap confirmed - Switching expression...");
+                    TapticEngine.Selection();
+                    SwitchToNextExpression();
+                }
+            }
+            catch (System.OperationCanceledException)
+            {
+                // キャンセルされた場合は何もしない
+            }
+        }
+
+        /// <summary>
+        /// Issue #33/#405: 次の表情に切り替え
+        /// VRM 1.0とVRM 0.xの両方に対応
+        /// </summary>
+        void SwitchToNextExpression()
+        {
+            Debug.Log("😊 SwitchToNextExpression called");
+
+            // VRM 0.xを優先チェック（より一般的）
+            if (vrm0ExpressionController != null)
+            {
+                int indexBefore = vrm0ExpressionController.CurrentExpressionIndex;
+                vrm0ExpressionController.NextExpression();
+                int indexAfter = vrm0ExpressionController.CurrentExpressionIndex;
+                Debug.Log($"😊 VRM 0.x Expression switched: {indexBefore} → {indexAfter}, Name: {vrm0ExpressionController.CurrentExpressionName}");
+                return;
+            }
+
+            // VRM 1.0をチェック
+            if (expressionSetup == null)
+            {
+                expressionSetup = FindFirstObjectByType<AICam.Expression.VrmExpressionSetup>();
+            }
+
+            if (expressionSetup != null)
+            {
+                var controller = expressionSetup.CurrentExpressionController;
+                if (controller != null)
+                {
+                    int indexBefore = controller.CurrentExpressionIndex;
+                    expressionSetup.NextExpression();
+                    int indexAfter = controller.CurrentExpressionIndex;
+                    Debug.Log($"😊 VRM 1.0 Expression switched: {indexBefore} → {indexAfter}, Name: {controller.CurrentExpressionName}");
+                    return;
+                }
+            }
+
+            Debug.LogWarning("😊 No expression controller available - load a VRM avatar first");
+        }
+
+        /// <summary>
+        /// Issue #33/#405: 表情をリセット（Neutral）
+        /// VRM 1.0とVRM 0.xの両方に対応
+        /// </summary>
+        void ResetExpression()
+        {
+            Debug.Log("😊 ResetExpression called");
+
+            // VRM 0.xを優先チェック
+            if (vrm0ExpressionController != null)
+            {
+                vrm0ExpressionController.ResetToNeutral();
+                Debug.Log("😊 VRM 0.x Expression reset to neutral");
+                return;
+            }
+
+            // VRM 1.0をチェック
+            if (expressionSetup == null)
+            {
+                expressionSetup = FindFirstObjectByType<AICam.Expression.VrmExpressionSetup>();
+            }
+
+            if (expressionSetup != null)
+            {
+                var controller = expressionSetup.CurrentExpressionController;
+                if (controller != null)
+                {
+                    expressionSetup.ResetExpression();
+                    Debug.Log("😊 VRM 1.0 Expression reset to neutral");
+                    return;
+                }
+            }
+
+            Debug.LogWarning("😊 No expression controller available - load a VRM avatar first");
         }
 
         /// <summary>
@@ -2184,6 +2323,141 @@ namespace AICam.UI
 
             // 水色のアラートバーで表示
             ShowInfo("Change", nextOverride.name, 2f);
+        }
+
+        /// <summary>
+        /// Issue #407: アバターロード時にデフォルトのAOCを適用
+        /// </summary>
+        void ApplyDefaultAOC(GameObject avatar)
+        {
+            if (avatar == null)
+            {
+                Debug.LogWarning("⚠️ ApplyDefaultAOC: avatar is null");
+                return;
+            }
+
+            if (poseOverrideControllers == null || poseOverrideControllers.Length == 0)
+            {
+                Debug.LogWarning("⚠️ ApplyDefaultAOC: No OverrideControllers configured");
+                return;
+            }
+
+            var animator = avatar.GetComponent<Animator>();
+            if (animator == null)
+            {
+                Debug.LogWarning($"⚠️ ApplyDefaultAOC: Avatar {avatar.name} has no Animator component");
+                return;
+            }
+
+            // 最初のAOC（p012 = デフォルト）を適用
+            var defaultAOC = poseOverrideControllers[0];
+            if (defaultAOC == null)
+            {
+                Debug.LogWarning("⚠️ ApplyDefaultAOC: First OverrideController is null");
+                return;
+            }
+
+            animator.runtimeAnimatorController = defaultAOC;
+            currentOverrideIndex = 0;
+            currentPoseIndex = 0;
+            cachedCurrentAvatar = avatar;
+
+            // 初期ポーズを再生
+            animator.Play("Pose00", 0, 0f);
+
+            Debug.Log($"🎭 ApplyDefaultAOC: Applied {defaultAOC.name} to {avatar.name}");
+            ShowInfo("AOC", defaultAOC.name, 1.5f);
+        }
+
+        // Issue #145/#411: VRM 0.x用の表情コントローラー
+        private AICam.Expression.Vrm0ExpressionController vrm0ExpressionController;
+
+        /// <summary>
+        /// Issue #145/#411: VRM表情システムをセットアップ
+        /// VRM 1.0とVRM 0.xの両方に対応
+        /// </summary>
+        void SetupExpressionSystem(GameObject avatar)
+        {
+            if (avatar == null) return;
+
+            Debug.Log($"🎭 SetupExpressionSystem: Starting setup for {avatar.name}");
+
+            // VRM 1.0を確認
+            var vrm10Instance = avatar.GetComponent<UniVRM10.Vrm10Instance>();
+            if (vrm10Instance != null)
+            {
+                Debug.Log($"🎭 SetupExpressionSystem: VRM 1.0 detected");
+                SetupVrm10ExpressionSystem(avatar, vrm10Instance);
+                return;
+            }
+
+            // VRM 0.xを確認
+            var blendShapeProxy = avatar.GetComponent<global::VRM.VRMBlendShapeProxy>();
+            if (blendShapeProxy != null)
+            {
+                Debug.Log($"🎭 SetupExpressionSystem: VRM 0.x detected");
+                SetupVrm0ExpressionSystem(avatar, blendShapeProxy);
+                return;
+            }
+
+            Debug.LogWarning($"🎭 SetupExpressionSystem: {avatar.name} is not a VRM avatar - no VRM expression support");
+        }
+
+        /// <summary>
+        /// VRM 1.0用の表情システムセットアップ
+        /// </summary>
+        void SetupVrm10ExpressionSystem(GameObject avatar, UniVRM10.Vrm10Instance vrmInstance)
+        {
+            // VrmExpressionSetupを検索、なければ作成
+            if (expressionSetup == null)
+            {
+                expressionSetup = FindFirstObjectByType<AICam.Expression.VrmExpressionSetup>();
+
+                if (expressionSetup == null)
+                {
+                    var setupObj = new GameObject("VrmExpressionSetup");
+                    expressionSetup = setupObj.AddComponent<AICam.Expression.VrmExpressionSetup>();
+                    Debug.Log($"🎭 SetupExpressionSystem: Created new VrmExpressionSetup for VRM 1.0");
+                }
+            }
+
+            if (expressionSetup != null)
+            {
+                expressionSetup.OnVrmLoaded(avatar);
+
+                var controller = expressionSetup.CurrentExpressionController;
+                if (controller != null)
+                {
+                    Debug.Log($"🎭 SetupExpressionSystem: VRM 1.0 expression system ready, Available: {controller.AvailableExpressions.Count}");
+                }
+                else
+                {
+                    Debug.LogWarning($"🎭 SetupExpressionSystem: VRM 1.0 CurrentExpressionController is null");
+                }
+            }
+
+            // VRM 0.xコントローラーをクリア
+            vrm0ExpressionController = null;
+        }
+
+        /// <summary>
+        /// VRM 0.x用の表情システムセットアップ
+        /// </summary>
+        void SetupVrm0ExpressionSystem(GameObject avatar, global::VRM.VRMBlendShapeProxy blendShapeProxy)
+        {
+            // 既存のコントローラーを取得または追加
+            vrm0ExpressionController = avatar.GetComponent<AICam.Expression.Vrm0ExpressionController>();
+            if (vrm0ExpressionController == null)
+            {
+                vrm0ExpressionController = avatar.AddComponent<AICam.Expression.Vrm0ExpressionController>();
+            }
+
+            vrm0ExpressionController.SetBlendShapeProxy(blendShapeProxy);
+
+            Debug.Log($"🎭 SetupExpressionSystem: VRM 0.x expression system ready, Available: {vrm0ExpressionController.AvailableExpressions.Count}");
+
+            // VRM 1.0セットアップをクリア
+            expressionSetup = null;
         }
 
         /// <summary>
