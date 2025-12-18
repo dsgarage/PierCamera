@@ -13,9 +13,11 @@ namespace AICam.FBXLoader
         public bool IsProcessing { get; private set; } = false;
 
         public event Action<Operation> OnOperationStarted;
-        public event Action<int, float> OnProgressUpdated;
-        public event Action<OperationResult> OnOperationCompleted;
-        public event Action<OperationResult> OnOperationCancelled;
+        public event Action<Operation, float> OnProgressUpdated;
+        public event Action<Operation, OperationResult> OnOperationCompleted;
+        public event Action<Operation> OnOperationCancelled;
+
+        private Operation currentOperation;
 
         public enum OperationPriority
         {
@@ -73,6 +75,7 @@ namespace AICam.FBXLoader
 
         public UniTask<OperationResult> EnqueueLoad(int slotIndex, OperationPriority priority = OperationPriority.Normal)
         {
+            currentOperation = new Operation { SlotIndex = slotIndex, Priority = priority, Type = OperationType.Load };
             return UniTask.FromResult(OperationResult.Succeeded(slotIndex));
         }
 
@@ -81,9 +84,20 @@ namespace AICam.FBXLoader
             return operation();
         }
 
+        public void ReportProgress(float progress)
+        {
+            if (currentOperation != null)
+            {
+                OnProgressUpdated?.Invoke(currentOperation, progress);
+            }
+        }
+
         public void ReportProgress(int slotIndex, float progress)
         {
-            OnProgressUpdated?.Invoke(slotIndex, progress);
+            if (currentOperation != null)
+            {
+                OnProgressUpdated?.Invoke(currentOperation, progress);
+            }
         }
 
         public void Clear()

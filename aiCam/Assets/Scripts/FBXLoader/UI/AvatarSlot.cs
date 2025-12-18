@@ -36,6 +36,15 @@ namespace AICam.FBXLoader
             SlotIndex = slotIndex;
         }
 
+        public void Initialize(int slotIndex, AvatarSlotData data)
+        {
+            SlotIndex = slotIndex;
+            if (data != null)
+            {
+                SetSlotData(data);
+            }
+        }
+
         public void SetSlotData(AvatarSlotData data)
         {
             // スタブ実装

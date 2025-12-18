@@ -58,5 +58,42 @@ namespace AICam.FBXLoader
         {
             // スタブ実装
         }
+
+        // Error methods
+        public static void ErrorFileNotFound(string message)
+        {
+            Debug.LogError($"[AlertBarController] File not found: {message}");
+        }
+
+        public static void ErrorFileFormatInvalid(string message)
+        {
+            Debug.LogError($"[AlertBarController] Invalid file format: {message}");
+        }
+
+        public static void ErrorVrmLoadFailed(string message)
+        {
+            Debug.LogError($"[AlertBarController] VRM load failed: {message}");
+        }
+
+        public static void ErrorFbxLoadFailed(string message)
+        {
+            Debug.LogError($"[AlertBarController] FBX load failed: {message}");
+        }
+
+        public static void ErrorAvatarBuildFailed(string message)
+        {
+            Debug.LogError($"[AlertBarController] Avatar build failed: {message}");
+        }
+
+        // Warning methods
+        public static void WarnManifestNotFound(string message)
+        {
+            Debug.LogWarning($"[AlertBarController] Manifest not found: {message}");
+        }
+
+        public static void WarnVrmVersionUnknown()
+        {
+            Debug.LogWarning("[AlertBarController] VRM version unknown");
+        }
     }
 }

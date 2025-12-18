@@ -10,36 +10,50 @@ namespace AICam.FBXLoader
     [Serializable]
     public class TextureManifest
     {
-        public List<TextureManifestEntry> Entries { get; set; } = new List<TextureManifestEntry>();
+        public List<TextureManifestEntry> textures = new List<TextureManifestEntry>();
+
+        public int textureCount => textures?.Count ?? 0;
+
+        public List<TextureManifestEntry> Entries => textures;
 
         public TextureManifestEntry FindByGuid(string guid)
         {
-            return Entries.Find(e => e.Guid == guid);
+            return textures?.Find(e => e.Guid == guid);
         }
 
         public TextureManifestEntry FindByPath(string path)
         {
-            return Entries.Find(e => e.Path == path);
+            return textures?.Find(e => e.Path == path || e.relativePath == path);
         }
 
         public void AddEntry(TextureManifestEntry entry)
         {
-            Entries.Add(entry);
+            if (textures == null)
+            {
+                textures = new List<TextureManifestEntry>();
+            }
+            textures.Add(entry);
         }
 
         public void RemoveEntry(string guid)
         {
-            Entries.RemoveAll(e => e.Guid == guid);
+            textures?.RemoveAll(e => e.Guid == guid);
+        }
+
+        public bool IsValid()
+        {
+            return textures != null && textures.Count > 0;
         }
     }
 
     [Serializable]
     public class TextureManifestEntry
     {
-        public string Guid { get; set; }
-        public string Path { get; set; }
-        public string Name { get; set; }
-        public int Width { get; set; }
-        public int Height { get; set; }
+        public string Guid;
+        public string Path;
+        public string Name;
+        public string relativePath;
+        public int Width;
+        public int Height;
     }
 }

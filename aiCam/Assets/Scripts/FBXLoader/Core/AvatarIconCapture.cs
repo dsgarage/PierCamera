@@ -26,6 +26,13 @@ namespace AICam.FBXLoader
             return UniTask.FromResult(texture);
         }
 
+        public UniTask<Texture2D> CaptureAsTextureAsync(GameObject avatar)
+        {
+            // スタブ実装 - 空のテクスチャを返す
+            var texture = new Texture2D(256, 256);
+            return UniTask.FromResult(texture);
+        }
+
         public void CaptureIcon(GameObject avatar, Action<Texture2D> onComplete)
         {
             // スタブ実装
