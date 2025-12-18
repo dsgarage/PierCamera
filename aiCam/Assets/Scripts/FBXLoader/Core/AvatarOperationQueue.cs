@@ -8,9 +8,14 @@ namespace AICam.FBXLoader
     /// <summary>
     /// アバター操作キューのスタブクラス
     /// </summary>
-    public class AvatarOperationQueue
+    public class AvatarOperationQueue : MonoBehaviour
     {
         public bool IsProcessing { get; private set; } = false;
+
+        public event Action<Operation> OnOperationStarted;
+        public event Action<int, float> OnProgressUpdated;
+        public event Action<OperationResult> OnOperationCompleted;
+        public event Action<OperationResult> OnOperationCancelled;
 
         public enum OperationPriority
         {
@@ -59,7 +64,14 @@ namespace AICam.FBXLoader
             }
         }
 
-        public UniTask<OperationResult> EnqueueLoad(int slotIndex, OperationPriority priority)
+        private Func<Operation, UniTask<OperationResult>> executor;
+
+        public void SetExecutor(Func<Operation, UniTask<OperationResult>> executor)
+        {
+            this.executor = executor;
+        }
+
+        public UniTask<OperationResult> EnqueueLoad(int slotIndex, OperationPriority priority = OperationPriority.Normal)
         {
             return UniTask.FromResult(OperationResult.Succeeded(slotIndex));
         }
@@ -67,6 +79,11 @@ namespace AICam.FBXLoader
         public UniTask EnqueueAsync(Func<UniTask> operation)
         {
             return operation();
+        }
+
+        public void ReportProgress(int slotIndex, float progress)
+        {
+            OnProgressUpdated?.Invoke(slotIndex, progress);
         }
 
         public void Clear()

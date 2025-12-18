@@ -15,6 +15,8 @@ namespace AICam.FBXLoader
 
         public event Action<int> OnSlotSelected;
         public event Action<int> OnSlotCleared;
+        public event Action<int> OnSlotClicked;
+        public event Action<int> OnSlotLongPressed;
 
         public void SetAvatar(GameObject avatar)
         {
@@ -27,6 +29,41 @@ namespace AICam.FBXLoader
             LoadedAvatar = null;
             IsLoaded = false;
             OnSlotCleared?.Invoke(SlotIndex);
+        }
+
+        public void Initialize(int slotIndex)
+        {
+            SlotIndex = slotIndex;
+        }
+
+        public void SetSlotData(AvatarSlotData data)
+        {
+            // スタブ実装
+        }
+
+        public void SetSelected(bool selected)
+        {
+            // スタブ実装
+        }
+
+        public void StartLoading()
+        {
+            // スタブ実装
+        }
+
+        public void SetProgress(float progress)
+        {
+            // スタブ実装
+        }
+
+        public void CompleteLoading()
+        {
+            // スタブ実装
+        }
+
+        public void CancelLoading()
+        {
+            // スタブ実装
         }
     }
 }

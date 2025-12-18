@@ -21,5 +21,11 @@ namespace AICam.FBXLoader
         {
             // スタブ実装
         }
+
+        public void ShowPreviewFromFile(string filePath)
+        {
+            // スタブ実装
+            Debug.Log($"[IconPreviewPanel] ShowPreviewFromFile: {filePath}");
+        }
     }
 }

@@ -22,7 +22,7 @@ namespace AICam.FBXLoader
         public GameObject Avatar { get; set; }
         public string ErrorMessage { get; set; }
 
-        public static AvatarLoadResult Succeeded(GameObject avatar)
+        public static AvatarLoadResult Succeeded(GameObject avatar, string message = null)
         {
             return new AvatarLoadResult { Success = true, Avatar = avatar };
         }
@@ -41,5 +41,15 @@ namespace AICam.FBXLoader
         public bool Success { get; set; }
         public GameObject Avatar { get; set; }
         public string ErrorMessage { get; set; }
+
+        public static SlotSwitchResult Succeeded(GameObject avatar = null)
+        {
+            return new SlotSwitchResult { Success = true, Avatar = avatar };
+        }
+
+        public static SlotSwitchResult Failed(string error)
+        {
+            return new SlotSwitchResult { Success = false, ErrorMessage = error };
+        }
     }
 }

@@ -1,3 +1,4 @@
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace AICam.UI
@@ -8,6 +9,9 @@ namespace AICam.UI
     public class CircularProgressElement : VisualElement
     {
         public float Progress { get; set; } = 0f;
+        public float RingWidth { get; set; } = 10f;
+        public Color ProgressColor { get; set; } = Color.white;
+        public bool ShowBackground { get; set; } = true;
 
         public CircularProgressElement()
         {
