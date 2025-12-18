@@ -31,6 +31,7 @@ namespace AICam.FBXLoader
             public bool isValid;
             public bool isHuman;
             public int boneCount;
+            public List<string> mappedBones = new List<string>();
         }
 
         public static string GetManifestPath(string modelFilePath)
