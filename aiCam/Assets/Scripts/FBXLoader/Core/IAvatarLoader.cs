@@ -1,15 +1,16 @@
 using UnityEngine;
+using System;
 using Cysharp.Threading.Tasks;
 
 namespace AICam.FBXLoader
 {
     /// <summary>
-    /// アバターローダーインターフェースのスタブ
+    /// アバターローダーインターフェース
     /// </summary>
     public interface IAvatarLoader
     {
-        UniTask<AvatarLoadResult> LoadAvatarAsync(string path);
-        void ClearAvatar();
+        UniTask<AvatarLoadResult> LoadAsync(string filePath, Transform parent, Action<float> onProgress = null);
+        void ClearCurrentModel();
     }
 
     /// <summary>
