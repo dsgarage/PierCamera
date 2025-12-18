@@ -7,11 +7,13 @@ namespace AICam.FBXLoader
 {
     /// <summary>
     /// アバター操作キューのスタブクラス
+    /// Issue #72: キュー管理のためのスタブ実装
     /// </summary>
     public class AvatarOperationQueue : MonoBehaviour
     {
         public bool IsProcessing { get; private set; } = false;
 
+        // イベント定義 - AvatarSlotManagerのハンドラシグネチャに合わせる
         public event Action<Operation> OnOperationStarted;
         public event Action<Operation, float> OnProgressUpdated;
         public event Action<Operation, OperationResult> OnOperationCompleted;
@@ -85,14 +87,6 @@ namespace AICam.FBXLoader
         }
 
         public void ReportProgress(float progress)
-        {
-            if (currentOperation != null)
-            {
-                OnProgressUpdated?.Invoke(currentOperation, progress);
-            }
-        }
-
-        public void ReportProgress(int slotIndex, float progress)
         {
             if (currentOperation != null)
             {

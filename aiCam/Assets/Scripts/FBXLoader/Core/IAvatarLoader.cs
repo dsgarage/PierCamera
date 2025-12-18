@@ -39,17 +39,30 @@ namespace AICam.FBXLoader
     public class SlotSwitchResult
     {
         public bool Success { get; set; }
+        public int SlotIndex { get; set; }
         public GameObject Avatar { get; set; }
         public string ErrorMessage { get; set; }
+        public bool WasCacheHit { get; set; }
 
-        public static SlotSwitchResult Succeeded(GameObject avatar = null)
+        public static SlotSwitchResult Succeeded(int slotIndex, GameObject avatar = null, bool wasCacheHit = false)
         {
-            return new SlotSwitchResult { Success = true, Avatar = avatar };
+            return new SlotSwitchResult
+            {
+                Success = true,
+                SlotIndex = slotIndex,
+                Avatar = avatar,
+                WasCacheHit = wasCacheHit
+            };
         }
 
-        public static SlotSwitchResult Failed(string error)
+        public static SlotSwitchResult Failed(int slotIndex, string error)
         {
-            return new SlotSwitchResult { Success = false, ErrorMessage = error };
+            return new SlotSwitchResult
+            {
+                Success = false,
+                SlotIndex = slotIndex,
+                ErrorMessage = error
+            };
         }
     }
 }
