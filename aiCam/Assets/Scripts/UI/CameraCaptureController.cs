@@ -79,7 +79,7 @@ namespace AICam.UI
         private System.Collections.Generic.List<string> cachedStateNames;  // キャッシュされたState名
 
         // Issue #407: ダブルタップ検出用
-        private const float DOUBLE_TAP_THRESHOLD = 0.3f;  // 300ms以内でダブルタップ判定
+        private const float DOUBLE_TAP_THRESHOLD = 0.5f;  // 500ms以内でダブルタップ判定
         private int tapCount = 0;
         private System.Threading.CancellationTokenSource tapCts;
 
@@ -2162,6 +2162,8 @@ namespace AICam.UI
                     Debug.Log("🔘 Single tap confirmed - Switching pose...");
                     TapticEngine.Selection();
                     SwitchToNextPose();
+                    // ポーズ切り替え通知
+                    ShowInfo("Pose", $"{currentPoseIndex + 1}/12", 1.5f);
                 }
             }
             catch (System.OperationCanceledException)
@@ -2327,31 +2329,45 @@ namespace AICam.UI
 
             // アバター取得
             GameObject avatar = cachedCurrentAvatar;
-            if (avatar == null || !avatar.activeInHierarchy)
+            Animator animator = null;
+
+            if (avatar != null && avatar.activeInHierarchy)
             {
-                // アバターを検索
+                animator = avatar.GetComponent<Animator>();
+            }
+
+            if (animator == null)
+            {
+                // キャッシュにないかAnimatorがない場合、シーン内のAnimatorを検索
+                // VRM 1.0はisHuman=falseの場合があるため、RuntimeAnimatorControllerで判定
                 var animators = FindObjectsByType<Animator>(FindObjectsSortMode.None);
+                Debug.Log($"🔍 Searching for avatar - found {animators.Length} Animators in scene");
+
                 foreach (var anim in animators)
                 {
-                    if (anim.avatar != null && anim.avatar.isHuman && anim.gameObject.activeInHierarchy)
+                    if (!anim.gameObject.activeInHierarchy) continue;
+
+                    // AnimatorControllerまたはOverrideControllerを持つものを優先
+                    bool hasController = anim.runtimeAnimatorController != null;
+                    bool isHumanoid = anim.avatar != null && anim.avatar.isHuman;
+
+                    Debug.Log($"🔍 Animator: {anim.gameObject.name}, hasController={hasController}, isHuman={isHumanoid}, avatar={(anim.avatar != null ? anim.avatar.name : "null")}");
+
+                    // AnimatorControllerを持っているか、Humanoidリグを持っている場合
+                    if (hasController || isHumanoid)
                     {
                         avatar = anim.gameObject;
+                        animator = anim;
                         cachedCurrentAvatar = avatar;
+                        Debug.Log($"✅ Found avatar: {avatar.name}");
                         break;
                     }
                 }
             }
 
-            if (avatar == null)
-            {
-                Debug.LogWarning("⚠️ No avatar found for OverrideController switch");
-                return;
-            }
-
-            var animator = avatar.GetComponent<Animator>();
             if (animator == null)
             {
-                Debug.LogWarning("⚠️ Avatar has no Animator component");
+                Debug.LogWarning("⚠️ No avatar found for OverrideController switch - load an avatar first");
                 return;
             }
 
@@ -2391,9 +2407,11 @@ namespace AICam.UI
         /// </summary>
         public void ShowInfo(string code, string message, float autoDismissSeconds = 3f)
         {
+            Debug.Log($"ℹ️ ShowInfo called: code={code}, message={message}, alertBar={(alertBar != null ? "OK" : "NULL")}, alertMessage={(alertMessage != null ? "OK" : "NULL")}");
+
             if (alertBar == null || alertMessage == null)
             {
-                Debug.LogWarning("⚠️ AlertBar elements not found");
+                Debug.LogWarning($"⚠️ AlertBar elements not found - alertBar: {(alertBar != null)}, alertMessage: {(alertMessage != null)}");
                 return;
             }
 
