@@ -7,6 +7,22 @@
       "dependencies": {},
       "hash": "73a63b7f672b88f7e9992f6917eb458a8cbb6fa9"
     },
+    "com.dsgarage.poseslotcontroller": {
+      "version": "https://github.com/dsgarage/PoseSlotController.git",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "8a808f5c8792f2c9f4159e86dcd93c98992ae278"
+    },
+    "com.dsgarage.unisil": {
+      "version": "git@github.com:dsgarage/UniSIL.git?path=/Packages/com.dsgarage.unisil",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.unity.render-pipelines.universal": "14.0.0"
+      },
+      "hash": "c650f5f43d0ebf11eb5f731ccfb5258552d75f65"
+    },
     "com.frozenstorminteractive.assimp": {
       "version": "4.1.0",
       "depth": 0,
@@ -32,27 +48,12 @@
       },
       "url": "https://upm.frozenstorminteractive.com"
     },
-    "com.kyrylokuzyk.arfoundationremote": {
-      "version": "file:../Assets/Plugins/ARFoundationRemoteInstaller/com.kyrylokuzyk.arfoundationremote.tgz",
-      "depth": 0,
-      "source": "local-tarball",
-      "dependencies": {
-        "com.unity.xr.arfoundation": "3.0.1",
-        "com.unity.xr.management": "3.0.4-preview.1",
-        "com.unity.modules.unitywebrequest": "1.0.0",
-        "com.unity.modules.imageconversion": "1.0.0",
-        "com.unity.ugui": "1.0.0",
-        "com.unity.modules.particlesystem": "1.0.0",
-        "com.unity.modules.vr": "1.0.0",
-        "com.unity.modules.imgui": "1.0.0"
-      }
-    },
     "com.local.mcp.unityserver": {
       "version": "git@github.com:dsgarage/CC2UniMCP.git",
       "depth": 0,
       "source": "git",
       "dependencies": {},
-      "hash": "b5d0cc943b0c011d6ce36f1f4fedc3329b297666"
+      "hash": "73e4eeafdf6cc8466cef651c263ef8f79cdbd32e"
     },
     "com.unity.ai.navigation": {
       "version": "2.0.9",

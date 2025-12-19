@@ -1290,8 +1290,6 @@ MonoBehaviour:
   faceAnimatorController: {fileID: 0}
   bodyAnimatorController: {fileID: 9100000, guid: ab9aa655adf9f4598a93a90aa357a414, type: 2}
   initialStateName: Idle
-  autoSetupExpression: 1
-  expressionSetup: {fileID: 0}
 --- !u!1001 &241748527
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4952,8 +4950,6 @@ MonoBehaviour:
   applyMainLightDirection: 1
   applyMainLightIntensity: 1
   applyAmbientLight: 1
-  applyToToonShaders: 1
-  materialUpdateInterval: 5
   smoothSpeed: 5
 --- !u!1 &833482380
 GameObject:
@@ -9167,6 +9163,8 @@ GameObject:
   - component: {fileID: 1479651379}
   - component: {fileID: 1479651378}
   - component: {fileID: 1479651381}
+  - component: {fileID: 1479651382}
+  - component: {fileID: 1479651383}
   m_Layer: 0
   m_Name: CameraCaptureController
   m_TagString: Untagged
@@ -9211,8 +9209,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AICam.UI.CameraCaptureController
   photoController: {fileID: 431550395}
   avatarLoader: {fileID: 236828916}
-  fbxLoaderBridge: {fileID: 0}
-  poseAnimatorController: {fileID: 0}
+  fbxLoaderBridge: {fileID: 1662580358}
+  poseOverrideControllers:
+  - {fileID: 22100000, guid: 74fdf1fb2ca44c15813fb0d61941deca, type: 2}
+  - {fileID: 22100000, guid: ca7ae120c5a2a4b07b763ea979712649, type: 2}
+  - {fileID: 22100000, guid: a4ee56505f8df48d981f223bde8cb338, type: 2}
+  - {fileID: 22100000, guid: 87fd058508e864785a8d1d87ade15a0f, type: 2}
+  - {fileID: 22100000, guid: ce073856b543d4146a3c0c39f7f7a287, type: 2}
+  - {fileID: 22100000, guid: 37e9885db649e4a77b6489ae22ad08e5, type: 2}
+  - {fileID: 22100000, guid: 249bd088205b9402f8ed9f291c6b4df1, type: 2}
+  - {fileID: 22100000, guid: cf6983795aedf48fba664172d3de0d9a, type: 2}
+  expressionSetup: {fileID: 1479651383}
 --- !u!4 &1479651380
 Transform:
   m_ObjectHideFlags: 0
@@ -9240,6 +9247,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f2931657fba0d4b36907a2ee5c9d86dd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AICam.UI.UIToolkitInputBlocker
+--- !u!114 &1479651382
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1479651377}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 44a3abe2a70e4a6fb4717c8868ae0340, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AICam.UI.UIToolkitInputBlocker
+--- !u!114 &1479651383
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1479651377}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d4ec3619b3ba40d48add9e0c16e3b96, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AICam.Expression.VrmExpressionSetup
+  autoSetupExpression: 1
+  autoSetupPose: 1
+  autoSetupHitDetector: 1
+  transitionSpeed: 10
   debugLog: 0
 --- !u!1 &1481093349
 GameObject:
