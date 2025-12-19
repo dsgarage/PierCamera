@@ -37,3 +37,36 @@ MCP ツールが利用できない場合は、以下のように正直に答え�
 - Unity プロジェクト: arCam (AR カメラアプリ)
 - VRM/FBX ローダー機能
 - UIToolkit ベースの UI
+
+---
+
+## UIToolkit はまりどころ（重要）
+
+### 1. `cursor: link` はランタイムで使用不可
+
+**症状**: 大量の警告ログが出力される
+```
+Runtime cursors other than the default cursor need to be defined using a texture.
+```
+
+**原因**: USS で `cursor: link;` を使用している
+
+**対策**: USS から `cursor: link;` を削除する。ランタイムでカスタムカーソルを使う場合はテクスチャを定義する必要がある。
+
+### 2. `picking-mode="Ignore"` の扱いに注意
+
+**症状**: ボタンが押せなくなる
+
+**原因**:
+- オーバーレイ要素に `picking-mode="Ignore"` を追加すると、その要素自体のクリックイベントが無効になる
+- 親要素に `picking-mode="Ignore"` を設定しても、子要素（ボタン等）のクリックは通常通り機能する
+- ただし、オーバーレイ要素が表示時にクリックで閉じる機能を持つ場合、`picking-mode="Ignore"` だとクリックを受け取れない
+
+**対策**:
+- 非表示のオーバーレイには `picking-mode="Ignore"` を設定してOK
+- 表示時にクリックイベントが必要な場合は、C#で動的に `pickingMode = PickingMode.Position` に切り替える
+- または、UXML に `picking-mode` を設定せず、CSS の `display: none` で非表示にする（こちらが安全）
+
+### 3. オーバーレイ要素は `display: none` がデフォルト
+
+全画面を覆うオーバーレイ（viewerOverlay、iconPreviewPanel等）は、CSS で `display: none` をデフォルトにし、`.visible` クラスで `display: flex` に切り替えるパターンを使用している。

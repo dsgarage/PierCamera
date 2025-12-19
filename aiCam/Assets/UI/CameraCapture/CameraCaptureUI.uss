@@ -46,7 +46,6 @@
     display: flex;
     margin-bottom: 24px;
     margin-top: 16px;
-    cursor: link;
 }
 
 /* 内側の円（白→赤に変化） */
@@ -156,7 +155,6 @@
     background-color: rgba(34, 34, 34, 1);
     -unity-background-scale-mode: scale-and-crop;
     display: flex;
-    cursor: link;
 }
 
 /* ================================
@@ -190,7 +188,6 @@
     align-items: center;
     display: none;
     flex-direction: column;
-    cursor: link;
 }
 
 /* 画像ビューア */
@@ -240,7 +237,6 @@
     border-width: 0;
     flex-grow: 0;
     flex-shrink: 0;
-    cursor: link;
     -unity-font-style: bold;
     font-size: 10px;
     color: rgba(60, 60, 60, 1);
@@ -315,7 +311,6 @@
     border-width: 0;
     flex-grow: 0;
     flex-shrink: 0;
-    cursor: link;
     -unity-background-scale-mode: scale-to-fit;
     padding: 0;
     margin-top: 3px;
@@ -424,7 +419,6 @@
     border-bottom-right-radius: 50%;
     flex-grow: 0;
     flex-shrink: 0;
-    cursor: link;
     -unity-font-style: bold;
     font-size: 8px;
     color: rgba(60, 60, 60, 1);
@@ -468,13 +462,7 @@
     background-color: rgba(220, 220, 220, 1);
 }
 
-/* 空のアバタースロット（人型アイコン表示） */
-.bottom-panel-button.empty-slot {
-    background-color: rgba(255, 255, 255, 0.9);
-    background-image: resource('Sprite/PictIcon/AvatarSlot/EmptySlotIcon');
-}
-
-/* bottomButton1（初期スロット）にも適用 */
+/* bottomButton1にアバターアイコンを表示 */
 #bottomButton1 {
     background-color: rgba(255, 255, 255, 0.9);
     background-image: resource('Sprite/PictIcon/AvatarSlot/EmptySlotIcon');
@@ -516,7 +504,6 @@
     border-bottom-right-radius: 6px;
     flex-grow: 0;
     flex-shrink: 0;
-    cursor: link;
     -unity-font-style: bold;
     font-size: 14px;
     color: white;
@@ -599,7 +586,6 @@
     border-bottom-right-radius: 50%;
     flex-grow: 0;
     flex-shrink: 0;
-    cursor: link;
     -unity-font-style: bold;
     font-size: 16px;
     color: rgba(40, 40, 40, 1);
@@ -661,7 +647,6 @@
     border-top-right-radius: 22px;
     border-bottom-left-radius: 22px;
     border-bottom-right-radius: 22px;
-    cursor: link;
     -unity-font-style: bold;
     font-size: 15px;
     color: rgba(40, 40, 40, 1);
