@@ -57,6 +57,11 @@ namespace AICam.FBXLoader
         /// </summary>
         public VrmVersion LoadedVrmVersion => loadedVrmVersion;
 
+        /// <summary>
+        /// AnimatorControllerを取得
+        /// </summary>
+        public RuntimeAnimatorController GetAnimatorController() => animatorController;
+
         public enum VrmVersion
         {
             Unknown,
