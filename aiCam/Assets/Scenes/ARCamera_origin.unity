@@ -9219,6 +9219,7 @@ MonoBehaviour:
   - {fileID: 22100000, guid: 37e9885db649e4a77b6489ae22ad08e5, type: 2}
   - {fileID: 22100000, guid: 249bd088205b9402f8ed9f291c6b4df1, type: 2}
   - {fileID: 22100000, guid: cf6983795aedf48fba664172d3de0d9a, type: 2}
+  poseSlotController: {fileID: 0}
   expressionSetup: {fileID: 1479651383}
 --- !u!4 &1479651380
 Transform:
@@ -10248,10 +10249,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 618fe01b9590b46aaab19bb475b6e240, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DeviceScreenAdapter
-  autoDetectOnStart: 0
-  applyToCanvasScalers: 0
-  applyToPanelSettings: 0
-  showDebugInfo: 0
 --- !u!1 &1677303369
 GameObject:
   m_ObjectHideFlags: 0
@@ -11231,6 +11228,66 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   m_IsOn: 1
+--- !u!1 &1804010628
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1804010631}
+  - component: {fileID: 1804010630}
+  - component: {fileID: 1804010629}
+  m_Layer: 0
+  m_Name: UaaLBridge
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1804010629
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1804010628}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82cfba63a4faf49b2b0413d7c6650c44, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AICam.UaaL.CameraCaptureUaaLBridge
+  cameraCaptureController: {fileID: 0}
+  arPhotoController: {fileID: 0}
+--- !u!114 &1804010630
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1804010628}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed49c414164e54507b8cfa77113465c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AICam.UaaL.UaaLSetup
+  autoSetup: 1
+--- !u!4 &1804010631
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1804010628}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1861929198
 GameObject:
   m_ObjectHideFlags: 0
@@ -15256,3 +15313,4 @@ SceneRoots:
   - {fileID: 662378336}
   - {fileID: 1479651380}
   - {fileID: 1662580360}
+  - {fileID: 1804010631}
