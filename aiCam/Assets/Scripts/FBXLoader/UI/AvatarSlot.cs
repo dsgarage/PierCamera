@@ -1,78 +1,372 @@
-using UnityEngine;
-using UnityEngine.UIElements;
 using System;
+using System.Collections;
+using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.EventSystems;
+using TMPro;
 
 namespace AICam.FBXLoader
 {
     /// <summary>
-    /// アバタースロットのスタブクラス
+    /// アバタースロットUIコンポーネント
+    /// Issue #73: 円形プログレスインジケーター対応
     /// </summary>
-    public class AvatarSlot : MonoBehaviour
+    public class AvatarSlot : MonoBehaviour, IPointerClickHandler, IPointerDownHandler, IPointerUpHandler
     {
-        public int SlotIndex { get; set; }
-        public bool IsLoaded { get; set; }
-        public GameObject LoadedAvatar { get; set; }
+        [Header("UI References")]
+        [SerializeField] private Image iconImage;
+        [SerializeField] private Image emptyStateImage;
+        [SerializeField] private GameObject selectedIndicator;
+        [SerializeField] private TextMeshProUGUI slotNumberText;
+        [SerializeField] private Button slotButton;
 
-        public event Action<int> OnSlotSelected;
-        public event Action<int> OnSlotCleared;
+        [Header("Progress Indicator (Issue #73)")]
+        [SerializeField] private RawImage progressRing;
+        [SerializeField] private Material progressMaterialTemplate;
+
+        [Header("Settings")]
+        [SerializeField] private float longPressThreshold = 0.5f;
+        [SerializeField] private Color emptyColor = new Color(0.3f, 0.3f, 0.3f, 0.5f);
+        [SerializeField] private Color configuredColor = Color.white;
+
+        // スロットデータ
+        private AvatarSlotData slotData;
+        private int slotIndex = -1;
+        private bool isSelected;
+        private Sprite currentIcon;
+
+        // 長押し検出用
+        private bool isPointerDown;
+        private float pointerDownTime;
+
+        // Issue #73: プログレス関連
+        private Material progressMaterialInstance;
+        private bool isLoading;
+        private Coroutine hideProgressCoroutine;
+        private static readonly int ProgressProperty = Shader.PropertyToID("_Progress");
+
+        // イベント
         public event Action<int> OnSlotClicked;
         public event Action<int> OnSlotLongPressed;
 
-        public void SetAvatar(GameObject avatar)
-        {
-            LoadedAvatar = avatar;
-            IsLoaded = avatar != null;
-        }
+        public int SlotIndex => slotIndex;
+        public bool IsConfigured => slotData != null && slotData.IsConfigured;
+        public AvatarSlotData SlotData => slotData;
+        public bool IsLoading => isLoading;
 
-        public void Clear()
+        private void Awake()
         {
-            LoadedAvatar = null;
-            IsLoaded = false;
-            OnSlotCleared?.Invoke(SlotIndex);
-        }
-
-        public void Initialize(int slotIndex)
-        {
-            SlotIndex = slotIndex;
-        }
-
-        public void Initialize(int slotIndex, AvatarSlotData data)
-        {
-            SlotIndex = slotIndex;
-            if (data != null)
+            // ボタンクリックイベントを設定
+            if (slotButton != null)
             {
-                SetSlotData(data);
+                slotButton.onClick.AddListener(OnButtonClick);
             }
         }
 
+        private void Update()
+        {
+            // 長押し検出
+            if (isPointerDown)
+            {
+                if (Time.time - pointerDownTime >= longPressThreshold)
+                {
+                    isPointerDown = false;
+                    OnLongPress();
+                }
+            }
+        }
+
+        /// <summary>
+        /// スロットを初期化
+        /// </summary>
+        public void Initialize(int index, AvatarSlotData data = null)
+        {
+            slotIndex = index;
+            slotData = data ?? new AvatarSlotData(index);
+
+            UpdateVisual();
+
+            Debug.Log($"[AvatarSlot] Initialized slot {index}, Configured: {IsConfigured}");
+        }
+
+        /// <summary>
+        /// スロットデータを設定
+        /// </summary>
         public void SetSlotData(AvatarSlotData data)
         {
-            // スタブ実装
+            slotData = data;
+            slotData.slotIndex = slotIndex;
+
+            UpdateVisual();
         }
 
+        /// <summary>
+        /// アイコン画像を設定
+        /// </summary>
+        public void SetIcon(Sprite icon)
+        {
+            currentIcon = icon;
+
+            if (iconImage != null)
+            {
+                iconImage.sprite = icon;
+                iconImage.color = icon != null ? configuredColor : emptyColor;
+                iconImage.gameObject.SetActive(icon != null);
+            }
+
+            if (emptyStateImage != null)
+            {
+                emptyStateImage.gameObject.SetActive(icon == null);
+            }
+        }
+
+        /// <summary>
+        /// ファイルパスからアイコンを読み込んで設定
+        /// </summary>
+        public void LoadAndSetIcon(string iconPath)
+        {
+            if (string.IsNullOrEmpty(iconPath))
+            {
+                SetIcon(null);
+                return;
+            }
+
+            Sprite sprite = AvatarIconCapture.LoadIconAsSprite(iconPath);
+            SetIcon(sprite);
+        }
+
+        /// <summary>
+        /// 選択状態を設定
+        /// </summary>
         public void SetSelected(bool selected)
         {
-            // スタブ実装
+            isSelected = selected;
+
+            if (selectedIndicator != null)
+            {
+                selectedIndicator.SetActive(selected);
+            }
         }
 
+        /// <summary>
+        /// 空の状態に戻す
+        /// </summary>
+        public void Clear()
+        {
+            if (slotData != null)
+            {
+                slotData.Clear();
+            }
+
+            currentIcon = null;
+            UpdateVisual();
+        }
+
+        /// <summary>
+        /// 表示を更新
+        /// </summary>
+        private void UpdateVisual()
+        {
+            // スロット番号
+            if (slotNumberText != null)
+            {
+                slotNumberText.text = (slotIndex + 1).ToString();
+            }
+
+            // アイコン
+            if (IsConfigured && slotData.HasIcon)
+            {
+                LoadAndSetIcon(slotData.iconFilePath);
+            }
+            else
+            {
+                SetIcon(null);
+            }
+
+            // 選択状態
+            SetSelected(isSelected);
+        }
+
+        /// <summary>
+        /// ボタンクリック時
+        /// </summary>
+        private void OnButtonClick()
+        {
+            Debug.Log($"[AvatarSlot] Slot {slotIndex} clicked, Configured: {IsConfigured}");
+            OnSlotClicked?.Invoke(slotIndex);
+        }
+
+        /// <summary>
+        /// 長押し時
+        /// </summary>
+        private void OnLongPress()
+        {
+            Debug.Log($"[AvatarSlot] Slot {slotIndex} long pressed");
+            OnSlotLongPressed?.Invoke(slotIndex);
+        }
+
+        #region Pointer Events
+
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            // 長押しでない場合のみクリックとして処理
+            if (!isPointerDown && Time.time - pointerDownTime < longPressThreshold)
+            {
+                // ボタンのOnClickで処理するので、ここでは何もしない
+            }
+        }
+
+        public void OnPointerDown(PointerEventData eventData)
+        {
+            isPointerDown = true;
+            pointerDownTime = Time.time;
+        }
+
+        public void OnPointerUp(PointerEventData eventData)
+        {
+            isPointerDown = false;
+        }
+
+        #endregion
+
+        #region Progress Indicator (Issue #73)
+
+        /// <summary>
+        /// プログレスマテリアルを初期化
+        /// </summary>
+        private void InitializeProgressMaterial()
+        {
+            if (progressRing == null) return;
+
+            // マテリアルインスタンスを作成（共有マテリアルを変更しないため）
+            if (progressMaterialTemplate != null && progressMaterialInstance == null)
+            {
+                progressMaterialInstance = new Material(progressMaterialTemplate);
+                progressRing.material = progressMaterialInstance;
+            }
+
+            // 初期状態は非表示
+            progressRing.gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// ロード進捗を設定（0.0 〜 1.0）
+        /// </summary>
+        /// <param name="progress01">進捗（0.0〜1.0）</param>
+        public void SetProgress(float progress01)
+        {
+            if (progressRing == null) return;
+
+            // マテリアル初期化
+            if (progressMaterialInstance == null)
+            {
+                InitializeProgressMaterial();
+            }
+
+            // 進捗を0-1にクランプ
+            progress01 = Mathf.Clamp01(progress01);
+
+            isLoading = progress01 > 0f && progress01 < 1f;
+
+            // 表示/非表示
+            bool shouldShow = progress01 > 0f && progress01 < 1f;
+            if (progressRing.gameObject.activeSelf != shouldShow)
+            {
+                progressRing.gameObject.SetActive(shouldShow);
+            }
+
+            // シェーダーパラメータ更新
+            if (progressMaterialInstance != null && shouldShow)
+            {
+                progressMaterialInstance.SetFloat(ProgressProperty, progress01);
+            }
+        }
+
+        /// <summary>
+        /// ロード開始
+        /// </summary>
         public void StartLoading()
         {
-            // スタブ実装
+            // 非表示コルーチンをキャンセル
+            if (hideProgressCoroutine != null)
+            {
+                StopCoroutine(hideProgressCoroutine);
+                hideProgressCoroutine = null;
+            }
+
+            isLoading = true;
+            SetProgress(0.01f); // 0より大きい値で開始（0だと非表示）
+
+            Debug.Log($"[AvatarSlot] Slot {slotIndex} loading started");
         }
 
-        public void SetProgress(float progress)
-        {
-            // スタブ実装
-        }
-
+        /// <summary>
+        /// ロード完了
+        /// </summary>
         public void CompleteLoading()
         {
-            // スタブ実装
+            SetProgress(1f);
+
+            // 少し遅延してから非表示（完了アニメーション用）
+            if (hideProgressCoroutine != null)
+            {
+                StopCoroutine(hideProgressCoroutine);
+            }
+            hideProgressCoroutine = StartCoroutine(HideProgressAfterDelay(0.3f));
+
+            Debug.Log($"[AvatarSlot] Slot {slotIndex} loading completed");
         }
 
+        /// <summary>
+        /// ロードキャンセル/失敗
+        /// </summary>
         public void CancelLoading()
         {
-            // スタブ実装
+            if (hideProgressCoroutine != null)
+            {
+                StopCoroutine(hideProgressCoroutine);
+                hideProgressCoroutine = null;
+            }
+
+            isLoading = false;
+
+            if (progressRing != null)
+            {
+                progressRing.gameObject.SetActive(false);
+            }
+
+            Debug.Log($"[AvatarSlot] Slot {slotIndex} loading cancelled");
+        }
+
+        private IEnumerator HideProgressAfterDelay(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+
+            if (progressRing != null)
+            {
+                progressRing.gameObject.SetActive(false);
+            }
+            isLoading = false;
+            hideProgressCoroutine = null;
+        }
+
+        #endregion
+
+        private void OnDestroy()
+        {
+            // アイコンのSprite/Textureを解放
+            if (currentIcon != null && currentIcon.texture != null)
+            {
+                // RuntimeでロードしたTextureの場合のみ解放
+                // Note: Spriteの解放はSprite.Createで作成した場合のみ必要
+            }
+
+            // Issue #73: プログレスマテリアルインスタンスを解放
+            if (progressMaterialInstance != null)
+            {
+                Destroy(progressMaterialInstance);
+                progressMaterialInstance = null;
+            }
         }
     }
 }

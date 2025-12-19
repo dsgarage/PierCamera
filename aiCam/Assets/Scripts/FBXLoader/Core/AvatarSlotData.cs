@@ -391,6 +391,7 @@ namespace AICam.FBXLoader
                 if (!Directory.Exists(directory))
                 {
                     Directory.CreateDirectory(directory);
+                    Debug.Log($"[💾 SAVE] Created directory: {directory}");
                 }
                 if (!Directory.Exists(iconsDirectory))
                 {
@@ -403,11 +404,27 @@ namespace AICam.FBXLoader
                 string filePath = GetCacheFilePath();
                 File.WriteAllText(filePath, json);
 
-                Debug.Log($"[AvatarSlotCache] Saved cache to: {filePath}");
+                // 保存完了の詳細ログ
+                var fileInfo = new FileInfo(filePath);
+                int configuredCount = 0;
+                int validCount = 0;
+                foreach (var slot in slots)
+                {
+                    if (!string.IsNullOrEmpty(slot.modelFilePath)) configuredCount++;
+                    if (slot.isValid) validCount++;
+                }
+
+                Debug.Log($"[💾 SAVE ✅] Cache saved successfully!");
+                Debug.Log($"[💾 SAVE] Path: {filePath}");
+                Debug.Log($"[💾 SAVE] Size: {fileInfo.Length} bytes");
+                Debug.Log($"[💾 SAVE] Slots: {slots.Count} total, {configuredCount} configured, {validCount} valid");
+                Debug.Log($"[💾 SAVE] LastActiveSlot: {lastActiveSlotIndex}");
+                Debug.Log($"[💾 SAVE] LastModified: {lastModified}");
             }
             catch (Exception e)
             {
-                Debug.LogError($"[AvatarSlotCache] Failed to save cache: {e.Message}");
+                Debug.LogError($"[💾 SAVE ❌] Failed to save cache: {e.Message}");
+                Debug.LogError($"[💾 SAVE ❌] Stack: {e.StackTrace}");
             }
         }
 
@@ -418,27 +435,30 @@ namespace AICam.FBXLoader
         public static AvatarSlotCache LoadFromFile()
         {
             string filePath = GetCacheFilePath();
-            Debug.Log($"[AvatarSlotCache] LoadFromFile: path={filePath}");
+            Debug.Log($"[📂 LOAD] LoadFromFile started");
+            Debug.Log($"[📂 LOAD] Path: {filePath}");
 
             try
             {
                 if (!File.Exists(filePath))
                 {
-                    Debug.Log($"[AvatarSlotCache] Cache file not found: {filePath}");
+                    Debug.LogWarning($"[📂 LOAD ⚠️] Cache file not found - creating new cache");
                     var newCache = new AvatarSlotCache();
                     newCache.Initialize(6);
                     return newCache;
                 }
 
                 var fileInfo = new FileInfo(filePath);
-                Debug.Log($"[AvatarSlotCache] Cache file found: size={fileInfo.Length} bytes");
+                Debug.Log($"[📂 LOAD] File found: {fileInfo.Length} bytes, modified: {fileInfo.LastWriteTime}");
 
                 string json = File.ReadAllText(filePath);
+                Debug.Log($"[📂 LOAD] JSON loaded: {json.Length} chars");
+
                 return ParseAndMigrateCache(json, filePath);
             }
             catch (Exception e)
             {
-                Debug.LogError($"[AvatarSlotCache] Failed to load cache: {e.GetType().Name}: {e.Message}");
+                Debug.LogError($"[📂 LOAD ❌] Failed: {e.GetType().Name}: {e.Message}");
                 var newCache = new AvatarSlotCache();
                 newCache.Initialize(6);
                 return newCache;
@@ -452,7 +472,8 @@ namespace AICam.FBXLoader
         public static async Cysharp.Threading.Tasks.UniTask<AvatarSlotCache> LoadFromFileAsync()
         {
             string filePath = GetCacheFilePath();
-            Debug.Log($"[AvatarSlotCache] LoadFromFileAsync: path={filePath}");
+            Debug.Log($"[📂 LOAD ASYNC] ========== Loading Cache ==========");
+            Debug.Log($"[📂 LOAD ASYNC] Path: {filePath}");
 
             try
             {
@@ -460,7 +481,8 @@ namespace AICam.FBXLoader
                 string directory = GetCacheDirectory();
                 if (!Directory.Exists(directory))
                 {
-                    Debug.Log($"[AvatarSlotCache] Cache directory not found: {directory}");
+                    Debug.LogWarning($"[📂 LOAD ASYNC ⚠️] Directory not found: {directory}");
+                    Debug.Log($"[📂 LOAD ASYNC] Creating new empty cache");
                     var newCache = new AvatarSlotCache();
                     newCache.Initialize(6);
                     return newCache;
@@ -469,7 +491,8 @@ namespace AICam.FBXLoader
                 // ファイルの存在確認
                 if (!File.Exists(filePath))
                 {
-                    Debug.Log($"[AvatarSlotCache] Cache file not found: {filePath}");
+                    Debug.LogWarning($"[📂 LOAD ASYNC ⚠️] Cache file not found");
+                    Debug.Log($"[📂 LOAD ASYNC] Creating new empty cache");
                     var newCache = new AvatarSlotCache();
                     newCache.Initialize(6);
                     return newCache;
@@ -477,11 +500,12 @@ namespace AICam.FBXLoader
 
                 // ファイルサイズ確認
                 var fileInfo = new FileInfo(filePath);
-                Debug.Log($"[AvatarSlotCache] Cache file found: size={fileInfo.Length} bytes, lastModified={fileInfo.LastWriteTime}");
+                Debug.Log($"[📂 LOAD ASYNC] File exists: {fileInfo.Length} bytes");
+                Debug.Log($"[📂 LOAD ASYNC] Last modified: {fileInfo.LastWriteTime}");
 
                 if (fileInfo.Length == 0)
                 {
-                    Debug.LogWarning($"[AvatarSlotCache] Cache file is empty, creating new cache");
+                    Debug.LogWarning($"[📂 LOAD ASYNC ⚠️] Cache file is empty");
                     var newCache = new AvatarSlotCache();
                     newCache.Initialize(6);
                     return newCache;
@@ -489,11 +513,11 @@ namespace AICam.FBXLoader
 
                 // 非同期でファイル読み込み
                 string json = await File.ReadAllTextAsync(filePath);
-                Debug.Log($"[AvatarSlotCache] JSON loaded: length={json.Length} chars");
+                Debug.Log($"[📂 LOAD ASYNC] JSON loaded: {json.Length} chars");
 
                 if (string.IsNullOrWhiteSpace(json))
                 {
-                    Debug.LogWarning($"[AvatarSlotCache] JSON content is empty or whitespace");
+                    Debug.LogWarning($"[📂 LOAD ASYNC ⚠️] JSON is empty or whitespace");
                     var newCache = new AvatarSlotCache();
                     newCache.Initialize(6);
                     return newCache;
@@ -541,8 +565,8 @@ namespace AICam.FBXLoader
             }
             catch (Exception parseEx)
             {
-                Debug.LogError($"[AvatarSlotCache] JSON parse exception: {parseEx.Message}");
-                Debug.LogError($"[AvatarSlotCache] JSON preview (first 500 chars): {json.Substring(0, Math.Min(500, json.Length))}");
+                Debug.LogError($"[📂 PARSE ❌] JSON parse failed: {parseEx.Message}");
+                Debug.LogError($"[📂 PARSE ❌] JSON preview: {json.Substring(0, Math.Min(500, json.Length))}");
 
                 var newCache = new AvatarSlotCache();
                 newCache.Initialize(6);
@@ -551,26 +575,31 @@ namespace AICam.FBXLoader
 
             if (cache == null)
             {
-                Debug.LogWarning("[AvatarSlotCache] Failed to parse cache (result is null), creating new cache");
-                Debug.LogWarning($"[AvatarSlotCache] JSON preview (first 500 chars): {json.Substring(0, Math.Min(500, json.Length))}");
+                Debug.LogWarning("[📂 PARSE ⚠️] Parse result is null");
+                Debug.LogWarning($"[📂 PARSE ⚠️] JSON preview: {json.Substring(0, Math.Min(500, json.Length))}");
                 var newCache = new AvatarSlotCache();
                 newCache.Initialize(6);
                 return newCache;
             }
 
-            Debug.Log($"[AvatarSlotCache] Parse successful: version={cache.version}, maxSlots={cache.maxSlots}, slots.Count={cache.slots?.Count ?? 0}");
+            Debug.Log($"[📂 PARSE ✅] JSON parsed successfully");
+            Debug.Log($"[📂 PARSE] Version: {cache.version}");
+            Debug.Log($"[📂 PARSE] MaxSlots: {cache.maxSlots}");
+            Debug.Log($"[📂 PARSE] Slots count: {cache.slots?.Count ?? 0}");
+            Debug.Log($"[📂 PARSE] LastActiveSlot: {cache.lastActiveSlotIndex}");
+            Debug.Log($"[📂 PARSE] LastModified: {cache.lastModified}");
 
             // slotsがnullの場合の対策
             if (cache.slots == null)
             {
-                Debug.LogWarning("[AvatarSlotCache] slots list is null, initializing...");
+                Debug.LogWarning("[📂 PARSE ⚠️] slots list is null, initializing...");
                 cache.slots = new List<AvatarSlotData>();
             }
 
             // バージョンチェック（マイグレーション処理）
             if (cache.version < CURRENT_VERSION)
             {
-                Debug.Log($"[AvatarSlotCache] Migrating cache from version {cache.version} to {CURRENT_VERSION}");
+                Debug.Log($"[📂 MIGRATE] Migrating v{cache.version} -> v{CURRENT_VERSION}");
 
                 // v1 -> v2: SerializableTransform追加
                 if (cache.version < 2)
@@ -582,7 +611,7 @@ namespace AICam.FBXLoader
                             slot.lastTransform = new SerializableTransform();
                         }
                     }
-                    Debug.Log("[AvatarSlotCache] Migrated: Added SerializableTransform to all slots");
+                    Debug.Log("[📂 MIGRATE] Added SerializableTransform to all slots");
                 }
 
                 cache.version = CURRENT_VERSION;
@@ -597,6 +626,7 @@ namespace AICam.FBXLoader
             // 各スロットの有効性を検証
             int configuredCount = 0;
             int validCount = 0;
+            Debug.Log($"[📂 VALIDATE] Checking {cache.slots.Count} slots...");
             for (int i = 0; i < cache.slots.Count; i++)
             {
                 var slot = cache.slots[i];
@@ -608,18 +638,19 @@ namespace AICam.FBXLoader
                     // モデルファイルが存在しない場合は無効化
                     if (!File.Exists(slot.modelFilePath))
                     {
-                        Debug.LogWarning($"[AvatarSlotCache] Model file not found for slot {i}: {slot.modelFilePath}");
+                        Debug.LogWarning($"[📂 VALIDATE ⚠️] Slot {i}: Model file missing - {slot.modelFilePath}");
                         slot.isValid = false;
                     }
                     else
                     {
                         validCount++;
-                        Debug.Log($"[AvatarSlotCache] Slot {i}: {slot.avatarName} ({slot.fileType}) - valid");
+                        Debug.Log($"[📂 VALIDATE ✅] Slot {i}: {slot.avatarName} ({slot.fileType})");
                     }
                 }
             }
 
-            Debug.Log($"[AvatarSlotCache] Loaded cache: {cache.slots.Count} slots, {configuredCount} configured, {validCount} valid");
+            Debug.Log($"[📂 LOAD COMPLETE ✅] {cache.slots.Count} total, {configuredCount} configured, {validCount} valid");
+            Debug.Log($"[📂 LOAD ASYNC] ========================================");
             return cache;
         }
 
