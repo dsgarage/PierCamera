@@ -436,13 +436,13 @@
     background-color: rgba(255, 255, 255, 1);
 }
 
-/* 選択中のスロット - デバッグ用に無効化 */
+/* 選択中のスロット */
 .bottom-panel-button.selected {
-    /* border-left-width: 2px;
+    border-left-width: 2px;
     border-right-width: 2px;
     border-top-width: 2px;
     border-bottom-width: 2px;
-    border-color: rgba(80, 180, 255, 1); */
+    border-color: rgba(80, 180, 255, 1);
 }
 
 /* アイコン設定済みスロット */

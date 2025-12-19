@@ -3073,14 +3073,20 @@ namespace AICam.UI
 
         /// <summary>
         /// スロットのロード開始（プログレス表示開始）
-        /// Issue #73: 現在プログレスリングは無効（問題特定のため）
         /// </summary>
         private void StartSlotLoading(Button slotButton)
         {
-            Debug.Log($"[#73] StartSlotLoading - DISABLED for debug: {slotButton?.name}");
-            // プログレスリング機能を完全に無効化
-            // 問題が消えれば CircularProgressElement が原因
-            // 問題が残れば 別の要素が原因
+            var progress = CreateProgressForSlot(slotButton);
+            if (progress == null) return;
+
+            // 位置を更新
+            UpdateProgressPosition(slotButton);
+
+            // 表示開始
+            progress.Progress = 0.01f; // 0より大きい値で開始
+            progress.style.display = DisplayStyle.Flex;
+
+            Debug.Log($"[#73] Loading started for {slotButton.name}");
         }
 
         /// <summary>
@@ -3100,76 +3106,18 @@ namespace AICam.UI
         /// </summary>
         private void CompleteSlotLoading(Button slotButton)
         {
-            Debug.Log($"[#73] CompleteSlotLoading called for {slotButton?.name ?? "null"}");
+            if (!slotProgressMap.TryGetValue(slotButton, out var progress)) return;
 
-            // 特定のボタンのプログレスを非表示
-            if (slotProgressMap.TryGetValue(slotButton, out var progress))
+            progress.Progress = 1f;
+
+            // 少し遅延してから非表示（完了を視覚的に確認できるように）
+            progress.schedule.Execute(() =>
             {
-                progress.Progress = 1f;
                 progress.style.display = DisplayStyle.None;
-                Debug.Log($"[#73] Progress found and hidden for {slotButton.name}");
-            }
-            else
-            {
-                Debug.LogWarning($"[#73] Progress NOT found in map for {slotButton?.name ?? "null"}, hiding ALL progress elements");
-            }
+                progress.Progress = 0f;
+            }).StartingIn(300);
 
-            // 安全のため、すべてのプログレス要素を非表示にする
-            HideAllProgressElements();
-        }
-
-        /// <summary>
-        /// すべてのプログレス要素を強制的に非表示にする
-        /// </summary>
-        private void HideAllProgressElements()
-        {
-            foreach (var kvp in slotProgressMap)
-            {
-                var progress = kvp.Value;
-                if (progress != null)
-                {
-                    progress.Progress = 0f;
-                    progress.style.display = DisplayStyle.None;
-                    progress.style.visibility = Visibility.Hidden;
-                    progress.style.opacity = 0f;
-
-                    // 親から完全に削除
-                    progress.RemoveFromHierarchy();
-                    Debug.Log($"[#73] Removed progress element from hierarchy");
-                }
-            }
-
-            // 辞書をクリア
-            slotProgressMap.Clear();
-            Debug.Log($"[#73] All progress elements removed and dictionary cleared");
-        }
-
-        /// <summary>
-        /// 遅延後にプログレスを非表示にする（非同期）
-        /// </summary>
-        private async UniTaskVoid HideProgressAfterDelayAsync(CircularProgressElement progress, string buttonName)
-        {
-            try
-            {
-                await UniTask.Delay(300);
-
-                if (progress != null)
-                {
-                    progress.style.display = DisplayStyle.None;
-                    progress.Progress = 0f;
-                    Debug.Log($"[#73] Progress hidden after delay for {buttonName}");
-                }
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogWarning($"[#73] Error hiding progress: {e.Message}");
-                // 例外が発生しても確実に非表示にする
-                if (progress != null)
-                {
-                    progress.style.display = DisplayStyle.None;
-                    progress.Progress = 0f;
-                }
-            }
+            Debug.Log($"[#73] Loading completed for {slotButton.name}");
         }
 
         /// <summary>
@@ -3177,10 +3125,12 @@ namespace AICam.UI
         /// </summary>
         private void CancelSlotLoading(Button slotButton)
         {
-            Debug.Log($"[#73] CancelSlotLoading called for {slotButton?.name ?? "null"}");
+            if (!slotProgressMap.TryGetValue(slotButton, out var progress)) return;
 
-            // 安全のため、すべてのプログレス要素を非表示にする
-            HideAllProgressElements();
+            progress.style.display = DisplayStyle.None;
+            progress.Progress = 0f;
+
+            Debug.Log($"[#73] Loading cancelled for {slotButton.name}");
         }
 
         #endregion

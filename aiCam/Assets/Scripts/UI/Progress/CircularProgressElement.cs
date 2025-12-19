@@ -44,14 +44,10 @@ namespace AICam.UI
                     if (_progress > 0f && _progress < 1f)
                     {
                         AddToClassList(UssClassNames.activeClassName);
-                        // プログレス中は表示
-                        style.display = DisplayStyle.Flex;
                     }
                     else
                     {
                         RemoveFromClassList(UssClassNames.activeClassName);
-                        // 0または1になったら自動的に非表示
-                        style.display = DisplayStyle.None;
                     }
                 }
             }
@@ -163,9 +159,6 @@ namespace AICam.UI
 
             // ピッキングモードを無効化（タッチイベントを透過）
             pickingMode = PickingMode.Ignore;
-
-            // 初期状態は非表示（Progress > 0 && < 1 で表示される）
-            style.display = DisplayStyle.None;
         }
 
         private void OnGenerateVisualContent(MeshGenerationContext mgc)
