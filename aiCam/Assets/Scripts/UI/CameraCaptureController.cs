@@ -3073,15 +3073,14 @@ namespace AICam.UI
 
         /// <summary>
         /// スロットのロード開始（プログレス表示開始）
+        /// Issue #73: 現在プログレスリングは無効（問題特定のため）
         /// </summary>
         private void StartSlotLoading(Button slotButton)
         {
-            if (slotButton == null) return;
-
-            // ロード中クラスを追加（CSSボーダーを隠す）
-            slotButton.AddToClassList("loading");
-
-            Debug.Log($"[#73] StartSlotLoading: {slotButton.name}");
+            Debug.Log($"[#73] StartSlotLoading - DISABLED for debug: {slotButton?.name}");
+            // プログレスリング機能を完全に無効化
+            // 問題が消えれば CircularProgressElement が原因
+            // 問題が残れば 別の要素が原因
         }
 
         /// <summary>
@@ -3101,12 +3100,22 @@ namespace AICam.UI
         /// </summary>
         private void CompleteSlotLoading(Button slotButton)
         {
-            if (slotButton == null) return;
+            Debug.Log($"[#73] CompleteSlotLoading called for {slotButton?.name ?? "null"}");
 
-            // ロード中クラスを削除（CSSボーダーを表示可能に）
-            slotButton.RemoveFromClassList("loading");
+            // 特定のボタンのプログレスを非表示
+            if (slotProgressMap.TryGetValue(slotButton, out var progress))
+            {
+                progress.Progress = 1f;
+                progress.style.display = DisplayStyle.None;
+                Debug.Log($"[#73] Progress found and hidden for {slotButton.name}");
+            }
+            else
+            {
+                Debug.LogWarning($"[#73] Progress NOT found in map for {slotButton?.name ?? "null"}, hiding ALL progress elements");
+            }
 
-            Debug.Log($"[#73] CompleteSlotLoading: {slotButton.name}");
+            // 安全のため、すべてのプログレス要素を非表示にする
+            HideAllProgressElements();
         }
 
         /// <summary>
@@ -3168,12 +3177,10 @@ namespace AICam.UI
         /// </summary>
         private void CancelSlotLoading(Button slotButton)
         {
-            if (slotButton == null) return;
+            Debug.Log($"[#73] CancelSlotLoading called for {slotButton?.name ?? "null"}");
 
-            // ロード中クラスを削除（CSSボーダーを表示可能に）
-            slotButton.RemoveFromClassList("loading");
-
-            Debug.Log($"[#73] CancelSlotLoading: {slotButton.name}");
+            // 安全のため、すべてのプログレス要素を非表示にする
+            HideAllProgressElements();
         }
 
         #endregion
