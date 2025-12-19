@@ -3073,20 +3073,14 @@ namespace AICam.UI
 
         /// <summary>
         /// スロットのロード開始（プログレス表示開始）
+        /// Issue #73: 現在プログレスリングは無効（問題特定のため）
         /// </summary>
         private void StartSlotLoading(Button slotButton)
         {
-            var progress = CreateProgressForSlot(slotButton);
-            if (progress == null) return;
-
-            // 位置を更新
-            UpdateProgressPosition(slotButton);
-
-            // 表示開始
-            progress.Progress = 0.01f; // 0より大きい値で開始
-            progress.style.display = DisplayStyle.Flex;
-
-            Debug.Log($"[#73] Loading started for {slotButton.name}");
+            Debug.Log($"[#73] StartSlotLoading - DISABLED for debug: {slotButton?.name}");
+            // プログレスリング機能を完全に無効化
+            // 問題が消えれば CircularProgressElement が原因
+            // 問題が残れば 別の要素が原因
         }
 
         /// <summary>
