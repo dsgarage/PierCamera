@@ -67,6 +67,9 @@ public sealed class ARPhotoController : MonoBehaviour
     // 撮影完了時のコールバック
     public event System.Action<Texture2D> OnPhotoCaptured;
 
+    // UaaL用: パス付き撮影完了イベント（RN連携用）
+    public event System.Action<string, int, int> OnPhotoCapturedWithPath;
+
     private void Awake()
     {
         if (!arSession)
@@ -170,6 +173,9 @@ public sealed class ARPhotoController : MonoBehaviour
             string path = Path.Combine(jpgFolder, fileName);
             File.WriteAllBytes(path, imageBytes);
             Debug.Log($"📸 [ARPhoto] Saved to jpg folder: {path}");
+
+            // UaaLイベント発火（Editor用テスト）
+            OnPhotoCapturedWithPath?.Invoke(path, Screen.width, Screen.height);
 #elif UNITY_ANDROID
             try
             {
@@ -183,6 +189,14 @@ public sealed class ARPhotoController : MonoBehaviour
                 Debug.LogWarning("[ARPhoto] MediaStore failed. Saved to: " + fallback + "\n" + e);
             }
 #elif UNITY_IOS
+            // UaaL用: RNと共有可能な一時パスに保存
+            string uaalPath = Path.Combine(Application.temporaryCachePath, fileName);
+            File.WriteAllBytes(uaalPath, imageBytes);
+            Debug.Log($"[ARPhoto] Saved for UaaL: {uaalPath}");
+
+            // UaaLイベント発火（RNに通知）
+            OnPhotoCapturedWithPath?.Invoke(uaalPath, Screen.width, Screen.height);
+
             try
             {
                 ARNative_SavePNGToPhotos(imageBytes, imageBytes.Length);
@@ -190,9 +204,7 @@ public sealed class ARPhotoController : MonoBehaviour
             }
             catch (Exception e)
             {
-                var fallback = Path.Combine(Application.persistentDataPath, fileName);
-                File.WriteAllBytes(fallback, imageBytes);
-                Debug.LogWarning("[ARPhoto] iOS native save failed. Saved to: " + fallback + "\n" + e);
+                Debug.LogWarning("[ARPhoto] iOS native save failed: " + e);
             }
 #else
             var path = Path.Combine(Application.persistentDataPath, fileName);

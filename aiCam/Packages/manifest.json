@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
+    "com.dolami.pier-uaal-bridge": "https://github.com/dolami-inc/pier.git#upm/uaal-bridge",
     "com.dsgarage.poseslotcontroller": "https://github.com/dsgarage/PoseSlotController.git",
     "com.dsgarage.unisil": "git@github.com:dsgarage/UniSIL.git?path=/Packages/com.dsgarage.unisil",
     "com.frozenstorminteractive.assimp": "4.1.0",
