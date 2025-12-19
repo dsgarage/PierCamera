@@ -122,25 +122,43 @@
                     </ui:VisualElement>
                 </ui:VisualElement>
 
-                <!-- シャドウセクション -->
-                <ui:VisualElement class="lighting-section">
-                    <ui:Label text="Shadow" class="section-label" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- Issue #120: シャドウパネル（オーバーレイ） -->
+        <ui:VisualElement name="shadowPanelOverlay" class="shadow-panel-overlay">
+            <ui:VisualElement name="shadowPanel" class="shadow-panel">
+
+                <!-- ヘッダー -->
+                <ui:VisualElement class="shadow-panel-header">
+                    <ui:Label text="Shadow" class="shadow-panel-title" />
+                    <ui:Button name="shadowPanelClose" text="×" class="shadow-panel-close" />
+                </ui:VisualElement>
+
+                <!-- シャドウON/OFF -->
+                <ui:VisualElement class="shadow-section">
                     <ui:VisualElement class="toggle-row">
                         <ui:Label text="Enable Shadow" class="toggle-label" />
                         <ui:Toggle name="shadowToggle" value="true" class="shadow-toggle" />
                     </ui:VisualElement>
+                </ui:VisualElement>
+
+                <!-- シャドウ強度 -->
+                <ui:VisualElement class="shadow-section">
                     <ui:VisualElement class="slider-header">
-                        <ui:Label text="Intensity" class="section-label-small" />
+                        <ui:Label text="Intensity" class="section-label" />
                         <ui:Label name="shadowIntensityValue" text="0.6" class="slider-value" />
                     </ui:VisualElement>
-                    <ui:Slider name="shadowIntensitySlider" low-value="0" high-value="1" value="0.6" class="lighting-slider" />
-                    <ui:VisualElement class="softness-container">
-                        <ui:Label text="Softness" class="section-label-small" />
-                        <ui:VisualElement class="softness-buttons">
-                            <ui:Button name="softHard" text="Hard" class="softness-button" />
-                            <ui:Button name="softMedium" text="Medium" class="softness-button softness-selected" />
-                            <ui:Button name="softSoft" text="Soft" class="softness-button" />
-                        </ui:VisualElement>
+                    <ui:Slider name="shadowIntensitySlider" low-value="0" high-value="1" value="0.6" class="shadow-slider" />
+                </ui:VisualElement>
+
+                <!-- ソフトネス -->
+                <ui:VisualElement class="shadow-section">
+                    <ui:Label text="Softness" class="section-label" />
+                    <ui:VisualElement class="softness-buttons">
+                        <ui:Button name="softHard" text="Hard" class="softness-button" />
+                        <ui:Button name="softMedium" text="Medium" class="softness-button softness-selected" />
+                        <ui:Button name="softSoft" text="Soft" class="softness-button" />
                     </ui:VisualElement>
                 </ui:VisualElement>
 
