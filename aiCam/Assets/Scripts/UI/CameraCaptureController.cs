@@ -924,6 +924,7 @@ namespace AICam.UI
             var newButton = new Button();
             newButton.name = $"bottomButton{bottomButtonCount}";
             newButton.AddToClassList("bottom-panel-button");
+            newButton.AddToClassList("empty-slot"); // 人型アイコンを表示
 
             // +ボタンの直前に挿入
             int addButtonIndex = bottomButtonContainer.IndexOf(bottomButtonAdd);
@@ -1751,6 +1752,9 @@ namespace AICam.UI
 
             // ボタン自体の背景画像としてサムネイルを設定
             button.style.backgroundImage = new StyleBackground(texture);
+
+            // empty-slotクラスを削除（人型アイコンを非表示）
+            button.RemoveFromClassList("empty-slot");
 
             // has-iconクラスを追加してUSSスタイルを適用
             button.AddToClassList("has-icon");

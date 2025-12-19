@@ -468,7 +468,13 @@
     background-color: rgba(220, 220, 220, 1);
 }
 
-/* bottomButton1にアバターアイコンを表示 */
+/* 空のアバタースロット（人型アイコン表示） */
+.bottom-panel-button.empty-slot {
+    background-color: rgba(255, 255, 255, 0.9);
+    background-image: resource('Sprite/PictIcon/AvatarSlot/EmptySlotIcon');
+}
+
+/* bottomButton1（初期スロット）にも適用 */
 #bottomButton1 {
     background-color: rgba(255, 255, 255, 0.9);
     background-image: resource('Sprite/PictIcon/AvatarSlot/EmptySlotIcon');
