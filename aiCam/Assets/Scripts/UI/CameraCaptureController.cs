@@ -1830,24 +1830,21 @@ namespace AICam.UI
 
             // BugReportManagerを使用してバグレポートを開始
             var bugReportManager = AICam.BugReport.BugReportManager.Instance;
-            if (bugReportManager != null)
+            if (bugReportManager == null)
             {
-                bugReportManager.StartBugReport();
-            }
-            else
-            {
-                // BugReportManagerがない場合はFindで探す
+                // Findで探す
                 bugReportManager = FindFirstObjectByType<AICam.BugReport.BugReportManager>();
-                if (bugReportManager != null)
-                {
-                    bugReportManager.StartBugReport();
-                }
-                else
-                {
-                    Debug.LogWarning("⚠️ BugReportManager not found in scene");
-                    ShowWarning("[W013] Bug Report", "BugReportManager not found");
-                }
             }
+
+            if (bugReportManager == null)
+            {
+                // 存在しない場合は自動生成
+                Debug.Log("🐛 BugReportManager not found, creating one...");
+                var go = new GameObject("BugReportManager");
+                bugReportManager = go.AddComponent<AICam.BugReport.BugReportManager>();
+            }
+
+            bugReportManager.StartBugReport();
         }
 
         /// <summary>
