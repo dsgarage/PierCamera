@@ -3110,14 +3110,38 @@ namespace AICam.UI
 
             progress.Progress = 1f;
 
-            // 少し遅延してから非表示（完了を視覚的に確認できるように）
-            progress.schedule.Execute(() =>
-            {
-                progress.style.display = DisplayStyle.None;
-                progress.Progress = 0f;
-            }).StartingIn(300);
+            // 非同期で遅延してから非表示（完了を視覚的に確認できるように）
+            HideProgressAfterDelayAsync(progress, slotButton.name).Forget();
 
             Debug.Log($"[#73] Loading completed for {slotButton.name}");
+        }
+
+        /// <summary>
+        /// 遅延後にプログレスを非表示にする（非同期）
+        /// </summary>
+        private async UniTaskVoid HideProgressAfterDelayAsync(CircularProgressElement progress, string buttonName)
+        {
+            try
+            {
+                await UniTask.Delay(300);
+
+                if (progress != null)
+                {
+                    progress.style.display = DisplayStyle.None;
+                    progress.Progress = 0f;
+                    Debug.Log($"[#73] Progress hidden after delay for {buttonName}");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[#73] Error hiding progress: {e.Message}");
+                // 例外が発生しても確実に非表示にする
+                if (progress != null)
+                {
+                    progress.style.display = DisplayStyle.None;
+                    progress.Progress = 0f;
+                }
+            }
         }
 
         /// <summary>
