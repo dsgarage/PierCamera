@@ -53,7 +53,7 @@
         </ui:VisualElement>
 
         <!-- Issue #120: ライティングパネル（オーバーレイ） -->
-        <ui:VisualElement name="lightingPanelOverlay" class="lighting-panel-overlay">
+        <ui:VisualElement name="lightingPanelOverlay" picking-mode="Ignore" class="lighting-panel-overlay">
             <ui:VisualElement name="lightingPanel" class="lighting-panel">
 
                 <!-- ヘッダー -->
@@ -126,7 +126,7 @@
         </ui:VisualElement>
 
         <!-- Issue #120: シャドウパネル（オーバーレイ） -->
-        <ui:VisualElement name="shadowPanelOverlay" class="shadow-panel-overlay">
+        <ui:VisualElement name="shadowPanelOverlay" picking-mode="Ignore" class="shadow-panel-overlay">
             <ui:VisualElement name="shadowPanel" class="shadow-panel">
 
                 <!-- ヘッダー -->
