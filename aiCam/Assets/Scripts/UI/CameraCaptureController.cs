@@ -3136,9 +3136,18 @@ namespace AICam.UI
                 {
                     progress.Progress = 0f;
                     progress.style.display = DisplayStyle.None;
+                    progress.style.visibility = Visibility.Hidden;
+                    progress.style.opacity = 0f;
+
+                    // 親から完全に削除
+                    progress.RemoveFromHierarchy();
+                    Debug.Log($"[#73] Removed progress element from hierarchy");
                 }
             }
-            Debug.Log($"[#73] All {slotProgressMap.Count} progress elements hidden");
+
+            // 辞書をクリア
+            slotProgressMap.Clear();
+            Debug.Log($"[#73] All progress elements removed and dictionary cleared");
         }
 
         /// <summary>
