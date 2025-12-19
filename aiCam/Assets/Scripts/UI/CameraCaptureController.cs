@@ -69,6 +69,7 @@ namespace AICam.UI
         private Button sideButton1;
         private Button sideButton2;
         private Button sideButton3;
+        private Button sideButtonBugReport; // Issue #413: バグレポート
 
         // Issue #74/#75: トップパネルボタン要素
         private Button topButton1; // Light Estimation ON/OFF
@@ -274,6 +275,7 @@ namespace AICam.UI
             sideButton1 = root.Q<Button>("sideButton1");
             sideButton2 = root.Q<Button>("sideButton2");
             sideButton3 = root.Q<Button>("sideButton3");
+            sideButtonBugReport = root.Q<Button>("sideButtonBugReport"); // Issue #413
 
             // Issue #74/#75: トップパネルボタンの取得
             topButton1 = root.Q<Button>("topButton1");
@@ -398,6 +400,20 @@ namespace AICam.UI
             {
                 sideButton3.RegisterCallback<ClickEvent>(evt => OnSideButton3Clicked());
                 Debug.Log("✅ Side button 3 events registered");
+            }
+
+            // Issue #413: バグレポートボタンのイベント登録
+            if (sideButtonBugReport != null)
+            {
+                sideButtonBugReport.RegisterCallback<ClickEvent>(evt => OnBugReportButtonClicked());
+                Debug.Log("✅ Bug report button events registered");
+
+                // バグレポートアイコンを設定
+                var bugReportIcon = Resources.Load<Texture2D>("Sprite/PictIcon/SideBear/04_BugReport");
+                if (bugReportIcon != null)
+                {
+                    sideButtonBugReport.style.backgroundImage = new StyleBackground(bugReportIcon);
+                }
             }
 
             // Issue #74/#75: トップパネルボタンのイベント登録
@@ -1802,6 +1818,36 @@ namespace AICam.UI
             TapticEngine.Selection();
 
             // ここにフラッシュ切り替え処理を追加
+        }
+
+        /// <summary>
+        /// Issue #413: バグレポートボタンクリック時の処理
+        /// </summary>
+        void OnBugReportButtonClicked()
+        {
+            Debug.Log("🐛 Bug report button clicked");
+            TapticEngine.Impact(TapticEngine.ImpactStyle.Medium);
+
+            // BugReportManagerを使用してバグレポートを開始
+            var bugReportManager = AICam.BugReport.BugReportManager.Instance;
+            if (bugReportManager != null)
+            {
+                bugReportManager.StartBugReport();
+            }
+            else
+            {
+                // BugReportManagerがない場合はFindで探す
+                bugReportManager = FindFirstObjectByType<AICam.BugReport.BugReportManager>();
+                if (bugReportManager != null)
+                {
+                    bugReportManager.StartBugReport();
+                }
+                else
+                {
+                    Debug.LogWarning("⚠️ BugReportManager not found in scene");
+                    ShowWarning("[W013] Bug Report", "BugReportManager not found");
+                }
+            }
         }
 
         /// <summary>
