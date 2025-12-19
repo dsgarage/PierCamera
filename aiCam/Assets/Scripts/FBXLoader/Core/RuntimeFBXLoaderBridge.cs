@@ -336,11 +336,14 @@ namespace AICam.FBXLoader
                 {
                     // VRM 1.0 の読み込み
                     Debug.Log("[RuntimeFBXLoaderBridge] Loading as VRM 1.0 using Vrm10.LoadBytesAsync...");
+                    // ControlRigGenerationOption.None: ControlRigがAnimator.avatarを上書きするのを防ぐ
+                    // これにより、AnimatorOverrideControllerでのポーズ切り替えが正常に動作する
                     currentVrm10Instance = await Vrm10.LoadBytesAsync(
                         bytes: bytes,
                         canLoadVrm0X: false,
                         showMeshes: true,
-                        awaitCaller: new RuntimeOnlyAwaitCaller()
+                        awaitCaller: new RuntimeOnlyAwaitCaller(),
+                        controlRigGenerationOption: ControlRigGenerationOption.None
                     );
 
                     if (currentVrm10Instance == null)
@@ -463,11 +466,13 @@ namespace AICam.FBXLoader
                 if (loadedVrmVersion == VrmVersion.VRM_1_0)
                 {
                     Debug.Log("[RuntimeFBXLoaderBridge] Loading as VRM 1.0...");
+                    // ControlRigGenerationOption.None: ControlRigがAnimator.avatarを上書きするのを防ぐ
                     currentVrm10Instance = await Vrm10.LoadBytesAsync(
                         bytes: bytes,
                         canLoadVrm0X: false,
                         showMeshes: true,
-                        awaitCaller: new RuntimeOnlyAwaitCaller()
+                        awaitCaller: new RuntimeOnlyAwaitCaller(),
+                        controlRigGenerationOption: ControlRigGenerationOption.None
                     );
 
                     if (currentVrm10Instance == null)
@@ -1429,11 +1434,13 @@ namespace AICam.FBXLoader
 
             if (version == VrmVersion.VRM_1_0)
             {
+                // ControlRigGenerationOption.None: ControlRigがAnimator.avatarを上書きするのを防ぐ
                 var vrm10 = await Vrm10.LoadBytesAsync(
                     bytes: bytes,
                     canLoadVrm0X: false,
                     showMeshes: true,
-                    awaitCaller: new RuntimeOnlyAwaitCaller()
+                    awaitCaller: new RuntimeOnlyAwaitCaller(),
+                    controlRigGenerationOption: ControlRigGenerationOption.None
                 );
 
                 if (vrm10 == null)

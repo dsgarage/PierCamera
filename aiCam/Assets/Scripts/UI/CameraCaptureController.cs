@@ -6,6 +6,7 @@ using System.IO;
 using System;
 using System.Collections.Generic;
 using AICam.AR;
+using DSGarage.PoseSlot;
 
 namespace AICam.UI
 {
@@ -26,6 +27,7 @@ namespace AICam.UI
 
         [Header("Pose Animation (Issue #407)")]
         [SerializeField] private AnimatorOverrideController[] poseOverrideControllers;
+        [SerializeField] private PoseSlotController poseSlotController;
 
         [Header("Expression System (Issue #145/#411)")]
         [SerializeField] private AICam.Expression.VrmExpressionSetup expressionSetup;
@@ -2253,10 +2255,29 @@ namespace AICam.UI
 
         /// <summary>
         /// Issue #407: 次のOverrideControllerに切り替え（ダブルタップ時）
+        /// PoseSlotControllerを使用して切り替えを行う
         /// </summary>
         void SwitchToNextOverrideController()
         {
-            Debug.Log($"🎭 SwitchToNextOverrideController called - poseOverrideControllers: {(poseOverrideControllers != null ? poseOverrideControllers.Length.ToString() : "null")}");
+            Debug.Log($"🎭 SwitchToNextOverrideController called");
+
+            // PoseSlotControllerを使用
+            if (poseSlotController != null)
+            {
+                // アバターが変わっている場合、PoseSlotControllerを更新
+                EnsurePoseSlotControllerSetup();
+
+                poseSlotController.NextOverride();
+                currentOverrideIndex = poseSlotController.CurrentOverrideIndex;
+                currentPoseIndex = 0;  // ポーズインデックスをリセット
+
+                Debug.Log($"🎭 PoseSlotController.NextOverride() - index: {currentOverrideIndex}, name: {poseSlotController.CurrentOverrideName}");
+                ShowInfo("Change", poseSlotController.CurrentOverrideName, 2f);
+                return;
+            }
+
+            // フォールバック: PoseSlotControllerがない場合は従来の実装
+            Debug.Log($"🎭 Fallback: poseOverrideControllers: {(poseOverrideControllers != null ? poseOverrideControllers.Length.ToString() : "null")}");
 
             if (poseOverrideControllers == null || poseOverrideControllers.Length == 0)
             {
@@ -2323,6 +2344,86 @@ namespace AICam.UI
 
             // 水色のアラートバーで表示
             ShowInfo("Change", nextOverride.name, 2f);
+        }
+
+        /// <summary>
+        /// PoseSlotControllerのセットアップを確認・更新
+        /// アバター変更時にTargetAnimatorを更新する
+        /// </summary>
+        void EnsurePoseSlotControllerSetup()
+        {
+            if (poseSlotController == null) return;
+
+            // 現在のアバターを取得
+            GameObject avatar = GetCurrentAvatar();
+            if (avatar == null) return;
+
+            var animator = avatar.GetComponent<Animator>();
+            if (animator == null) return;
+
+            // TargetAnimatorが異なる場合は更新
+            if (poseSlotController.TargetAnimator != animator)
+            {
+                Debug.Log($"🎭 Updating PoseSlotController.TargetAnimator to: {avatar.name}");
+                poseSlotController.TargetAnimator = animator;
+
+                // OverrideControllersを設定（未設定の場合）
+                if (poseSlotController.OverrideCount == 0 && poseOverrideControllers != null)
+                {
+                    poseSlotController.SetOverrideControllers(poseOverrideControllers);
+                    Debug.Log($"🎭 Set {poseOverrideControllers.Length} override controllers to PoseSlotController");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 現在のアバターを取得するヘルパーメソッド
+        /// </summary>
+        GameObject GetCurrentAvatar()
+        {
+            // キャッシュされたアバターを優先
+            if (cachedCurrentAvatar != null && cachedCurrentAvatar.activeInHierarchy)
+            {
+                return cachedCurrentAvatar;
+            }
+
+            // AvatarSlotManager + AvatarMemoryCacheから取得
+            var slotManager = AICam.FBXLoader.AvatarSlotManager.Instance;
+            var memoryCache = AICam.FBXLoader.AvatarMemoryCache.Instance;
+
+            if (slotManager != null && memoryCache != null)
+            {
+                int currentSlot = slotManager.CurrentSlotIndex;
+                if (currentSlot >= 0)
+                {
+                    var avatar = memoryCache.GetCachedAvatar(currentSlot);
+                    if (avatar != null)
+                    {
+                        cachedCurrentAvatar = avatar;
+                        return avatar;
+                    }
+                }
+            }
+
+            // RuntimeFBXLoaderBridgeから取得
+            if (fbxLoaderBridge != null && fbxLoaderBridge.CurrentModel != null)
+            {
+                cachedCurrentAvatar = fbxLoaderBridge.CurrentModel;
+                return cachedCurrentAvatar;
+            }
+
+            // シーン内検索
+            var animators = FindObjectsByType<Animator>(FindObjectsSortMode.None);
+            foreach (var anim in animators)
+            {
+                if (anim.avatar != null && anim.avatar.isHuman && anim.gameObject.activeInHierarchy)
+                {
+                    cachedCurrentAvatar = anim.gameObject;
+                    return cachedCurrentAvatar;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
