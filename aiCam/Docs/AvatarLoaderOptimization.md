@@ -329,6 +329,154 @@ verts.TrimExcess();  // メモリ即時解放
 ### Phase 2: 非同期化
 - [ ] `AsyncGPUReadback` によるアイコン生成
 - [ ] PNG エンコードの Worker Thread 化
+- [ ] チャンク化ファイル読み込み（後述）
+
+#### Phase 2.1: チャンク化ファイル読み込み
+
+> **優先度: 高** - VRMロード中のクラッシュ対策として即座に実装すべき
+
+**現在の問題:**
+```csharp
+// 一括読み込み（メモリスパイク発生）
+byte[] bytes = await File.ReadAllBytesAsync(filePath);
+// → 50MBのVRMファイルを一度にメモリ確保
+// → 低メモリ端末でクラッシュのリスク
+```
+
+**設計概要:**
+```
+ファイル (50MB)
+┌──┬──┬──┬──┬──┬──┬──┬──┬──┬──┐
+│64│64│64│64│64│64│64│64│..│残│ KB chunks
+└──┴──┴──┴──┴──┴──┴──┴──┴──┴──┘
+  ↓  ↓  ↓  ↓  ↓  ↓  ↓  ↓
+[読込][Yield][読込][Yield][読込][Yield]...
+       ↓           ↓           ↓
+    Frame 1     Frame 2     Frame 3
+
+進捗: ████████░░░░░░░░░░░░ 40%
+```
+
+**クラス設計:**
+```csharp
+// Assets/Scripts/FBXLoader/IO/ChunkedFileReader.cs
+public static class ChunkedFileReader
+{
+    /// <summary>
+    /// チャンクサイズ（64KB）
+    /// モバイル環境でのメモリ効率と読み込み速度のバランス
+    /// </summary>
+    private const int DefaultChunkSize = 64 * 1024;
+
+    /// <summary>
+    /// N チャンクごとにフレームを譲る
+    /// 64KB × 8 = 512KB 読み込むごとに1フレーム待機
+    /// </summary>
+    private const int YieldInterval = 8;
+
+    /// <summary>
+    /// ファイルをチャンク単位で非同期読み込み
+    /// </summary>
+    /// <param name="filePath">ファイルパス</param>
+    /// <param name="onProgress">進捗コールバック (0.0 - 1.0)</param>
+    /// <param name="cancellationToken">キャンセルトークン</param>
+    /// <returns>読み込んだバイト配列</returns>
+    public static async UniTask<byte[]> ReadAllBytesAsync(
+        string filePath,
+        Action<float> onProgress = null,
+        CancellationToken cancellationToken = default)
+    {
+        using var stream = new FileStream(
+            filePath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: DefaultChunkSize,
+            useAsync: true);
+
+        byte[] buffer = new byte[stream.Length];
+        int offset = 0;
+        int chunkCount = 0;
+
+        while (offset < buffer.Length)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            int bytesToRead = Math.Min(DefaultChunkSize, buffer.Length - offset);
+            int bytesRead = await stream.ReadAsync(
+                buffer, offset, bytesToRead, cancellationToken);
+
+            if (bytesRead == 0) break;
+
+            offset += bytesRead;
+            chunkCount++;
+
+            // 進捗通知
+            onProgress?.Invoke((float)offset / buffer.Length);
+
+            // YieldInterval チャンクごとにフレームを譲る
+            if (chunkCount % YieldInterval == 0)
+            {
+                await UniTask.Yield(PlayerLoopTiming.Update, cancellationToken);
+            }
+        }
+
+        return buffer;
+    }
+}
+```
+
+**パラメータ設計:**
+
+| パラメータ | 値 | 理由 |
+|-----------|-----|------|
+| チャンクサイズ | 64KB | モバイルI/Oに最適化、小さすぎるとオーバーヘッド増加 |
+| Yield間隔 | 8チャンク (512KB) | フレームレート維持しつつ読み込み速度確保 |
+| 進捗通知 | 0.0-1.0 | 既存のonProgressと統合可能 |
+| キャンセル対応 | CancellationToken | ロード中断時のリソース解放 |
+
+**呼び出し側の変更:**
+```csharp
+// Before
+byte[] bytes = await File.ReadAllBytesAsync(filePath);
+onProgress?.Invoke(20f);
+
+// After
+byte[] bytes = await ChunkedFileReader.ReadAllBytesAsync(
+    filePath,
+    progress => onProgress?.Invoke(progress * 20f),  // 0-20%をファイル読み込みに割り当て
+    cancellationToken
+);
+```
+
+**適用箇所:**
+
+| ファイル | メソッド | 現在の実装 |
+|----------|---------|-----------|
+| `RuntimeFBXLoaderBridge.cs` | `LoadVRMFile()` | `File.ReadAllBytesAsync` |
+| `RuntimeFBXLoaderBridge.cs` | `LoadVRMFileFromPath()` | `File.ReadAllBytesAsync` |
+| `RuntimeFBXLoaderBridge.cs` | `LoadVrmAsync()` | `File.ReadAllBytesAsync` |
+| `RuntimeAvatarLoader.cs` | `LoadVRMFromPathAsync()` | `File.ReadAllBytesAsync` |
+| `VRMLoaderFromStreaming.cs` | `LoadVrmAsync()` | `File.ReadAllBytesAsync` |
+| `VRMFilePickerLoader.cs` | `LoadVRM()` | `File.ReadAllBytesAsync` |
+
+**期待効果:**
+
+| 項目 | Before | After |
+|------|--------|-------|
+| メモリスパイク | 50MB一括確保 | 64KB漸増 |
+| メインスレッドブロック | 数百ms | 数ms/フレーム |
+| フレームレート | 低下（カクつき） | 維持（60fps） |
+| 進捗表示 | ファイル読み込み中は更新なし | リアルタイム更新 |
+| クラッシュリスク | 高（低メモリ端末） | 低 |
+
+**実装チェックリスト:**
+- [ ] `ChunkedFileReader.cs` 作成
+- [ ] `RuntimeFBXLoaderBridge.cs` の全 `File.ReadAllBytesAsync` を置換
+- [ ] `RuntimeAvatarLoader.cs` の置換
+- [ ] `VRMLoaderFromStreaming.cs` の置換
+- [ ] `VRMFilePickerLoader.cs` の置換
+- [ ] 動作確認（大きなVRMファイルでテスト）
 
 ### Phase 3: アーキテクチャ改善
 - [ ] Assimp Scene のライフサイクル管理
