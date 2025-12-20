@@ -21,6 +21,81 @@
 - `mesh.SetVertices()` 等: GPU転送待機
 - テクスチャ読み込み: 逐次処理で200-400ms
 
+### 1.3 永続化ファイル（JSON）のロードフロー
+
+![Persistence Flow](diagrams/06_persistence_flow.png)
+
+**アプリ起動時のロードフロー:**
+1. `AvatarSlotManager.Awake()` → `InitializeAsync()`
+2. `LoadFromFileAsync()` で `avatar_slot_cache.json` を非同期読み込み
+3. `ParseAndMigrateCache()` でバージョンチェック・マイグレーション
+4. 各スロットの有効性検証（ファイル存在確認）
+5. UI初期化後、`RestoreLastActiveSlotViaHandlerAsync()` で最後のアバター復元
+6. メモリキャッシュ確認 → ヒット時は高速復元（~50ms）、ミス時はフルロード
+
+### 1.4 保存フロー
+
+![Save Flow](diagrams/07_save_flow.png)
+
+**保存トリガー:**
+| タイミング | メソッド |
+|-----------|---------|
+| アバター登録完了 | `RegisterAvatarToSlot()` |
+| スロット選択 | `SelectSlot()` |
+| 位置保存 | `SaveCurrentAvatarPosition()` |
+| スロットクリア | `ClearSlot()` |
+| バックグラウンド移行 | `OnApplicationPause()` |
+
+**保存先ファイル:**
+```
+{persistentDataPath}/AvatarSlots/
+├── avatar_slot_cache.json    # スロット情報
+├── icons/
+│   ├── slot_0.png           # スロット0アイコン
+│   ├── slot_1.png           # スロット1アイコン
+│   └── ...
+└── {model}_manifest.json     # モデル詳細（モデルと同じ場所）
+```
+
+### 1.5 二層キャッシュ構造
+
+![Two Layer Cache](diagrams/08_two_layer_cache.png)
+
+| レイヤー | 保持位置 | 永続性 | アクセス速度 |
+|---------|--------|--------|-------------|
+| **メモリキャッシュ** | `AvatarMemoryCache` | 実行中のみ | ~50ms |
+| **永続キャッシュ** | JSON (persistentDataPath) | 再起動後も保持 | 3-8秒 |
+
+**JSON構造 (avatar_slot_cache.json):**
+```json
+{
+  "slots": [
+    {
+      "slotIndex": 0,
+      "avatarName": "Avatar Name",
+      "modelFilePath": "/path/to/avatar.vrm",
+      "iconFilePath": "...icons/slot_0.png",
+      "fileType": "VRM",
+      "isValid": true,
+      "lastTransform": {
+        "posX": 0.0, "posY": 0.0, "posZ": 0.0,
+        "rotX": 0.0, "rotY": 0.0, "rotZ": 0.0, "rotW": 1.0,
+        "hasData": true
+      }
+    }
+  ],
+  "maxSlots": 6,
+  "version": 2,
+  "lastActiveSlotIndex": 0,
+  "lastModified": "2024-12-20 14:30:45"
+}
+```
+
+**永続化関連の最適化ポイント:**
+- `File.WriteAllText()` は同期I/O → `WriteAllTextAsync()` に変更可能
+- JSON読み込み時のファイル存在チェックが複数回実行されている
+- マイグレーション処理は初回起動時のみだが、毎回バージョンチェックが走る
+
 ---
 
 ## 2. 問題点の可視化
@@ -192,6 +267,7 @@ verts.TrimExcess();  // メモリ即時解放
 
 ## 8. 関連ファイル
 
+### ロード処理
 | ファイル | 役割 |
 |----------|------|
 | `AvatarLoadHandler.cs` | 統一ロードエントリポイント |
@@ -199,5 +275,12 @@ verts.TrimExcess();  // メモリ即時解放
 | `RuntimeAssimpFBXLoader.cs` | FBXパース・メッシュ構築 |
 | `RuntimeFBXModelBuilder.cs` | メッシュ作成・アタッチ |
 | `RuntimeMaterialManager.cs` | マテリアル・テクスチャ管理 |
-| `AvatarMemoryCache.cs` | メモリキャッシュ管理 |
 | `AvatarIconCapture.cs` | アイコン生成 |
+
+### 永続化・キャッシュ
+| ファイル | 役割 |
+|----------|------|
+| `AvatarSlotManager.cs` | スロット管理・起動時復元 |
+| `AvatarSlotData.cs` | スロットデータ構造・JSON保存/読み込み |
+| `AvatarMemoryCache.cs` | メモリキャッシュ管理（実行中） |
+| `AvatarManifest.cs` | モデルマニフェスト管理 |

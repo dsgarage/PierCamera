@@ -1,0 +1,49 @@
+digraph SaveFlow {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
+    edge [fontname="Helvetica", fontsize=10];
+
+    subgraph cluster_triggers {
+        label="保存トリガー";
+        style=filled;
+        color=lightyellow;
+
+        T1 [label="アバター登録\nRegisterAvatarToSlot()", fillcolor=yellow];
+        T2 [label="スロット選択\nSelectSlot()", fillcolor=yellow];
+        T3 [label="位置保存\nSaveCurrentAvatarPosition()", fillcolor=yellow];
+        T4 [label="スロットクリア\nClearSlot()", fillcolor=yellow];
+        T5 [label="バックグラウンド移行\nOnApplicationPause()", fillcolor=orange];
+    }
+
+    subgraph cluster_save {
+        label="保存処理";
+        style=filled;
+        color=lightblue;
+
+        SaveToFile [label="SaveToFile()\nAvatarSlotCache", fillcolor=lightblue];
+        SerializeJSON [label="JsonUtility.ToJson()\nシリアライズ", fillcolor=lightblue];
+        WriteFile [label="File.WriteAllText()\n⚠️ 同期I/O", fillcolor=orange];
+    }
+
+    subgraph cluster_files {
+        label="保存先ファイル";
+        style=filled;
+        color=lightgreen;
+
+        CacheJSON [label="avatar_slot_cache.json\nスロット情報", fillcolor=lightgreen];
+        ManifestJSON [label="{model}_manifest.json\nモデル詳細", fillcolor=lightgreen];
+        IconPNG [label="icons/slot_{n}.png\nアイコン画像", fillcolor=lightgreen];
+    }
+
+    T1 -> SaveToFile;
+    T2 -> SaveToFile;
+    T3 -> SaveToFile;
+    T4 -> SaveToFile;
+    T5 -> SaveToFile;
+
+    SaveToFile -> SerializeJSON;
+    SerializeJSON -> WriteFile;
+    WriteFile -> CacheJSON;
+    WriteFile -> ManifestJSON [style=dashed];
+    WriteFile -> IconPNG [style=dashed];
+}

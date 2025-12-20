@@ -1,0 +1,52 @@
+digraph PersistenceFlow {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
+    edge [fontname="Helvetica", fontsize=10];
+
+    subgraph cluster_startup {
+        label="アプリ起動時のロードフロー";
+        style=filled;
+        color=lightblue;
+
+        Awake [label="Awake()\nAvatarSlotManager", fillcolor=lightgreen];
+        InitAsync [label="InitializeAsync()", fillcolor=lightblue];
+        LoadJSON [label="LoadFromFileAsync()\navatar_slot_cache.json", fillcolor=yellow];
+        ParseJSON [label="ParseAndMigrateCache()\nバージョンチェック", fillcolor=lightyellow];
+        ValidateSlots [label="各スロット有効性検証\nファイル存在確認", fillcolor=lightyellow];
+        InitUI [label="InitializeSlots()\nUI初期化", fillcolor=lightblue];
+        RestoreActive [label="RestoreLastActiveSlotViaHandlerAsync()\n最後のアバター復元", fillcolor=lightgreen];
+    }
+
+    subgraph cluster_cache_check {
+        label="キャッシュチェック";
+        style=filled;
+        color=lightyellow;
+
+        GetSlotToRestore [label="GetSlotToRestore()\n復元対象判定", fillcolor=yellow];
+        CheckMemCache [label="メモリキャッシュ確認\nHasCachedAvatar()", fillcolor=yellow];
+    }
+
+    subgraph cluster_load_path {
+        label="ロードパス分岐";
+        style=filled;
+        color=lightgray;
+
+        CacheHit [label="キャッシュヒット\nActivateCachedAvatar()\n⚡ ~50ms", fillcolor=lightgreen];
+        CacheMiss [label="キャッシュミス\nLoadAsync()\n⏱️ 3-8秒", fillcolor=orange];
+    }
+
+    Complete [label="アバター表示完了", shape=ellipse, fillcolor=lightgreen];
+
+    Awake -> InitAsync;
+    InitAsync -> LoadJSON;
+    LoadJSON -> ParseJSON;
+    ParseJSON -> ValidateSlots;
+    ValidateSlots -> InitUI;
+    InitUI -> RestoreActive;
+    RestoreActive -> GetSlotToRestore;
+    GetSlotToRestore -> CheckMemCache;
+    CheckMemCache -> CacheHit [label="ヒット"];
+    CheckMemCache -> CacheMiss [label="ミス"];
+    CacheHit -> Complete;
+    CacheMiss -> Complete;
+}

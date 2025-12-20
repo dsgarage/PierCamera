@@ -1,0 +1,40 @@
+digraph TwoLayerCache {
+    rankdir=LR;
+    node [shape=box, style=filled, fontname="Helvetica"];
+    edge [fontname="Helvetica", fontsize=10];
+
+    subgraph cluster_memory {
+        label="メモリキャッシュ (AvatarMemoryCache)";
+        style=filled;
+        color=lightblue;
+
+        MemCache [label="Dictionary<int, CacheEntry>\n\n• slotIndex\n• avatarObject (GameObject)\n• lastWorldPosition\n• lastWorldRotation\n• lastUsedAt", fillcolor=lightblue];
+        MemProps [label="特性:\n• 実行中のみ保持\n• 高速アクセス (~50ms)\n• 最大6エントリ\n• LRU削除", fillcolor=white];
+    }
+
+    subgraph cluster_persistent {
+        label="永続キャッシュ (JSON)";
+        style=filled;
+        color=lightgreen;
+
+        PersistCache [label="avatar_slot_cache.json\n\n• slots[]\n• lastActiveSlotIndex\n• version\n• lastModified", fillcolor=lightgreen];
+        PersistProps [label="特性:\n• アプリ再起動後も保持\n• ディスクI/O必要\n• マイグレーション対応\n• 破損時自動バックアップ", fillcolor=white];
+    }
+
+    subgraph cluster_slot {
+        label="スロットデータ (AvatarSlotData)";
+        style=filled;
+        color=lightyellow;
+
+        SlotData [label="AvatarSlotData\n\n• modelFilePath\n• iconFilePath\n• manifestFilePath\n• lastTransform\n• fileType (VRM/FBX)\n• isValid", fillcolor=yellow];
+    }
+
+    Request [label="スロット\n切り替え\nリクエスト", shape=ellipse, fillcolor=gray90];
+    Result [label="アバター\n表示", shape=ellipse, fillcolor=lightgreen];
+
+    Request -> MemCache [label="1. 確認"];
+    MemCache -> Result [label="ヒット\n(高速)"];
+    MemCache -> PersistCache [label="ミス", style=dashed];
+    PersistCache -> SlotData [label="2. パス取得"];
+    SlotData -> Result [label="3. ロード\n(低速)"];
+}
