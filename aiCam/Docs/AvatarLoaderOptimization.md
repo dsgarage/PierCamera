@@ -263,6 +263,54 @@ verts.TrimExcess();  // メモリ即時解放
 - [ ] LRU マテリアルキャッシュ
 - [ ] メッシュデータ構造の最適化
 
+### 将来検討: FBX Asset バイナリキャッシュ
+
+> **注記:** 現在はVRMが主体のため優先度は低い。FBXアバターがメインになった場合に検討。
+
+**概要:**
+FBXファイルから生成されたMesh/Material/Textureをバイナリ形式でキャッシュし、2回目以降のロードを高速化する。
+
+**キャッシュ構造案:**
+```
+{persistentDataPath}/AvatarCache/{avatarHash}/
+├── meshes.cache      # シリアライズ済みメッシュデータ
+├── materials.json    # マテリアルメタデータ
+├── manifest.json     # インデックス＋バージョン情報
+└── textures/         # キャッシュ済みテクスチャ
+```
+
+**シリアライズ対象:**
+```csharp
+[Serializable]
+public class SerializedMeshData
+{
+    public Vector3[] vertices;
+    public int[] triangles;
+    public Vector3[] normals;
+    public Vector2[] uvs;
+    public BoneWeight[] boneWeights;
+    public Matrix4x4[] bindposes;
+    public BlendShapeData[] blendShapes;
+    public float version;
+}
+```
+
+**期待効果:**
+| ロードタイプ | 時間 | 備考 |
+|-------------|------|------|
+| 初回ロード（FBX） | 3-5秒 | Assimpフルパース |
+| キャッシュ復元 | 0.8-1.2秒 | **60-70%短縮** |
+| メモリキャッシュ | ~50ms | 即時 |
+
+**容量見積もり:**
+- アバター1体: 50MB（未圧縮）→ 15-20MB（圧縮後）
+- 6スロット分: 約100-120MB
+
+**VRMで不要な理由:**
+- UniVRMライブラリが効率的にロード処理
+- Assimpパースのボトルネックが存在しない
+- VRM形式自体が最適化されている
+
 ---
 
 ## 8. 関連ファイル
