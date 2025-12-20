@@ -1,0 +1,88 @@
+digraph VrmLoaderDetail {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
+    edge [fontname="Helvetica", fontsize=10];
+
+    subgraph cluster_custom {
+        label="独自処理";
+        style=filled;
+        color=lightblue;
+
+        FileRead [label="File.ReadAllBytesAsync()\nファイル読み込み", fillcolor=lightblue];
+        DetectVersion [label="DetectVrmVersion()\nJSON解析でバージョン判定", fillcolor=lightblue];
+        PlaceModel [label="PlaceModel()\n配置・スケール設定", fillcolor=lightblue];
+        SetupAnimator [label="SetupAnimator()\nAnimator設定", fillcolor=lightblue];
+    }
+
+    subgraph cluster_univrm {
+        label="UniVRM ライブラリ（ブラックボックス）";
+        style=filled;
+        color=lightyellow;
+
+        VrmLoad [label="VRM 1.0: Vrm10.LoadBytesAsync()\nVRM 0.x: VrmUtility.LoadBytesAsync()", fillcolor=yellow];
+
+        subgraph cluster_internal {
+            label="内部処理";
+            style=filled;
+            color=white;
+
+            GltfParse [label="glTFパース", fillcolor=lightyellow];
+            MeshBuild [label="メッシュ構築", fillcolor=lightyellow];
+            MaterialGen [label="マテリアル生成", fillcolor=lightyellow];
+            TextureDecode [label="テクスチャデコード\n★カスタマイズ可能\n(ITextureDeserializer)", fillcolor=orange];
+            BoneHierarchy [label="ボーン階層構築", fillcolor=lightyellow];
+            BlendShape [label="BlendShape設定", fillcolor=lightyellow];
+            SpringBone [label="SpringBone設定", fillcolor=lightyellow];
+        }
+    }
+
+    subgraph cluster_texture_current {
+        label="現在のテクスチャ処理（問題あり）";
+        style=filled;
+        color=lightcoral;
+
+        CurrentDecode [label="ImageConversion.LoadImage()\nPNG/JPEG → RGBA32", fillcolor=lightcoral];
+        CurrentMemory [label="無圧縮テクスチャ\n2048×2048 = 16MB\n4枚で64MB", fillcolor=lightcoral];
+    }
+
+    subgraph cluster_texture_optimized {
+        label="Phase 4: RuntimeTextureCompressor（最適化後）";
+        style=filled;
+        color=lightgreen;
+
+        CompressedDecode [label="RuntimeTextureCompressor\nPNG/JPEG → ASTC 6x6", fillcolor=lightgreen];
+        CompressedMemory [label="圧縮テクスチャ\n2048×2048 = 1.8MB\n4枚で7.2MB\n(89%削減)", fillcolor=lightgreen];
+        Cache [label="ローカルキャッシュ\n2回目以降は即座にロード", fillcolor=lightgreen];
+    }
+
+    VrmFile [label="VRMファイル", shape=ellipse, fillcolor=gray90];
+    Avatar [label="アバター表示", shape=ellipse, fillcolor=lightgreen];
+
+    VrmFile -> FileRead;
+    FileRead -> DetectVersion;
+    DetectVersion -> VrmLoad;
+
+    VrmLoad -> GltfParse;
+    GltfParse -> MeshBuild;
+    GltfParse -> MaterialGen;
+    MaterialGen -> TextureDecode;
+    GltfParse -> BoneHierarchy;
+    GltfParse -> BlendShape;
+    GltfParse -> SpringBone;
+
+    TextureDecode -> CurrentDecode [label="現在", style=dashed, color=red];
+    CurrentDecode -> CurrentMemory;
+
+    TextureDecode -> CompressedDecode [label="Phase 4", style=bold, color=green];
+    CompressedDecode -> CompressedMemory;
+    CompressedDecode -> Cache;
+
+    MeshBuild -> PlaceModel;
+    MaterialGen -> PlaceModel;
+    BoneHierarchy -> PlaceModel;
+    BlendShape -> PlaceModel;
+    SpringBone -> PlaceModel;
+
+    PlaceModel -> SetupAnimator;
+    SetupAnimator -> Avatar;
+}

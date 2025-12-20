@@ -21,7 +21,79 @@
 - `mesh.SetVertices()` 等: GPU転送待機
 - テクスチャ読み込み: 逐次処理で200-400ms
 
-### 1.3 永続化ファイル（JSON）のロードフロー
+### 1.3 VRMローダー詳細フロー
+
+![VRM Loader Detail](diagrams/09_vrm_detail.png)
+
+**VRMロードは完全にUniVRMライブラリに依存:**
+
+```
+RuntimeFBXLoaderBridge
+    ↓
+File.ReadAllBytesAsync() ← 独自処理
+    ↓
+DetectVrmVersion() ← 独自処理（JSONパース）
+    ↓
+┌─────────────────────────────────────────┐
+│  UniVRM ライブラリ（ブラックボックス）      │
+│                                          │
+│  VRM 1.0: Vrm10.LoadBytesAsync()        │
+│  VRM 0.x: VrmUtility.LoadBytesAsync()   │
+│                                          │
+│  内部処理:                               │
+│  - glTFパース                            │
+│  - メッシュ構築                          │
+│  - マテリアル生成                        │
+│  - テクスチャデコード ← ★カスタマイズ可能  │
+│  - ボーン階層構築                        │
+│  - BlendShape設定                        │
+│  - SpringBone設定                        │
+└─────────────────────────────────────────┘
+    ↓
+PlaceModel() / SetupAnimator() ← 独自処理
+```
+
+**独自処理とUniVRM処理の分担:**
+
+| 処理 | 担当 | カスタマイズ |
+|------|------|-------------|
+| ファイル読み込み | 独自 (`File.ReadAllBytesAsync`) | ○ |
+| VRMバージョン検出 | 独自 (JSONパース) | ○ |
+| glTFパース | UniVRM | ✕ |
+| メッシュ構築 | UniVRM | ✕ |
+| マテリアル生成 | UniVRM (`materialGeneratorCallback`) | △ |
+| **テクスチャデコード** | UniVRM (`textureDeserializer`) | **○** |
+| ボーン階層構築 | UniVRM | ✕ |
+| 配置・Animator設定 | 独自 | ○ |
+
+**現在のテクスチャデシリアライザ設定:**
+```csharp
+// すべての箇所で null（UniVRMデフォルト）を使用
+currentGltfInstance = await VrmUtility.LoadBytesAsync(
+    path: fileName,
+    bytes: bytes,
+    awaitCaller: new RuntimeOnlyAwaitCaller(),
+    materialGeneratorCallback: null,
+    metaCallback: null,
+    textureDeserializer: null,  // ← ここがカスタマイズポイント
+    loadAnimation: false,
+    springboneRuntime: null
+);
+```
+
+**UniVRMデフォルトのテクスチャ処理:**
+1. glTFバイナリ内のPNG/JPEGデータを抽出
+2. `ImageConversion.LoadImage()` でデコード
+3. **無圧縮 RGBA32 形式** でTexture2D生成
+4. マテリアルに割り当て
+
+**問題点:**
+- テクスチャは無圧縮のRGBA32（32bit/pixel）でロードされる
+- 2048x2048テクスチャ1枚 = 16MB
+- 一般的なVRMアバター（テクスチャ4-8枚）= 64-128MB
+- 低メモリ端末でクラッシュのリスク
+
+### 1.4 永続化ファイル（JSON）のロードフロー
 
 ![Persistence Flow](diagrams/06_persistence_flow.png)
 
@@ -262,6 +334,164 @@ verts.TrimExcess();  // メモリ即時解放
 - [ ] Assimp Scene のライフサイクル管理
 - [ ] LRU マテリアルキャッシュ
 - [ ] メッシュデータ構造の最適化
+
+### Phase 4: RuntimeTextureCompressor 導入（VRM テクスチャ圧縮）
+
+> **優先度: 高** - VRMが主体の現状で最も効果的なメモリ最適化
+
+**概要:**
+`ITextureDeserializer` をカスタム実装し、RuntimeTextureCompressor を使用してテクスチャをASTC/ETC2形式で圧縮する。
+
+**RuntimeTextureCompressor ライブラリ:**
+- リポジトリ: `dsgaragejp/RuntimeTextureCompressor` (プライベート)
+- 機能: ランタイムでのGPU圧縮テクスチャ生成
+- 依存: UniTask（既にインストール済み）
+
+**対応フォーマット:**
+
+| 入力 | 出力 |
+|------|------|
+| PNG, JPEG, WebP, AVIF, GIF, BMP, PSD, TGA, HDR | ASTC 4x4〜12x12, ETC2, BC1/3/6H/7 |
+
+**プラットフォーム別出力:**
+
+| プラットフォーム | 推奨フォーマット |
+|-----------------|-----------------|
+| iOS | ASTC 6x6 |
+| Android | ASTC 6x6 / ETC2 |
+| Windows | BC7 / BC3 |
+| Mac (Apple Silicon) | ASTC 6x6 |
+
+**期待されるメモリ削減効果:**
+
+| テクスチャ | RGBA32 (現在) | ASTC 6x6 | 削減率 |
+|-----------|--------------|----------|--------|
+| 2048x2048 × 1枚 | 16 MB | 1.8 MB | **89%** |
+| 1024x1024 × 1枚 | 4 MB | 0.45 MB | **89%** |
+| 一般的VRM (4枚) | 40 MB | 4.5 MB | **89%** |
+| 高品質VRM (8枚) | 80 MB | 9 MB | **89%** |
+
+**実装ステップ:**
+
+- [ ] **Step 1: パッケージ導入**
+  ```
+  // manifest.json に追加
+  "com.dsgarage.runtime-texture-compressor":
+    "https://github.com/dsgaragejp/RuntimeTextureCompressor.git?path=Unity/Packages/RuntimeTextureCompressor"
+  ```
+
+- [ ] **Step 2: カスタムテクスチャデシリアライザ作成**
+  ```csharp
+  // Assets/Scripts/FBXLoader/Texture/CompressedTextureDeserializer.cs
+  public class CompressedTextureDeserializer : ITextureDeserializer
+  {
+      private readonly TextureLoader _loader;
+
+      public CompressedTextureDeserializer()
+      {
+          // プラットフォーム自動判定、キャッシュ有効期限1日
+          _loader = TextureLoader.CreateAutoFormatAutoCache();
+      }
+
+      public async Task<Texture2D> LoadTextureAsync(
+          DeserializingTextureInfo textureInfo,
+          IAwaitCaller awaitCaller)
+      {
+          // glTF内のテクスチャバイナリを一時ファイルに書き出し
+          string tempPath = Path.Combine(
+              Application.temporaryCachePath,
+              $"vrm_tex_{Guid.NewGuid()}.png");
+
+          await File.WriteAllBytesAsync(tempPath, textureInfo.ImageData);
+
+          try
+          {
+              // RuntimeTextureCompressor で圧縮ロード
+              var result = await _loader.LoadURI(new Uri($"file://{tempPath}"));
+
+              if (result.Error != TextureLoaderError.None)
+              {
+                  Debug.LogWarning($"Compressed load failed, fallback to default");
+                  return await DefaultLoad(textureInfo);
+              }
+
+              return result.texture;
+          }
+          finally
+          {
+              // 一時ファイル削除
+              if (File.Exists(tempPath))
+                  File.Delete(tempPath);
+          }
+      }
+  }
+  ```
+
+- [ ] **Step 3: RuntimeFBXLoaderBridge 修正**
+  ```csharp
+  // VRM 0.x ロード時
+  private static readonly CompressedTextureDeserializer _textureDeserializer
+      = new CompressedTextureDeserializer();
+
+  currentGltfInstance = await VrmUtility.LoadBytesAsync(
+      path: fileName,
+      bytes: bytes,
+      awaitCaller: new RuntimeOnlyAwaitCaller(),
+      materialGeneratorCallback: null,
+      metaCallback: null,
+      textureDeserializer: _textureDeserializer,  // ← 変更
+      loadAnimation: false,
+      springboneRuntime: null
+  );
+  ```
+
+- [ ] **Step 4: VRM 1.0 対応**
+  - `Vrm10.LoadBytesAsync` でのテクスチャデシリアライザ設定を調査
+  - 同様のカスタムデシリアライザを適用
+
+- [ ] **Step 5: 設定UI追加（オプション）**
+  - 圧縮品質選択（ASTC 4x4 高品質 / 6x6 バランス / 8x8 省メモリ）
+  - 圧縮有効/無効切り替え
+
+**アーキテクチャ図:**
+
+```
+VRMファイル (glTF 2.0)
+    ↓
+UniVRM (glTFパース)
+    ↓
+ITextureDeserializer.LoadTextureAsync()
+    ↓
+CompressedTextureDeserializer
+    ↓
+┌─────────────────────────────────────────┐
+│  RuntimeTextureCompressor               │
+│                                          │
+│  1. PNG/JPEG バイナリ受け取り            │
+│  2. stb_image でデコード（バックグラウンド）│
+│  3. ASTC/ETC2 エンコード（マルチスレッド） │
+│  4. ローカルキャッシュ保存               │
+│  5. 圧縮済み Texture2D 返却              │
+└─────────────────────────────────────────┘
+    ↓
+圧縮済み Texture2D (ASTC 6x6)
+    ↓
+マテリアルに割り当て
+```
+
+**キャッシュの恩恵:**
+- 初回ロード: 圧縮処理込みで若干遅くなる可能性あり
+- 2回目以降: キャッシュから即座に圧縮済みテクスチャをロード（高速化）
+- キャッシュ場所: `{persistentDataPath}/RuntimeTextureCompressor/`
+
+**リスクと対策:**
+
+| リスク | 対策 |
+|--------|------|
+| ASTC非対応デバイス | ETC2へフォールバック |
+| 圧縮による画質劣化 | ASTC 4x4（高品質）オプション提供 |
+| 初回ロード時間増加 | プログレス表示、バックグラウンド処理 |
+| キャッシュ肥大化 | 有効期限設定（デフォルト1日） |
 
 ### 将来検討: FBX Asset バイナリキャッシュ
 
