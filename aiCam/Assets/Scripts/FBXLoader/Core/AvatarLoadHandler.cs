@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+using AICam.Analytics;
 
 namespace AICam.FBXLoader
 {
@@ -196,6 +197,10 @@ namespace AICam.FBXLoader
             {
                 Debug.LogError($"[📦 LOAD ❌] Exception: {e.Message}");
                 Debug.LogException(e);
+
+                // Crashlytics にエラー情報を送信
+                CrashlyticsHelper.LogAvatarLoadError(request.FilePath, e.Message);
+
                 return LoadResult.Failed(request.TargetSlotIndex, e.Message);
             }
             finally
@@ -318,6 +323,10 @@ namespace AICam.FBXLoader
             slotManager?.SelectSlot(request.TargetSlotIndex);
             OnLoadProgress?.Invoke(1.0f);
 
+            // 8. Crashlytics にアバター情報を送信
+            CrashlyticsHelper.SetAvatarInfo(request.FilePath);
+            CrashlyticsHelper.SetSlotInfo(request.TargetSlotIndex);
+
             return LoadResult.Succeeded(request.TargetSlotIndex, avatar);
         }
 
@@ -353,6 +362,11 @@ namespace AICam.FBXLoader
                         SetupAnimatorController(cachedAvatar);
                         slotManager?.SelectSlot(request.TargetSlotIndex);
                         OnLoadProgress?.Invoke(1.0f);
+
+                        // Crashlytics にアバター情報を送信（キャッシュヒット時も）
+                        CrashlyticsHelper.SetAvatarInfo(slotData?.modelFilePath);
+                        CrashlyticsHelper.SetSlotInfo(request.TargetSlotIndex);
+
                         return LoadResult.Succeeded(request.TargetSlotIndex, cachedAvatar, wasCacheHit: true);
                     }
                 }
@@ -394,6 +408,10 @@ namespace AICam.FBXLoader
             // スロット選択
             slotManager?.SelectSlot(request.TargetSlotIndex);
             OnLoadProgress?.Invoke(1.0f);
+
+            // Crashlytics にアバター情報を送信
+            CrashlyticsHelper.SetAvatarInfo(request.FilePath);
+            CrashlyticsHelper.SetSlotInfo(request.TargetSlotIndex);
 
             return LoadResult.Succeeded(request.TargetSlotIndex, avatar);
         }
