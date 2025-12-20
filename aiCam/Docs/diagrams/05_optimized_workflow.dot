@@ -1,0 +1,48 @@
+digraph OptimizedWorkflow {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
+    compound=true;
+
+    subgraph cluster_main {
+        label="メインスレッド (最小ブロッキング)";
+        style=filled;
+        color=honeydew;
+
+        Start [label="LoadAsync開始", shape=ellipse, fillcolor=lightgreen];
+        Dispatch [label="バックグラウンド\nタスク発行", fillcolor=lightgreen];
+        Progress [label="プログレス更新\n(非ブロッキング)", fillcolor=lightgreen];
+        Complete [label="OnLoadComplete", shape=ellipse, fillcolor=lightgreen];
+    }
+
+    subgraph cluster_background {
+        label="バックグラウンドスレッド";
+        style=filled;
+        color=lightblue;
+
+        BG_Import [label="Assimp Import\n(スレッドプール)", fillcolor=lightblue];
+        BG_Texture [label="テクスチャ読み込み\n(並列処理)", fillcolor=lightblue];
+        BG_Icon [label="PNG エンコード\n(Worker Thread)", fillcolor=lightblue];
+    }
+
+    subgraph cluster_gpu {
+        label="GPU非同期処理";
+        style=filled;
+        color=lightyellow;
+
+        GPU_Mesh [label="メッシュアップロード\n(分割転送)", fillcolor=yellow];
+        GPU_Readback [label="AsyncGPUReadback\n(アイコン)", fillcolor=yellow];
+    }
+
+    Start -> Dispatch;
+    Dispatch -> BG_Import [lhead=cluster_background];
+    Dispatch -> Progress;
+
+    BG_Import -> GPU_Mesh [lhead=cluster_gpu];
+    BG_Texture -> GPU_Mesh;
+
+    GPU_Mesh -> BG_Icon;
+    GPU_Readback -> BG_Icon;
+
+    BG_Icon -> Complete;
+    Progress -> Complete [style=dashed];
+}

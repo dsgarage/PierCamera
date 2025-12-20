@@ -1,0 +1,31 @@
+digraph PriorityMatrix {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
+
+    subgraph cluster_s {
+        label="優先度 S (即座に実装)";
+        style=filled;
+        color=lightcoral;
+
+        S1 [label="テクスチャ並列読み込み\n効果: 150-200ms削減\n難易度: 低", fillcolor=coral];
+        S2 [label="アイコン生成非同期化\n効果: 100ms削減\n難易度: 中", fillcolor=coral];
+    }
+
+    subgraph cluster_a {
+        label="優先度 A (次フェーズ)";
+        style=filled;
+        color=lightyellow;
+
+        A1 [label="メモリ即時解放\n効果: 30-40%削減\n難易度: 低", fillcolor=yellow];
+        A2 [label="Assimp Scene破棄\n効果: 2-5MB解放\n難易度: 低", fillcolor=yellow];
+    }
+
+    subgraph cluster_b {
+        label="優先度 B (将来)";
+        style=filled;
+        color=lightblue;
+
+        B1 [label="LRUキャッシュ実装\n効果: メモリ予測可能化\n難易度: 中", fillcolor=lightblue];
+        B2 [label="メッシュデータ構造最適化\n効果: 20-30%削減\n難易度: 高", fillcolor=lightblue];
+    }
+}

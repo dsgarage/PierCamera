@@ -1,0 +1,60 @@
+digraph AvatarLoadWorkflow {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
+    edge [fontname="Helvetica", fontsize=10];
+
+    // Entry
+    subgraph cluster_entry {
+        label="Entry Point";
+        style=filled;
+        color=lightblue;
+        LoadAsync [label="AvatarLoadHandler\nLoadAsync()", fillcolor=lightgreen];
+    }
+
+    // Type Detection
+    subgraph cluster_detection {
+        label="ファイル形式判定";
+        style=filled;
+        color=lightyellow;
+        DetectType [label="LoadAvatarByTypeAsync()\nVRM/FBX判定", fillcolor=yellow];
+    }
+
+    // Loaders
+    subgraph cluster_loaders {
+        label="ローダー";
+        style=filled;
+        color=lightcoral;
+        VRM1Loader [label="VRM 1.0\nVrm10.LoadPathAsync()", fillcolor=coral];
+        VRM0Loader [label="VRM 0.x\nVrmUtility.LoadAsync()", fillcolor=coral];
+        FBXLoader [label="FBX\nRuntimeAssimpFBXLoader", fillcolor=coral];
+    }
+
+    // Post Processing
+    subgraph cluster_post {
+        label="後処理";
+        style=filled;
+        color=lightgray;
+        SetupAnimator [label="SetupAnimatorController()", fillcolor=gray90];
+        CaptureIcon [label="CaptureAndSaveIconAsync()\n⚠️ 同期処理", fillcolor=orange];
+        CacheAvatar [label="CacheAvatar()\nメモリキャッシュ", fillcolor=gray90];
+        SavePersistent [label="UpdatePersistentCache()\nファイルI/O", fillcolor=gray90];
+    }
+
+    // Complete
+    Complete [label="OnLoadComplete\nコールバック", fillcolor=lightgreen];
+
+    // Edges
+    LoadAsync -> DetectType;
+    DetectType -> VRM1Loader [label=".vrm (1.0)"];
+    DetectType -> VRM0Loader [label=".vrm (0.x)"];
+    DetectType -> FBXLoader [label=".fbx"];
+
+    VRM1Loader -> SetupAnimator;
+    VRM0Loader -> SetupAnimator;
+    FBXLoader -> SetupAnimator;
+
+    SetupAnimator -> CaptureIcon;
+    CaptureIcon -> CacheAvatar;
+    CacheAvatar -> SavePersistent;
+    SavePersistent -> Complete;
+}

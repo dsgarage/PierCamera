@@ -1,0 +1,45 @@
+digraph FBXLoaderDetail {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
+    edge [fontname="Helvetica", fontsize=10];
+
+    subgraph cluster_assimp {
+        label="Assimp処理 (バックグラウンドスレッド)";
+        style=filled;
+        color=lightblue;
+
+        ImportFile [label="importer.ImportFile()\n⚠️ 1-5秒", fillcolor=yellow];
+        LoadBones [label="LoadBoneHierarchy()", fillcolor=lightblue];
+        ParseMesh [label="メッシュデータ解析", fillcolor=lightblue];
+    }
+
+    subgraph cluster_unity {
+        label="Unity処理 (メインスレッド) ⚠️ ブロッキング";
+        style=filled;
+        color=lightcoral;
+
+        CreateMesh [label="new Mesh()", fillcolor=coral];
+        SetVertices [label="mesh.SetVertices()\n⚠️ GPU転送待機", fillcolor=orange];
+        SetTriangles [label="mesh.SetTriangles()\n⚠️ GPU転送待機", fillcolor=orange];
+        SetNormals [label="mesh.SetNormals()", fillcolor=orange];
+        SetUVs [label="mesh.SetUVs()", fillcolor=orange];
+        RecalcBounds [label="mesh.RecalculateBounds()", fillcolor=coral];
+    }
+
+    subgraph cluster_material {
+        label="マテリアル処理 ⚠️ 逐次処理";
+        style=filled;
+        color=lightyellow;
+
+        LoadDiffuse [label="LoadTexture(Diffuse)\n50-100ms", fillcolor=yellow];
+        LoadNormal [label="LoadTexture(Normal)\n50-100ms", fillcolor=yellow];
+        LoadRoughness [label="LoadTexture(Roughness)\n50-100ms", fillcolor=yellow];
+        LoadMetallic [label="LoadTexture(Metallic)\n50-100ms", fillcolor=yellow];
+        CreateMaterial [label="new Material(shader)", fillcolor=lightyellow];
+    }
+
+    ImportFile -> LoadBones -> ParseMesh;
+    ParseMesh -> CreateMesh;
+    CreateMesh -> SetVertices -> SetTriangles -> SetNormals -> SetUVs -> RecalcBounds;
+    RecalcBounds -> LoadDiffuse -> LoadNormal -> LoadRoughness -> LoadMetallic -> CreateMaterial;
+}

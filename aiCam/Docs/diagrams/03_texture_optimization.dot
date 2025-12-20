@@ -1,0 +1,43 @@
+digraph TextureOptimization {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
+
+    subgraph cluster_before {
+        label="Before: 逐次処理 (200-400ms)";
+        style=filled;
+        color=mistyrose;
+
+        B_Start [label="Start", shape=ellipse, fillcolor=gray90];
+        B_Diff [label="Diffuse\n100ms", fillcolor=red, fontcolor=white];
+        B_Norm [label="Normal\n100ms", fillcolor=red, fontcolor=white];
+        B_Rough [label="Roughness\n100ms", fillcolor=red, fontcolor=white];
+        B_Metal [label="Metallic\n100ms", fillcolor=red, fontcolor=white];
+        B_End [label="End\n400ms", shape=ellipse, fillcolor=gray90];
+
+        B_Start -> B_Diff -> B_Norm -> B_Rough -> B_Metal -> B_End;
+    }
+
+    subgraph cluster_after {
+        label="After: 並列処理 (50-100ms)";
+        style=filled;
+        color=honeydew;
+
+        A_Start [label="Start", shape=ellipse, fillcolor=gray90];
+        A_Diff [label="Diffuse", fillcolor=lightgreen];
+        A_Norm [label="Normal", fillcolor=lightgreen];
+        A_Rough [label="Roughness", fillcolor=lightgreen];
+        A_Metal [label="Metallic", fillcolor=lightgreen];
+        A_WhenAll [label="UniTask.WhenAll()", fillcolor=green, fontcolor=white];
+        A_End [label="End\n100ms", shape=ellipse, fillcolor=gray90];
+
+        A_Start -> A_Diff;
+        A_Start -> A_Norm;
+        A_Start -> A_Rough;
+        A_Start -> A_Metal;
+        A_Diff -> A_WhenAll;
+        A_Norm -> A_WhenAll;
+        A_Rough -> A_WhenAll;
+        A_Metal -> A_WhenAll;
+        A_WhenAll -> A_End;
+    }
+}
