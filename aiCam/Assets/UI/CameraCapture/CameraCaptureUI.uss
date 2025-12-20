@@ -37,21 +37,21 @@
    撮影ボタン
 ================================ */
 .capture-button {
-    width: 72px;
-    height: 72px;
+    width: 120px;
+    height: 120px;
     justify-content: center;
     align-items: center;
     background-color: transparent;
     border-width: 0;
     display: flex;
-    margin-bottom: 24px;
-    margin-top: 16px;
+    margin-bottom: 80px;
+    margin-top: 24px;
 }
 
 /* 内側の円（白→赤に変化） */
 .inner-circle {
-    width: 54px;
-    height: 54px;
+    width: 90px;
+    height: 90px;
     border-top-left-radius: 50%;
     border-top-right-radius: 50%;
     border-bottom-left-radius: 50%;
@@ -72,8 +72,8 @@
 /* 外枠リング画像 */
 .outer-ring {
     position: absolute;
-    width: 72px;
-    height: 72px;
+    width: 120px;
+    height: 120px;
     background-image: resource('UI/Buttons/CaptureButtonOuter');
     -unity-background-scale-mode: scale-to-fit;
     display: flex;
@@ -83,8 +83,8 @@
 /* プログレスリング（4つのセグメントを使用） */
 .progress-ring {
     position: absolute;
-    width: 72px;
-    height: 72px;
+    width: 120px;
+    height: 120px;
     opacity: 0;
     transition-property: opacity;
     transition-duration: 0.3s;
@@ -102,12 +102,12 @@
 /* プログレスバーの背景リング（薄い赤） */
 .progress-ring-bg {
     position: absolute;
-    width: 72px;
-    height: 72px;
-    border-left-width: 3px;
-    border-right-width: 3px;
-    border-top-width: 3px;
-    border-bottom-width: 3px;
+    width: 120px;
+    height: 120px;
+    border-left-width: 5px;
+    border-right-width: 5px;
+    border-top-width: 5px;
+    border-bottom-width: 5px;
     border-color: rgba(255, 0, 0, 0.2);
     border-top-left-radius: 50%;
     border-top-right-radius: 50%;
@@ -119,12 +119,12 @@
 /* プログレス表示用の円弧（時計回り） */
 .progress-arc {
     position: absolute;
-    width: 72px;
-    height: 72px;
-    border-left-width: 3px;
-    border-right-width: 3px;
-    border-top-width: 3px;
-    border-bottom-width: 3px;
+    width: 120px;
+    height: 120px;
+    border-left-width: 5px;
+    border-right-width: 5px;
+    border-top-width: 5px;
+    border-bottom-width: 5px;
     border-color: rgba(0, 0, 0, 0);
     border-top-left-radius: 50%;
     border-top-right-radius: 50%;
@@ -139,18 +139,18 @@
 ================================ */
 .gallery-thumbnail {
     position: absolute;
-    bottom: 28px;
-    left: 20px;
-    width: 48px;
-    height: 48px;
-    border-top-left-radius: 5px;
-    border-top-right-radius: 5px;
-    border-bottom-left-radius: 5px;
-    border-bottom-right-radius: 5px;
-    border-left-width: 2px;
-    border-right-width: 2px;
-    border-top-width: 2px;
-    border-bottom-width: 2px;
+    bottom: 90px;
+    left: 24px;
+    width: 80px;
+    height: 80px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    border-left-width: 3px;
+    border-right-width: 3px;
+    border-top-width: 3px;
+    border-bottom-width: 3px;
     border-color: rgba(255, 255, 255, 0.8);
     background-color: rgba(34, 34, 34, 1);
     -unity-background-scale-mode: scale-and-crop;
@@ -206,42 +206,42 @@
 }
 
 /* ================================
-   上部パネル - 30%縮小
+   上部パネル
 ================================ */
 .top-panel {
     position: absolute;
-    top: 48px;
-    left: 10px;
-    right: 10px;
-    height: 44px;
+    top: 60px;
+    left: 16px;
+    right: 16px;
+    height: 64px;
     background-color: rgba(128, 128, 128, 0.5);
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: space-around;
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
-    border-bottom-left-radius: 4px;
-    border-bottom-right-radius: 4px;
-    padding-left: 4px;
-    padding-right: 4px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    padding-left: 8px;
+    padding-right: 8px;
 }
 
-/* 上部パネルのボタン - タッチ領域を44x44に拡大（Appleガイドライン準拠） */
+/* 上部パネルのボタン - タッチ領域（Appleガイドライン準拠） */
 .top-panel-button {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    min-height: 44px;
+    width: 64px;
+    height: 64px;
+    min-width: 64px;
+    min-height: 64px;
     background-color: transparent;
     border-width: 0;
     flex-grow: 0;
     flex-shrink: 0;
     -unity-font-style: bold;
-    font-size: 10px;
+    font-size: 14px;
     color: rgba(60, 60, 60, 1);
     -unity-background-scale-mode: scale-to-fit;
-    padding: 10px;
+    padding: 14px;
     margin: 0;
 }
 
@@ -282,39 +282,39 @@
 }
 
 /* ================================
-   サイドバーパネル（左側中央）- 30%縮小
+   サイドバーパネル（左側中央）
 ================================ */
 .side-panel {
     position: absolute;
     top: 50%;
-    left: 8px;
+    left: 16px;
     translate: 0 -50%;
-    width: 34px;
+    width: 72px;
     background-color: rgba(128, 128, 128, 0.5);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    border-top-left-radius: 5px;
-    border-top-right-radius: 5px;
-    border-bottom-left-radius: 5px;
-    border-bottom-right-radius: 5px;
-    padding-top: 6px;
-    padding-bottom: 6px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    padding-top: 12px;
+    padding-bottom: 12px;
 }
 
-/* サイドバーのボタン - 30%縮小 */
+/* サイドバーのボタン */
 .side-panel-button {
-    width: 26px;
-    height: 26px;
+    width: 58px;
+    height: 58px;
     background-color: transparent;
     border-width: 0;
     flex-grow: 0;
     flex-shrink: 0;
     -unity-background-scale-mode: scale-to-fit;
     padding: 0;
-    margin-top: 3px;
-    margin-bottom: 3px;
+    margin-top: 6px;
+    margin-bottom: 6px;
 }
 
 .side-panel-button:hover {
@@ -344,23 +344,23 @@
 }
 
 /* ================================
-   撮影ボタン上のパネル - 30%縮小
+   撮影ボタン上のパネル（アバタースロット）
 ================================ */
 .bottom-panel {
     position: absolute;
-    bottom: 110px;
-    left: 10px;
-    right: 10px;
-    height: 36px;
+    bottom: 220px;
+    left: 16px;
+    right: 16px;
+    height: 64px;
     background-color: rgba(128, 128, 128, 0.5);
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    border-top-left-radius: 6px;
-    border-top-right-radius: 6px;
-    border-bottom-left-radius: 6px;
-    border-bottom-right-radius: 6px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
     overflow: hidden;
 }
 
@@ -406,10 +406,10 @@
     flex-shrink: 0;
 }
 
-/* 下部パネルのボタン - 30%縮小 */
+/* 下部パネルのボタン（アバタースロット） */
 .bottom-panel-button {
-    width: 27px;
-    height: 27px;
+    width: 52px;
+    height: 52px;
     background-color: rgba(128, 128, 128, 0.6);
     -unity-background-scale-mode: scale-to-fit;
     border-width: 0;
@@ -420,10 +420,10 @@
     flex-grow: 0;
     flex-shrink: 0;
     -unity-font-style: bold;
-    font-size: 8px;
+    font-size: 12px;
     color: rgba(60, 60, 60, 1);
-    margin-left: 4px;
-    margin-right: 4px;
+    margin-left: 8px;
+    margin-right: 8px;
 }
 
 .bottom-panel-button:hover {
@@ -522,22 +522,22 @@
 ================================ */
 .alert-bar {
     position: absolute;
-    top: 104px;
-    left: 10px;
-    right: 10px;
-    min-height: 42px;
+    top: 76px;
+    left: 12px;
+    right: 12px;
+    min-height: 48px;
     background-color: rgba(255, 200, 0, 0.95);
-    border-top-left-radius: 6px;
-    border-top-right-radius: 6px;
-    border-bottom-left-radius: 6px;
-    border-bottom-right-radius: 6px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    padding-left: 12px;
-    padding-right: 8px;
-    padding-top: 8px;
-    padding-bottom: 8px;
+    padding-left: 16px;
+    padding-right: 12px;
+    padding-top: 10px;
+    padding-bottom: 10px;
     opacity: 0;
     display: none;
     transition-property: opacity;
@@ -565,7 +565,7 @@
     flex-grow: 1;
     flex-shrink: 1;
     -unity-font-style: bold;
-    font-size: 14px;
+    font-size: 16px;
     color: rgba(40, 40, 40, 1);
     white-space: normal;
     -unity-text-align: middle-left;
@@ -576,8 +576,8 @@
 }
 
 .alert-bar-close {
-    width: 28px;
-    height: 28px;
+    width: 36px;
+    height: 36px;
     background-color: rgba(0, 0, 0, 0.2);
     border-width: 0;
     border-top-left-radius: 50%;
@@ -587,9 +587,9 @@
     flex-grow: 0;
     flex-shrink: 0;
     -unity-font-style: bold;
-    font-size: 16px;
+    font-size: 18px;
     color: rgba(40, 40, 40, 1);
-    margin-left: 8px;
+    margin-left: 10px;
     -unity-text-align: middle-center;
 }
 
@@ -639,19 +639,19 @@
 }
 
 .icon-preview-button {
-    width: 120px;
-    height: 44px;
+    width: 150px;
+    height: 52px;
     background-color: rgba(255, 255, 255, 0.9);
     border-width: 0;
-    border-top-left-radius: 22px;
-    border-top-right-radius: 22px;
-    border-bottom-left-radius: 22px;
-    border-bottom-right-radius: 22px;
+    border-top-left-radius: 26px;
+    border-top-right-radius: 26px;
+    border-bottom-left-radius: 26px;
+    border-bottom-right-radius: 26px;
     -unity-font-style: bold;
-    font-size: 15px;
+    font-size: 18px;
     color: rgba(40, 40, 40, 1);
-    margin-left: 12px;
-    margin-right: 12px;
+    margin-left: 16px;
+    margin-right: 16px;
     -unity-text-align: middle-center;
 }
 
