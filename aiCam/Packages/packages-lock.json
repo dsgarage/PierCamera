@@ -55,13 +55,6 @@
       },
       "url": "https://upm.frozenstorminteractive.com"
     },
-    "com.local.mcp.unityserver": {
-      "version": "git@github.com:dsgarage/CC2UniMCP.git",
-      "depth": 0,
-      "source": "git",
-      "dependencies": {},
-      "hash": "73e4eeafdf6cc8466cef651c263ef8f79cdbd32e"
-    },
     "com.unity.ai.navigation": {
       "version": "2.0.9",
       "depth": 0,
@@ -405,6 +398,13 @@
       "source": "git",
       "dependencies": {},
       "hash": "de7bbba0dbbdde9a87f0be0c504fc8ed81426a7f"
+    },
+    "jp.dsgarage.cc2unimcp": {
+      "version": "git@github.com:dsgarage/CC2UniMCP.git",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "8442e4175f2e782adeb50f5519f6258f84fb9214"
     },
     "jp.lilxyzw.liltoon": {
       "version": "file:jp.lilxyzw.liltoon",

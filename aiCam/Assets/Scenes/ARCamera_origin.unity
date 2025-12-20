@@ -472,6 +472,52 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 8340624784729135063, guid: 777bdd6ec73164a32bf804ba89e1a7c6, type: 3}
   m_PrefabInstance: {fileID: 80760037}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &91216806
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 91216808}
+  - component: {fileID: 91216807}
+  m_Layer: 0
+  m_Name: DeviceAnalytics
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &91216807
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 91216806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 263341d90e19a4972b750bdb387f18c6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PierCamera.Analytics.DeviceAnalytics
+  logOnStart: 1
+  debugMode: 1
+--- !u!4 &91216808
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 91216806}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &142709019
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9165,6 +9211,7 @@ GameObject:
   - component: {fileID: 1479651381}
   - component: {fileID: 1479651382}
   - component: {fileID: 1479651383}
+  - component: {fileID: 1479651384}
   m_Layer: 0
   m_Name: CameraCaptureController
   m_TagString: Untagged
@@ -9277,6 +9324,37 @@ MonoBehaviour:
   autoSetupHitDetector: 1
   transitionSpeed: 10
   debugLog: 0
+--- !u!114 &1479651384
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1479651377}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a571de0ebe9614c708064581e217c5ea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AICam.UI.Scaling.UIToolkitCanvasScaler
+  scaleMode: 1
+  referenceResolution: {x: 1920, y: 1080}
+  screenMatchMode: 0
+  matchWidthOrHeight: 0.5
+  referenceDpi: 96
+  fallbackDpi: 96
+  applySafeArea: 1
+  applyToTop: 1
+  applyToBottom: 1
+  applyToLeft: 1
+  applyToRight: 1
+  showDebugInfo: 0
+  simulateSafeArea: 0
+  simulatedSafeArea:
+    serializedVersion: 2
+    x: 44
+    y: 47
+    width: 1081
+    height: 2355
 --- !u!1 &1481093349
 GameObject:
   m_ObjectHideFlags: 0
@@ -15314,3 +15392,4 @@ SceneRoots:
   - {fileID: 1479651380}
   - {fileID: 1662580360}
   - {fileID: 1804010631}
+  - {fileID: 91216808}
