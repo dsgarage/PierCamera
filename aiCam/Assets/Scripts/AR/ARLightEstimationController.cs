@@ -91,6 +91,10 @@ namespace AICam.AR
 
         void Update()
         {
+            // 値が十分近い場合は補間をスキップ（パフォーマンス最適化）
+            if (!NeedsUpdate())
+                return;
+
             // 値を滑らかに補間
             float t = Time.deltaTime * smoothSpeed;
             _currentColor = Color.Lerp(_currentColor, _targetColor, t);
@@ -104,6 +108,32 @@ namespace AICam.AR
                 _mainLight.intensity = _currentIntensity;
                 transform.rotation = _currentRotation;
             }
+        }
+
+        /// <summary>
+        /// 補間が必要かどうかを判定（デルタチェック）
+        /// </summary>
+        private bool NeedsUpdate()
+        {
+            const float colorThreshold = 0.001f;
+            const float intensityThreshold = 0.001f;
+            const float rotationThreshold = 0.001f;
+
+            // 色の差分チェック
+            if (Mathf.Abs(_currentColor.r - _targetColor.r) > colorThreshold ||
+                Mathf.Abs(_currentColor.g - _targetColor.g) > colorThreshold ||
+                Mathf.Abs(_currentColor.b - _targetColor.b) > colorThreshold)
+                return true;
+
+            // 強度の差分チェック
+            if (Mathf.Abs(_currentIntensity - _targetIntensity) > intensityThreshold)
+                return true;
+
+            // 回転の差分チェック
+            if (Quaternion.Angle(_currentRotation, _targetRotation) > rotationThreshold)
+                return true;
+
+            return false;
         }
 
         void OnCameraFrameReceived(ARCameraFrameEventArgs args)

@@ -61,6 +61,12 @@ public class FaceController : MonoBehaviour
         {
             layerWeight = Mathf.Max(0f, layerWeight - fadeOutSpeed * Time.deltaTime);
             animator.SetLayerWeight(faceLayerIndex, layerWeight);
+
+            // フェードアウト完了後はUpdateを停止（パフォーマンス最適化）
+            if (layerWeight <= 0f)
+            {
+                enabled = false;
+            }
         }
     }
 
@@ -78,6 +84,9 @@ public class FaceController : MonoBehaviour
                              $"Check layer index/name and state path.");
             return;
         }
+
+        // Updateを再有効化（自動無効化からの復帰）
+        enabled = true;
 
         keepFace = keep;
         layerWeight = 1f;

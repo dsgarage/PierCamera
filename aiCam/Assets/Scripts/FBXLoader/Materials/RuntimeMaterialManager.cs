@@ -24,8 +24,10 @@ namespace AICam.FBXLoader
         }
 
         private MaterialCacheDatabase materialCacheDatabase;
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
         private System.Text.StringBuilder materialSearchLog = new System.Text.StringBuilder();
         private System.Text.StringBuilder meshDiagnosticsLog = new System.Text.StringBuilder();
+#endif
 
         // UniSIL Manifest support
         private Dictionary<string, MaterialManifest> loadedMaterialManifests = new Dictionary<string, MaterialManifest>();
@@ -60,8 +62,23 @@ namespace AICam.FBXLoader
 #endif
         }
 
-        public string GetMaterialSearchLog() => materialSearchLog.ToString();
-        public string GetMeshDiagnosticsLog() => meshDiagnosticsLog.ToString();
+        public string GetMaterialSearchLog()
+        {
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+            return materialSearchLog.ToString();
+#else
+            return string.Empty;
+#endif
+        }
+
+        public string GetMeshDiagnosticsLog()
+        {
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+            return meshDiagnosticsLog.ToString();
+#else
+            return string.Empty;
+#endif
+        }
         public string GetCombinedLog()
         {
 #if DEVELOPMENT_BUILD || UNITY_EDITOR

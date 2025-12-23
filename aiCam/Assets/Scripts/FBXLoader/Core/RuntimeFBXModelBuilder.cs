@@ -21,6 +21,9 @@ namespace AICam.FBXLoader
 
         private UnityEngine.Transform _rootTr;
 
+        // Shader キャッシュ（起動時間短縮）
+        private static UnityEngine.Shader _cachedStandardShader;
+
         public Dictionary<string, List<string>> GetMeshNodeToMaterialNames() => _meshNodeToMaterialNames;
 
         public async UniTask<UnityGO> LoadFBX(string fbxPath)
@@ -359,9 +362,11 @@ namespace AICam.FBXLoader
 
         private static void ApplyFirstMaterial(Assimp.Scene scene, string fbxPath, UnityEngine.Renderer renderer)
         {
-            var shader = UnityEngine.Shader.Find("Standard");
-            if (shader == null) return;
-            var mat = new UnityEngine.Material(shader);
+            // キャッシュされたシェーダーを使用（起動時間短縮）
+            if (_cachedStandardShader == null)
+                _cachedStandardShader = UnityEngine.Shader.Find("Standard");
+            if (_cachedStandardShader == null) return;
+            var mat = new UnityEngine.Material(_cachedStandardShader);
             renderer.sharedMaterial = mat;
         }
 

@@ -19,6 +19,11 @@ namespace AICam.FBXLoader
     {
         private const string LOG_PREFIX = "[RuntimeAssimpFBXLoader]";
 
+        // Shader キャッシュ（起動時間短縮）
+        private static Shader _cachedStandardShader;
+        private static Shader _cachedUnlitColorShader;
+        private static Shader _cachedLilToonShader;
+
         // 座標系変換行列（FBXごとに自動検出）
         private UnityEngine.Matrix4x4 coordinateConversionMatrix = UnityEngine.Matrix4x4.identity;
         private FbxCoordProfile coordProfile;
@@ -48,6 +53,31 @@ namespace AICam.FBXLoader
         /// MeshNode名とマテリアル名のマッピングを取得
         /// </summary>
         public Dictionary<string, List<string>> GetMeshNodeToMaterialNames() => meshNodeToMaterialNames;
+
+        /// <summary>
+        /// シェーダーをキャッシュから取得（起動時間短縮）
+        /// </summary>
+        private static Shader GetCachedShader(string shaderName)
+        {
+            switch (shaderName)
+            {
+                case "Standard":
+                    if (_cachedStandardShader == null)
+                        _cachedStandardShader = Shader.Find("Standard");
+                    return _cachedStandardShader;
+                case "Unlit/Color":
+                    if (_cachedUnlitColorShader == null)
+                        _cachedUnlitColorShader = Shader.Find("Unlit/Color");
+                    return _cachedUnlitColorShader;
+                case "lilToon":
+                    if (_cachedLilToonShader == null)
+                        _cachedLilToonShader = Shader.Find("lilToon");
+                    return _cachedLilToonShader;
+                default:
+                    // キャッシュされていないシェーダーは直接検索
+                    return Shader.Find(shaderName);
+            }
+        }
 
         /// <summary>
         /// FBXファイルからボーン階層をロードしてGameObjectツリーを構築（非同期）
@@ -1354,10 +1384,10 @@ namespace AICam.FBXLoader
         /// </summary>
         private UnityEngine.Material CreateDefaultMaterial(string materialName)
         {
-            UnityEngine.Shader shader = UnityEngine.Shader.Find("Standard");
+            UnityEngine.Shader shader = GetCachedShader("Standard");
             if (shader == null)
             {
-                shader = UnityEngine.Shader.Find("Unlit/Color");
+                shader = GetCachedShader("Unlit/Color");
             }
 
             var material = new UnityEngine.Material(shader);
@@ -1615,10 +1645,10 @@ namespace AICam.FBXLoader
                 UnityEngine.Debug.Log($"{LOG_PREFIX}   [Strategy 1] Using Assimp embedded textures");
 
                 // lilToonまたはStandardシェーダーを使用
-                UnityEngine.Shader shader = UnityEngine.Shader.Find("lilToon");
+                UnityEngine.Shader shader = GetCachedShader("lilToon");
                 if (shader == null)
                 {
-                    shader = UnityEngine.Shader.Find("Standard");
+                    shader = GetCachedShader("Standard");
                 }
 
                 if (shader != null)
@@ -1773,7 +1803,7 @@ namespace AICam.FBXLoader
                         if (shader == null)
                         {
                             UnityEngine.Debug.LogWarning($"{LOG_PREFIX}     [Strategy 3] All shader lookup failed, using fallback");
-                            shader = UnityEngine.Shader.Find("lilToon");
+                            shader = GetCachedShader("lilToon");
 
                             if (shader != null)
                             {
@@ -1782,7 +1812,7 @@ namespace AICam.FBXLoader
                             }
                             else
                             {
-                                shader = UnityEngine.Shader.Find("Standard");
+                                shader = GetCachedShader("Standard");
                                 shaderSource = "Fallback (Standard)";
                                 UnityEngine.Debug.Log($"{LOG_PREFIX}       Using Standard fallback");
                             }
@@ -1930,13 +1960,13 @@ namespace AICam.FBXLoader
         /// <param name="assimpMaterialIndex">Assimpマテリアルインデックス（-1の場合はマテリアル情報なし）</param>
         private UnityEngine.Material CreateLilToonMaterial(string nodeName, int assimpMaterialIndex = -1)
         {
-            // lilToonシェーダーを検索
-            UnityEngine.Shader lilToonShader = UnityEngine.Shader.Find("lilToon");
+            // lilToonシェーダーを検索（キャッシュ使用）
+            UnityEngine.Shader lilToonShader = GetCachedShader("lilToon");
 
             if (lilToonShader == null)
             {
                 UnityEngine.Debug.LogWarning($"{LOG_PREFIX} lilToon shader not found, using Standard shader instead");
-                lilToonShader = UnityEngine.Shader.Find("Standard");
+                lilToonShader = GetCachedShader("Standard");
             }
 
             UnityEngine.Material material = new UnityEngine.Material(lilToonShader);

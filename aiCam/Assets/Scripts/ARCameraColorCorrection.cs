@@ -43,6 +43,10 @@ namespace ARCam
         [Range(0.1f, 5f)]
         public float autoAdjustSpeed = 1f;
 
+        [Header("References (Optional)")]
+        [Tooltip("Inspectorで設定すると起動時間が短縮されます")]
+        [SerializeField] private Volume globalVolume;
+
         private Volume _globalVolume;
         private ARCameraManager _arCameraManager;
 
@@ -77,7 +81,16 @@ namespace ARCam
         /// </summary>
         private void SetupGlobalVolume()
         {
-            // シーン内のGlobal Volumeを探す
+            // Inspectorで設定されている場合はそれを使用（起動時間短縮）
+            if (globalVolume != null && globalVolume.isGlobal)
+            {
+                _globalVolume = globalVolume;
+                _profile = globalVolume.profile;
+                Debug.Log($"[ARCameraColorCorrection] Using Inspector-assigned global volume: {globalVolume.name}");
+                return;
+            }
+
+            // フォールバック: シーン内のGlobal Volumeを探す
             Volume[] volumes = FindObjectsByType<Volume>(FindObjectsSortMode.None);
             foreach (var volume in volumes)
             {
@@ -85,7 +98,7 @@ namespace ARCam
                 {
                     _globalVolume = volume;
                     _profile = volume.profile;
-                    Debug.Log($"[ARCameraColorCorrection] Found global volume: {volume.name}");
+                    Debug.Log($"[ARCameraColorCorrection] Found global volume via search: {volume.name}");
                     return;
                 }
             }
