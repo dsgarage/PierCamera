@@ -662,6 +662,21 @@ namespace AICam.UI
 
         void ApplyLighting()
         {
+            // メインライトを再検索（後から生成されている可能性）
+            if (mainLight == null)
+            {
+                var lights = FindObjectsByType<Light>(FindObjectsSortMode.None);
+                foreach (var light in lights)
+                {
+                    if (light.type == LightType.Directional)
+                    {
+                        mainLight = light;
+                        Debug.Log($"[LightingPanel] Found directional light: {light.name}");
+                        break;
+                    }
+                }
+            }
+
             // 色温度を色に変換
             Color lightColor = Mathf.CorrelatedColorTemperatureToRGB(colorTemperature);
 
@@ -670,6 +685,11 @@ namespace AICam.UI
             {
                 mainLight.color = lightColor;
                 mainLight.intensity = brightness;
+                Debug.Log($"[LightingPanel] MainLight updated: color={lightColor}, intensity={brightness}");
+            }
+            else
+            {
+                Debug.LogWarning("[LightingPanel] No directional light found in scene!");
             }
 
             // lilToonグローバルシェーダープロパティに適用
@@ -698,6 +718,10 @@ namespace AICam.UI
             ApplyToAvatarMaterials(adjustedColor);
         }
 
+        // 非対応シェーダー警告を一度だけ表示するためのフラグ
+        private bool hasShownUnsupportedShaderWarning = false;
+        private string lastUnsupportedShaderName = "";
+
         /// <summary>
         /// ロード済みアバターのマテリアルに直接適用
         /// Issue #433: sharedMaterialsとmaterialsの両方に適用
@@ -706,10 +730,16 @@ namespace AICam.UI
         {
             // シーン内のすべてのRendererを検索
             var renderers = FindObjectsByType<Renderer>(FindObjectsSortMode.None);
+            int totalMaterials = 0;
+            int supportedMaterials = 0;
+            string unsupportedShaderName = "";
 
             foreach (var renderer in renderers)
             {
                 if (renderer == null) continue;
+
+                // ARプレーンやUI要素は除外
+                if (renderer.gameObject.layer == LayerMask.NameToLayer("UI")) continue;
 
                 // Issue #433: インスタンス化されたマテリアル（materials）を使用
                 // sharedMaterialsだとVRMローダーで生成されたマテリアルに反映されない
@@ -718,38 +748,82 @@ namespace AICam.UI
                 {
                     if (mat == null) continue;
 
-                    ApplyLightingToMaterial(mat, lightColor);
+                    totalMaterials++;
+                    bool wasSupported = ApplyLightingToMaterial(mat, lightColor);
+                    if (wasSupported)
+                    {
+                        supportedMaterials++;
+                    }
+                    else
+                    {
+                        unsupportedShaderName = mat.shader?.name ?? "Unknown";
+                    }
                 }
             }
+
+            // アバターがロードされているのに全てのマテリアルが非対応の場合、警告表示
+            if (totalMaterials > 0 && supportedMaterials == 0)
+            {
+                if (!hasShownUnsupportedShaderWarning || lastUnsupportedShaderName != unsupportedShaderName)
+                {
+                    hasShownUnsupportedShaderWarning = true;
+                    lastUnsupportedShaderName = unsupportedShaderName;
+                    OnWarning?.Invoke("W433", $"このアバターのシェーダー({unsupportedShaderName})はライティング調整に対応していません");
+                    Debug.LogWarning($"[LightingPanel] Unsupported shader: {unsupportedShaderName}");
+                }
+            }
+            else if (supportedMaterials > 0)
+            {
+                // 対応マテリアルがあった場合、フラグをリセット
+                hasShownUnsupportedShaderWarning = false;
+            }
+
+            Debug.Log($"[LightingPanel] Applied lighting to {supportedMaterials}/{totalMaterials} materials");
         }
 
         /// <summary>
         /// Issue #433: 個別マテリアルにライティング設定を適用
         /// lilToon, MToon, MToon10, Standard シェーダーに対応
         /// </summary>
-        void ApplyLightingToMaterial(Material mat, Color lightColor)
+        /// <returns>対応シェーダーの場合true</returns>
+        bool ApplyLightingToMaterial(Material mat, Color lightColor)
         {
+            string shaderName = mat.shader?.name ?? "Unknown";
+            bool anyPropertySet = false;
+
             // lilToonのプロパティ
             if (mat.HasProperty("_LightMaxLimit"))
             {
                 mat.SetFloat("_LightMaxLimit", brightness * 1.5f);
+                anyPropertySet = true;
             }
 
             if (mat.HasProperty("_LightMinLimit"))
             {
                 mat.SetFloat("_LightMinLimit", Mathf.Max(0.05f, brightness * 0.3f));
+                anyPropertySet = true;
             }
 
             // lilToonのシェード色調整
             if (mat.HasProperty("_ShadowEnvStrength"))
             {
                 mat.SetFloat("_ShadowEnvStrength", 1.0f);
+                anyPropertySet = true;
             }
 
             // MToon/lilToonの環境光強度
             if (mat.HasProperty("_IndirectLightIntensity"))
             {
                 mat.SetFloat("_IndirectLightIntensity", brightness);
+                anyPropertySet = true;
+            }
+
+            // MToon (VRM 0.x) のプロパティ
+            if (mat.HasProperty("_LightColorAttenuation"))
+            {
+                // ライト色の減衰量（0=減衰なし、1=完全減衰）
+                mat.SetFloat("_LightColorAttenuation", 0f);
+                anyPropertySet = true;
             }
 
             // MToon10 (VRM 1.0) のプロパティ
@@ -757,24 +831,80 @@ namespace AICam.UI
             {
                 // シェード色を明るさに応じて調整
                 Color shadeColor = lightColor * brightness * 0.5f;
+                shadeColor.a = 1f;
                 mat.SetColor("_ShadeColor", shadeColor);
+                anyPropertySet = true;
             }
 
             // MToon/MToon10の明るさ調整
             if (mat.HasProperty("_LitFactor"))
             {
                 mat.SetFloat("_LitFactor", brightness);
+                anyPropertySet = true;
+            }
+
+            // MToon10 GI影響度
+            if (mat.HasProperty("_GiEqualization"))
+            {
+                mat.SetFloat("_GiEqualization", brightness);
+                anyPropertySet = true;
             }
 
             // Standardシェーダー用
             if (mat.HasProperty("_MainLightColor"))
             {
                 mat.SetColor("_MainLightColor", lightColor * brightness);
+                anyPropertySet = true;
             }
+
+            // Standard/URP Litの色調整
+            if (mat.HasProperty("_Color"))
+            {
+                // 元の色を取得して明るさを調整
+                Color baseColor = mat.GetColor("_Color");
+                // 色温度の影響を控えめに適用（元の色を保持しつつ）
+                Color adjustedColor = Color.Lerp(baseColor, lightColor, 0.3f);
+                adjustedColor.a = baseColor.a;
+                // 明るさは別途適用
+                mat.SetColor("_Color", adjustedColor);
+                anyPropertySet = true;
+            }
+
+            // URP Litの BaseColor
+            if (mat.HasProperty("_BaseColor"))
+            {
+                Color baseColor = mat.GetColor("_BaseColor");
+                Color adjustedColor = Color.Lerp(baseColor, lightColor, 0.3f);
+                adjustedColor.a = baseColor.a;
+                mat.SetColor("_BaseColor", adjustedColor);
+                anyPropertySet = true;
+            }
+
+            // デバッグログ（初回のみ）
+            if (!anyPropertySet)
+            {
+                Debug.LogWarning($"[LightingPanel] No lighting properties found for material '{mat.name}' (shader: {shaderName})");
+            }
+
+            return anyPropertySet;
         }
 
         void ApplyLightDirection()
         {
+            // メインライトを再検索（後から生成されている可能性）
+            if (mainLight == null)
+            {
+                var lights = FindObjectsByType<Light>(FindObjectsSortMode.None);
+                foreach (var light in lights)
+                {
+                    if (light.type == LightType.Directional)
+                    {
+                        mainLight = light;
+                        break;
+                    }
+                }
+            }
+
             // 方位角と仰角からライトの向きを計算
             Quaternion rotation = Quaternion.Euler(lightElevation, lightAzimuth, 0f);
             Vector3 lightDirection = rotation * Vector3.forward;
@@ -783,6 +913,7 @@ namespace AICam.UI
             if (mainLight != null)
             {
                 mainLight.transform.rotation = rotation;
+                Debug.Log($"[LightingPanel] MainLight rotation updated: {rotation.eulerAngles}");
             }
 
             // グローバルシェーダープロパティにライト方向を適用
@@ -855,9 +986,12 @@ namespace AICam.UI
 
         /// <summary>
         /// Issue #433: 個別マテリアルにシャドウ設定を適用
+        /// シャドウ強度は影部分（シェード色）の暗さを調整
         /// </summary>
         void ApplyShadowToMaterial(Material mat, bool shadowEnabled)
         {
+            string shaderName = mat.shader?.name ?? "Unknown";
+
             // lilToonのシャドウ強度
             if (mat.HasProperty("_ShadowStrength"))
             {
@@ -876,16 +1010,49 @@ namespace AICam.UI
                 mat.SetFloat("_Shadow2ndStrength", shadowEnabled ? shadowIntensity * 0.5f : 0f);
             }
 
-            // MToonのシェード強度
+            // MToonのシェード強度 - シェードシフト（影の境界位置）
             if (mat.HasProperty("_ShadeShift"))
             {
-                mat.SetFloat("_ShadeShift", shadowEnabled ? -0.1f + (shadowIntensity * 0.2f) : 0f);
+                // -1 ~ 1: 負の値で影が増える
+                float shiftValue = shadowEnabled ? Mathf.Lerp(0f, -0.5f, shadowIntensity) : 0f;
+                mat.SetFloat("_ShadeShift", shiftValue);
             }
 
-            // MToon10のシャドウ設定
+            // MToonのシェードトゥーニー（影の境界の滑らかさ）
+            if (mat.HasProperty("_ShadeToony"))
+            {
+                // 0 ~ 1: 高いほどくっきりした影
+                float toonyValue = shadowEnabled ? Mathf.Lerp(0.5f, 0.9f, shadowIntensity) : 0.5f;
+                mat.SetFloat("_ShadeToony", toonyValue);
+            }
+
+            // MToonのシェード色を暗くする
+            if (mat.HasProperty("_ShadeColor") && shadowEnabled)
+            {
+                Color currentShade = mat.GetColor("_ShadeColor");
+                // 強度に応じてシェード色を暗くする
+                float darkenFactor = Mathf.Lerp(1f, 0.3f, shadowIntensity);
+                Color newShade = new Color(
+                    currentShade.r * darkenFactor,
+                    currentShade.g * darkenFactor,
+                    currentShade.b * darkenFactor,
+                    currentShade.a
+                );
+                mat.SetColor("_ShadeColor", newShade);
+            }
+
+            // MToon10のシャドウ設定 - シェーディングシフトファクター
             if (mat.HasProperty("_ShadingShiftFactor"))
             {
-                mat.SetFloat("_ShadingShiftFactor", shadowEnabled ? shadowIntensity * 0.5f : 0f);
+                float shiftFactor = shadowEnabled ? Mathf.Lerp(0f, -0.3f, shadowIntensity) : 0f;
+                mat.SetFloat("_ShadingShiftFactor", shiftFactor);
+            }
+
+            // MToon10のシェーディングトゥーニーファクター
+            if (mat.HasProperty("_ShadingToonyFactor"))
+            {
+                float toonyFactor = shadowEnabled ? Mathf.Lerp(0.5f, 0.95f, shadowIntensity) : 0.5f;
+                mat.SetFloat("_ShadingToonyFactor", toonyFactor);
             }
 
             // 受影設定
@@ -899,6 +1066,8 @@ namespace AICam.UI
             {
                 mat.SetFloat("_ReceiveShadowRate", shadowEnabled ? shadowIntensity : 0f);
             }
+
+            Debug.Log($"[LightingPanel] Shadow applied to {mat.name} (shader: {shaderName}), enabled={shadowEnabled}, intensity={shadowIntensity}");
         }
 
         void ApplyArSync()
