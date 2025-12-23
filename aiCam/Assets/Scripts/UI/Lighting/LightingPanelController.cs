@@ -700,6 +700,7 @@ namespace AICam.UI
 
         /// <summary>
         /// ロード済みアバターのマテリアルに直接適用
+        /// Issue #433: sharedMaterialsとmaterialsの両方に適用
         /// </summary>
         void ApplyToAvatarMaterials(Color lightColor)
         {
@@ -710,38 +711,66 @@ namespace AICam.UI
             {
                 if (renderer == null) continue;
 
-                foreach (var mat in renderer.sharedMaterials)
+                // Issue #433: インスタンス化されたマテリアル（materials）を使用
+                // sharedMaterialsだとVRMローダーで生成されたマテリアルに反映されない
+                var materials = renderer.materials;
+                foreach (var mat in materials)
                 {
                     if (mat == null) continue;
 
-                    // lilToonのプロパティを更新
-                    if (mat.HasProperty("_LightMaxLimit"))
-                    {
-                        mat.SetFloat("_LightMaxLimit", brightness * 1.5f);
-                    }
-
-                    if (mat.HasProperty("_LightMinLimit"))
-                    {
-                        mat.SetFloat("_LightMinLimit", Mathf.Max(0.05f, brightness * 0.3f));
-                    }
-
-                    // MToon/lilToonの環境光強度
-                    if (mat.HasProperty("_IndirectLightIntensity"))
-                    {
-                        mat.SetFloat("_IndirectLightIntensity", brightness);
-                    }
-
-                    // lilToonのシェード色調整
-                    if (mat.HasProperty("_ShadowEnvStrength"))
-                    {
-                        mat.SetFloat("_ShadowEnvStrength", 1.0f);
-                    }
+                    ApplyLightingToMaterial(mat, lightColor);
                 }
             }
+        }
 
-            // Issue #397: グローバルシェーダープロパティとUnityライトで十分に機能するため、
-            // マテリアル固有プロパティの有無に関わらず警告は不要
-            // lilToonSupported または mainLight が存在すればライティングは機能する
+        /// <summary>
+        /// Issue #433: 個別マテリアルにライティング設定を適用
+        /// lilToon, MToon, MToon10, Standard シェーダーに対応
+        /// </summary>
+        void ApplyLightingToMaterial(Material mat, Color lightColor)
+        {
+            // lilToonのプロパティ
+            if (mat.HasProperty("_LightMaxLimit"))
+            {
+                mat.SetFloat("_LightMaxLimit", brightness * 1.5f);
+            }
+
+            if (mat.HasProperty("_LightMinLimit"))
+            {
+                mat.SetFloat("_LightMinLimit", Mathf.Max(0.05f, brightness * 0.3f));
+            }
+
+            // lilToonのシェード色調整
+            if (mat.HasProperty("_ShadowEnvStrength"))
+            {
+                mat.SetFloat("_ShadowEnvStrength", 1.0f);
+            }
+
+            // MToon/lilToonの環境光強度
+            if (mat.HasProperty("_IndirectLightIntensity"))
+            {
+                mat.SetFloat("_IndirectLightIntensity", brightness);
+            }
+
+            // MToon10 (VRM 1.0) のプロパティ
+            if (mat.HasProperty("_ShadeColor"))
+            {
+                // シェード色を明るさに応じて調整
+                Color shadeColor = lightColor * brightness * 0.5f;
+                mat.SetColor("_ShadeColor", shadeColor);
+            }
+
+            // MToon/MToon10の明るさ調整
+            if (mat.HasProperty("_LitFactor"))
+            {
+                mat.SetFloat("_LitFactor", brightness);
+            }
+
+            // Standardシェーダー用
+            if (mat.HasProperty("_MainLightColor"))
+            {
+                mat.SetColor("_MainLightColor", lightColor * brightness);
+            }
         }
 
         void ApplyLightDirection()
@@ -800,6 +829,7 @@ namespace AICam.UI
 
         /// <summary>
         /// マテリアルのシャドウプロパティを更新
+        /// Issue #433: sharedMaterialsからmaterialsに変更
         /// </summary>
         void ApplyShadowToMaterials(bool shadowEnabled)
         {
@@ -809,44 +839,66 @@ namespace AICam.UI
             {
                 if (renderer == null) continue;
 
-                foreach (var mat in renderer.sharedMaterials)
+                // Issue #433: インスタンス化されたマテリアルを使用
+                var materials = renderer.materials;
+                foreach (var mat in materials)
                 {
                     if (mat == null) continue;
 
-                    // lilToonのシャドウ強度
-                    if (mat.HasProperty("_ShadowStrength"))
-                    {
-                        mat.SetFloat("_ShadowStrength", shadowEnabled ? shadowIntensity : 0f);
-                    }
-
-                    // lilToonの1影強度
-                    if (mat.HasProperty("_Shadow1stStrength"))
-                    {
-                        mat.SetFloat("_Shadow1stStrength", shadowEnabled ? shadowIntensity : 0f);
-                    }
-
-                    // lilToonの2影強度
-                    if (mat.HasProperty("_Shadow2ndStrength"))
-                    {
-                        mat.SetFloat("_Shadow2ndStrength", shadowEnabled ? shadowIntensity * 0.5f : 0f);
-                    }
-
-                    // MToonのシェード強度
-                    if (mat.HasProperty("_ShadeShift"))
-                    {
-                        mat.SetFloat("_ShadeShift", shadowEnabled ? -0.1f + (shadowIntensity * 0.2f) : 0f);
-                    }
-
-                    // 受影設定
-                    if (mat.HasProperty("_ShadowReceive"))
-                    {
-                        mat.SetFloat("_ShadowReceive", shadowEnabled ? 1f : 0f);
-                    }
+                    ApplyShadowToMaterial(mat, shadowEnabled);
                 }
             }
 
             // グローバルシャドウプロパティ
             Shader.SetGlobalFloat("_lil_ShadowStrength", shadowEnabled ? shadowIntensity : 0f);
+        }
+
+        /// <summary>
+        /// Issue #433: 個別マテリアルにシャドウ設定を適用
+        /// </summary>
+        void ApplyShadowToMaterial(Material mat, bool shadowEnabled)
+        {
+            // lilToonのシャドウ強度
+            if (mat.HasProperty("_ShadowStrength"))
+            {
+                mat.SetFloat("_ShadowStrength", shadowEnabled ? shadowIntensity : 0f);
+            }
+
+            // lilToonの1影強度
+            if (mat.HasProperty("_Shadow1stStrength"))
+            {
+                mat.SetFloat("_Shadow1stStrength", shadowEnabled ? shadowIntensity : 0f);
+            }
+
+            // lilToonの2影強度
+            if (mat.HasProperty("_Shadow2ndStrength"))
+            {
+                mat.SetFloat("_Shadow2ndStrength", shadowEnabled ? shadowIntensity * 0.5f : 0f);
+            }
+
+            // MToonのシェード強度
+            if (mat.HasProperty("_ShadeShift"))
+            {
+                mat.SetFloat("_ShadeShift", shadowEnabled ? -0.1f + (shadowIntensity * 0.2f) : 0f);
+            }
+
+            // MToon10のシャドウ設定
+            if (mat.HasProperty("_ShadingShiftFactor"))
+            {
+                mat.SetFloat("_ShadingShiftFactor", shadowEnabled ? shadowIntensity * 0.5f : 0f);
+            }
+
+            // 受影設定
+            if (mat.HasProperty("_ShadowReceive"))
+            {
+                mat.SetFloat("_ShadowReceive", shadowEnabled ? 1f : 0f);
+            }
+
+            // MToon10のシャドウ受け
+            if (mat.HasProperty("_ReceiveShadowRate"))
+            {
+                mat.SetFloat("_ReceiveShadowRate", shadowEnabled ? shadowIntensity : 0f);
+            }
         }
 
         void ApplyArSync()

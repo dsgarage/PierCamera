@@ -153,7 +153,8 @@ public class VRMFilePickerLoader : MonoBehaviour
                 return;
             }
 
-            byte[] bytes = System.IO.File.ReadAllBytes(path);
+            // Issue #426: 非同期でファイル読み込みしてUIフリーズを軽減
+            byte[] bytes = await System.IO.File.ReadAllBytesAsync(path);
             Debug.Log($"[VRMFilePicker] Read {bytes.Length} bytes");
 
             // VrmUtility を使って読み込み

@@ -983,6 +983,14 @@ namespace AICam.FBXLoader
             // モデルをアクティブ化
             model.SetActive(true);
 
+            // Issue #436: キャッシュから復元時にレンダラーが無効のままになる問題を修正
+            // すべてのレンダラーを有効化
+            var renderers = model.GetComponentsInChildren<Renderer>(true);
+            foreach (var renderer in renderers)
+            {
+                renderer.enabled = true;
+            }
+
             // VRMバージョンを検出
             var vrm10 = model.GetComponent<Vrm10Instance>();
             if (vrm10 != null)
@@ -1430,8 +1438,15 @@ namespace AICam.FBXLoader
             Debug.Log($"[RuntimeFBXLoaderBridge] LoadVrmAsync: {filePath}");
             onProgress?.Invoke(10f);
 
+            // Issue #426: ファイル読み込みをバックグラウンドスレッドで実行してUIフリーズを軽減
+            await UniTask.SwitchToThreadPool();
             byte[] bytes = await System.IO.File.ReadAllBytesAsync(filePath);
+            await UniTask.SwitchToMainThread();
+
             onProgress?.Invoke(30f);
+
+            // ファイル読み込み後にYield（UIの更新機会を与える）
+            await UniTask.Yield();
 
             var version = DetectVrmVersion(bytes);
             GameObject avatar = null;
@@ -1439,6 +1454,9 @@ namespace AICam.FBXLoader
 
             if (version == VrmVersion.VRM_1_0)
             {
+                // パース前にYield（重い処理の前）
+                await UniTask.Yield();
+
                 // ControlRigGenerationOption.None: ControlRigがAnimator.avatarを上書きするのを防ぐ
                 var vrm10 = await Vrm10.LoadBytesAsync(
                     bytes: bytes,
@@ -1457,6 +1475,9 @@ namespace AICam.FBXLoader
             }
             else if (version == VrmVersion.VRM_0_x)
             {
+                // パース前にYield（重い処理の前）
+                await UniTask.Yield();
+
                 var gltfInstance = await VrmUtility.LoadBytesAsync(
                     path: fileName,
                     bytes: bytes,
@@ -1481,6 +1502,9 @@ namespace AICam.FBXLoader
             {
                 return AvatarLoadResult.Failed("Unknown VRM version");
             }
+
+            // パース完了後にYield（UIの更新機会を与える）
+            await UniTask.Yield();
 
             onProgress?.Invoke(70f);
 
@@ -1513,6 +1537,9 @@ namespace AICam.FBXLoader
             Debug.Log($"[RuntimeFBXLoaderBridge] LoadFbxAsync: {filePath}");
             onProgress?.Invoke(10f);
 
+            // UIの応答性を維持するためにYield
+            await UniTask.Yield();
+
             var loader = new RuntimeAssimpFBXLoader();
             var avatar = await loader.LoadBoneHierarchy(filePath);
 
@@ -1520,6 +1547,9 @@ namespace AICam.FBXLoader
             {
                 return AvatarLoadResult.Failed("Failed to load FBX skeleton");
             }
+
+            // ボーン読み込み後にYield
+            await UniTask.Yield();
 
             onProgress?.Invoke(30f);
 
@@ -1532,11 +1562,21 @@ namespace AICam.FBXLoader
 
             onProgress?.Invoke(40f);
 
+            // メッシュロード前にYield
+            await UniTask.Yield();
+
             await loader.LoadMeshes(avatar);
+
+            // メッシュロード後にYield
+            await UniTask.Yield();
+
             onProgress?.Invoke(50f);
 
             var boneMap = loader.MapHumanoidBones(avatar.transform);
             onProgress?.Invoke(60f);
+
+            // Avatar生成前にYield
+            await UniTask.Yield();
 
             var avatarBuilder = new RuntimeHumanoidAvatarBuilder();
             UnityEngine.Avatar newAvatar;
@@ -1565,10 +1605,15 @@ namespace AICam.FBXLoader
 
             onProgress?.Invoke(80f);
 
-            // マテリアル割り当て
+            // マテリアル割り当て前にYield
+            await UniTask.Yield();
+
             var materialManager = new RuntimeMaterialManager();
             var meshNodeToMaterialNames = loader.GetMeshNodeToMaterialNames();
             await materialManager.AssignMaterials(avatar, filePath, meshNodeToMaterialNames);
+
+            // マテリアル割り当て後にYield
+            await UniTask.Yield();
 
             onProgress?.Invoke(90f);
 
