@@ -1845,12 +1845,14 @@ namespace AICam.FBXLoader
         /// <param name="gameObject">診断対象のGameObject</param>
         private void DiagnoseMeshState(GameObject gameObject)
         {
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
             meshDiagnosticsLog.Clear();
             meshDiagnosticsLog.AppendLine("=== Mesh Diagnostics Log ===");
             meshDiagnosticsLog.AppendLine($"GameObject: {gameObject.name}");
             meshDiagnosticsLog.AppendLine();
 
             DiagnoseMeshStateInternal(gameObject);
+#endif
         }
 
         /// <summary>
