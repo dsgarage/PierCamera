@@ -744,6 +744,13 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
             case TouchPhase.Moved:
                 if (!isSwipeActive) return;
 
+                // [紫]CameraLockedモードで長押しドラッグ中は回転処理をスキップ（位置調整中）
+                if (currentFollowMode == FollowMode.CameraLocked && isLongPressActive)
+                {
+                    swipeStartPosition = touch.position; // 位置だけ更新
+                    return;
+                }
+
                 Vector2 delta = touch.position - swipeStartPosition;
 
                 // Issue #429: 上下スワイプ: 距離調整（[橙]PlaneLockedモードのみ有効、[紫]CameraLockedモードでは無効）
@@ -755,7 +762,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
 
                     Debug.Log($"[PlaceAvatarOnPlaneOnly] Swipe distance adjust: {followDistance:F2}m (delta: {distanceDelta:F2}m)");
                 }
-                // 左右スワイプ: 回転（[橙][紫]両方で有効）
+                // 左右スワイプ: 回転（[橙][紫]両方で有効、ただし[紫]長押し中は除く）
                 else if (enableSwipeRotation && Mathf.Abs(delta.x) > Mathf.Abs(delta.y))
                 {
                     float rotationDelta = -delta.x * swipeRotationSensitivity;

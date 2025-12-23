@@ -42,6 +42,10 @@
         </ui:VisualElement>
         <ui:VisualElement name="flashOverlay" picking-mode="Ignore" class="flash-overlay" />
         <!-- Issue #431: プレビュー機能削除 - viewerOverlay を削除 -->
+
+        <!-- パネル用バックドロップ（パネル外クリックで閉じる用） -->
+        <ui:VisualElement name="settingsPanelBackdrop" class="lighting-panel-backdrop" />
+
         <ui:VisualElement name="iconPreviewPanel" class="icon-preview-panel">
             <ui:VisualElement name="iconPreviewImage" class="icon-preview-image" />
             <ui:VisualElement class="icon-preview-button-container">
@@ -63,7 +67,7 @@
                 <!-- AR同期トグル（ヘッダー直下） -->
                 <ui:VisualElement class="lighting-section ar-sync-section-top">
                     <ui:VisualElement class="toggle-row-compact">
-                        <ui:Label text="AR Light Sync" class="toggle-label" />
+                        <ui:Label text="Auto sync" class="toggle-label" />
                         <ui:Toggle name="arSyncToggle" value="true" class="ar-sync-toggle" />
                     </ui:VisualElement>
                     <ui:Label text="Automatically match scene lighting" class="ar-sync-description" />
