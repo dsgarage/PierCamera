@@ -23,7 +23,7 @@
             <ui:Button name="sideButton3" class="side-panel-button" />
             <ui:Button name="sideButtonBugReport" class="side-panel-button bug-report-button" />
         </ui:VisualElement>
-        <ui:VisualElement name="galleryThumbnail" class="gallery-thumbnail" />
+        <!-- Issue #431: プレビュー機能削除 - galleryThumbnail を削除 -->
         <ui:VisualElement name="AvaterSlot" class="bottom-panel">
             <ui:ScrollView name="bottomScrollView" mode="Horizontal" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden" class="bottom-scroll-view">
                 <ui:VisualElement name="bottomButtonContainer" class="bottom-button-container">
@@ -41,9 +41,7 @@
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="flashOverlay" picking-mode="Ignore" class="flash-overlay" />
-        <ui:VisualElement name="viewerOverlay" class="viewer-overlay">
-            <ui:Image name="viewerImage" picking-mode="Ignore" class="viewer-image" />
-        </ui:VisualElement>
+        <!-- Issue #431: プレビュー機能削除 - viewerOverlay を削除 -->
         <ui:VisualElement name="iconPreviewPanel" class="icon-preview-panel">
             <ui:VisualElement name="iconPreviewImage" class="icon-preview-image" />
             <ui:VisualElement class="icon-preview-button-container">
