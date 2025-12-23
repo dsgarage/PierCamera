@@ -859,32 +859,44 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
             case TouchPhase.Moved:
                 if (isLongPressActive)
                 {
-                    // ドラッグ量を計算
-                    Vector2 dragDelta = touch.position - longPressStartPosition;
+                    // ドラッグ量を計算（デルタを直接使用）
+                    Vector2 dragDelta = touch.deltaPosition;
 
-                    // カメラの右方向と上方向を基準に移動
-                    Vector3 right = arCamera.transform.right;
-                    Vector3 up = arCamera.transform.up;
+                    // スクリーン座標をカメラローカル座標に変換
+                    // X: カメラの右方向（水平のみ）
+                    // Y: カメラの前方向（水平、画面上方向=前進）
+                    Vector3 camForward = arCamera.transform.forward;
+                    camForward.y = 0;
+                    camForward.Normalize();
 
-                    // Y成分を除去して水平移動に限定（オプション）
-                    right.y = 0;
-                    right.Normalize();
+                    Vector3 camRight = arCamera.transform.right;
+                    camRight.y = 0;
+                    camRight.Normalize();
 
-                    // オフセットを更新
-                    Vector3 offsetDelta = (right * dragDelta.x + up * dragDelta.y) * dragPositionSensitivity;
-                    cameraLocalOffset += Quaternion.Inverse(arCamera.transform.rotation) * offsetDelta;
+                    // スクリーン座標のY（上下）を前後移動に、X（左右）を左右移動に
+                    Vector3 worldDelta = (camRight * dragDelta.x + camForward * dragDelta.y) * dragPositionSensitivity;
 
-                    if (enableDebugLog && offsetDelta.magnitude > 0.001f)
+                    // cameraLocalOffsetに加算（カメラローカル空間に変換）
+                    Vector3 localDelta = Quaternion.Inverse(arCamera.transform.rotation) * worldDelta;
+                    cameraLocalOffset += localDelta;
+
+                    // オフセットを制限（暴走防止）
+                    float maxOffset = 5f; // 最大5m
+                    if (cameraLocalOffset.magnitude > maxOffset)
                     {
-                        Debug.Log($"[PlaceAvatarOnPlaneOnly] Drag position: offset={cameraLocalOffset}, delta={offsetDelta.magnitude:F3}");
+                        cameraLocalOffset = cameraLocalOffset.normalized * maxOffset;
                     }
 
-                    longPressStartPosition = touch.position;
+                    if (enableDebugLog && worldDelta.magnitude > 0.001f)
+                    {
+                        Debug.Log($"[PlaceAvatarOnPlaneOnly] Drag position: offset={cameraLocalOffset}, worldDelta={worldDelta.magnitude:F3}");
+                    }
                 }
                 else if (Time.time - touchStartTime >= longPressThreshold)
                 {
                     // 移動中に長押し時間が経過した場合も有効化
                     isLongPressActive = true;
+                    Debug.Log("[PlaceAvatarOnPlaneOnly] Long press activated during move");
                 }
                 break;
 

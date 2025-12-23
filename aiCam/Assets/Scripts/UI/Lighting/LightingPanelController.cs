@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 using AICam.AR;
@@ -984,6 +985,9 @@ namespace AICam.UI
             Shader.SetGlobalFloat("_lil_ShadowStrength", shadowEnabled ? shadowIntensity : 0f);
         }
 
+        // シェード色のオリジナル値を保持（リセット用）
+        private Dictionary<Material, Color> originalShadeColors = new Dictionary<Material, Color>();
+
         /// <summary>
         /// Issue #433: 個別マテリアルにシャドウ設定を適用
         /// シャドウ強度は影部分（シェード色）の暗さを調整
@@ -991,83 +995,112 @@ namespace AICam.UI
         void ApplyShadowToMaterial(Material mat, bool shadowEnabled)
         {
             string shaderName = mat.shader?.name ?? "Unknown";
+            bool anyPropertySet = false;
 
             // lilToonのシャドウ強度
             if (mat.HasProperty("_ShadowStrength"))
             {
                 mat.SetFloat("_ShadowStrength", shadowEnabled ? shadowIntensity : 0f);
+                anyPropertySet = true;
             }
 
             // lilToonの1影強度
             if (mat.HasProperty("_Shadow1stStrength"))
             {
                 mat.SetFloat("_Shadow1stStrength", shadowEnabled ? shadowIntensity : 0f);
+                anyPropertySet = true;
             }
 
             // lilToonの2影強度
             if (mat.HasProperty("_Shadow2ndStrength"))
             {
                 mat.SetFloat("_Shadow2ndStrength", shadowEnabled ? shadowIntensity * 0.5f : 0f);
+                anyPropertySet = true;
             }
 
             // MToonのシェード強度 - シェードシフト（影の境界位置）
             if (mat.HasProperty("_ShadeShift"))
             {
-                // -1 ~ 1: 負の値で影が増える
-                float shiftValue = shadowEnabled ? Mathf.Lerp(0f, -0.5f, shadowIntensity) : 0f;
+                // -1 ~ 1: 負の値で影が増える（より強い効果）
+                float shiftValue = shadowEnabled ? Mathf.Lerp(0f, -0.8f, shadowIntensity) : 0f;
                 mat.SetFloat("_ShadeShift", shiftValue);
+                anyPropertySet = true;
             }
 
             // MToonのシェードトゥーニー（影の境界の滑らかさ）
             if (mat.HasProperty("_ShadeToony"))
             {
                 // 0 ~ 1: 高いほどくっきりした影
-                float toonyValue = shadowEnabled ? Mathf.Lerp(0.5f, 0.9f, shadowIntensity) : 0.5f;
+                float toonyValue = shadowEnabled ? Mathf.Lerp(0.3f, 0.95f, shadowIntensity) : 0.5f;
                 mat.SetFloat("_ShadeToony", toonyValue);
+                anyPropertySet = true;
             }
 
-            // MToonのシェード色を暗くする
-            if (mat.HasProperty("_ShadeColor") && shadowEnabled)
+            // MToonのシェード色を暗くする（オリジナル値を保持）
+            if (mat.HasProperty("_ShadeColor"))
             {
-                Color currentShade = mat.GetColor("_ShadeColor");
-                // 強度に応じてシェード色を暗くする
-                float darkenFactor = Mathf.Lerp(1f, 0.3f, shadowIntensity);
-                Color newShade = new Color(
-                    currentShade.r * darkenFactor,
-                    currentShade.g * darkenFactor,
-                    currentShade.b * darkenFactor,
-                    currentShade.a
-                );
-                mat.SetColor("_ShadeColor", newShade);
+                // オリジナル値を保存
+                if (!originalShadeColors.ContainsKey(mat))
+                {
+                    originalShadeColors[mat] = mat.GetColor("_ShadeColor");
+                }
+
+                Color originalShade = originalShadeColors[mat];
+
+                if (shadowEnabled)
+                {
+                    // 強度に応じてシェード色を暗くする（より強い効果）
+                    float darkenFactor = Mathf.Lerp(1f, 0.1f, shadowIntensity);
+                    Color newShade = new Color(
+                        originalShade.r * darkenFactor,
+                        originalShade.g * darkenFactor,
+                        originalShade.b * darkenFactor,
+                        originalShade.a
+                    );
+                    mat.SetColor("_ShadeColor", newShade);
+                }
+                else
+                {
+                    // オリジナルに戻す
+                    mat.SetColor("_ShadeColor", originalShade);
+                }
+                anyPropertySet = true;
             }
 
             // MToon10のシャドウ設定 - シェーディングシフトファクター
             if (mat.HasProperty("_ShadingShiftFactor"))
             {
-                float shiftFactor = shadowEnabled ? Mathf.Lerp(0f, -0.3f, shadowIntensity) : 0f;
+                float shiftFactor = shadowEnabled ? Mathf.Lerp(0f, -0.5f, shadowIntensity) : 0f;
                 mat.SetFloat("_ShadingShiftFactor", shiftFactor);
+                anyPropertySet = true;
             }
 
             // MToon10のシェーディングトゥーニーファクター
             if (mat.HasProperty("_ShadingToonyFactor"))
             {
-                float toonyFactor = shadowEnabled ? Mathf.Lerp(0.5f, 0.95f, shadowIntensity) : 0.5f;
+                float toonyFactor = shadowEnabled ? Mathf.Lerp(0.3f, 0.98f, shadowIntensity) : 0.5f;
                 mat.SetFloat("_ShadingToonyFactor", toonyFactor);
+                anyPropertySet = true;
             }
 
             // 受影設定
             if (mat.HasProperty("_ShadowReceive"))
             {
                 mat.SetFloat("_ShadowReceive", shadowEnabled ? 1f : 0f);
+                anyPropertySet = true;
             }
 
             // MToon10のシャドウ受け
             if (mat.HasProperty("_ReceiveShadowRate"))
             {
                 mat.SetFloat("_ReceiveShadowRate", shadowEnabled ? shadowIntensity : 0f);
+                anyPropertySet = true;
             }
 
-            Debug.Log($"[LightingPanel] Shadow applied to {mat.name} (shader: {shaderName}), enabled={shadowEnabled}, intensity={shadowIntensity}");
+            if (anyPropertySet)
+            {
+                Debug.Log($"[LightingPanel] Shadow applied to {mat.name} (shader: {shaderName}), enabled={shadowEnabled}, intensity={shadowIntensity}");
+            }
         }
 
         void ApplyArSync()
