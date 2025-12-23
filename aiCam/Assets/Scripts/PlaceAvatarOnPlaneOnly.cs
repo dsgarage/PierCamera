@@ -65,6 +65,24 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
     [Tooltip("距離の最大値（メートル）")]
     [SerializeField] float maxDistance = 5.0f;
 
+    [Header("Avatar Scale (スケール調整) - Issue #395")]
+    [Tooltip("ピンチでスケール調整を有効化")]
+    [SerializeField] bool enablePinchScale = true;
+    [Tooltip("スケールの最小値")]
+    [SerializeField] float minScale = 0.1f;
+    [Tooltip("スケールの最大値")]
+    [SerializeField] float maxScale = 3.0f;
+    [Tooltip("ピンチ感度")]
+    [SerializeField] float pinchScaleSensitivity = 1.0f;
+
+    [Header("Avatar Position Drag (位置ドラッグ) - Issue #395")]
+    [Tooltip("[紫]モードで長押し+ドラッグで位置調整を有効化")]
+    [SerializeField] bool enableLongPressDrag = true;
+    [Tooltip("長押し判定時間（秒）")]
+    [SerializeField] float longPressThreshold = 0.3f;
+    [Tooltip("ドラッグ感度")]
+    [SerializeField] float dragPositionSensitivity = 0.003f;
+
     static readonly List<ARRaycastHit> s_Hits = new();
     ARRaycastManager rcMgr;
     GameObject avatar;
@@ -84,6 +102,15 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
     Vector2 swipeStartPosition;
     float avatarRotationY = 0f;  // アバターのY軸回転（手動調整分）
 
+    // Issue #395: ピンチスケール用
+    float previousPinchDistance = 0f;
+    float currentAvatarScale = 1.0f;
+
+    // Issue #395: 長押しドラッグ用
+    bool isLongPressActive = false;
+    float touchStartTime = 0f;
+    Vector2 longPressStartPosition;
+
     // 視覚フィードバック用
     Color defaultPlaneColor = new Color(0.0f, 0.8f, 1.0f, 0.2f);  // 薄い水色（シアン）
     Color planeLockedColor = new Color(1f, 0.6f, 0.2f, 0.3f);  // 薄いオレンジ
@@ -97,10 +124,12 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
 
     void Awake()
     {
-        // 起動確認ログ（常に出力）
-        Debug.Log($"[PlaceAvatarOnPlaneOnly] Awake - Debug logging enabled: {enableDebugLog}");
+        // 起動確認ログ（enableDebugLogがtrueの場合のみ）
+        if (enableDebugLog) Debug.Log($"[PlaceAvatarOnPlaneOnly] Awake - Debug logging enabled: {enableDebugLog}");
 
         rcMgr = GetComponent<ARRaycastManager>();
+        // Issue #427: 以下のFindFirstObjectByType呼び出しは起動時間に影響するため、
+        // Inspectorでの参照設定を推奨。未設定時のフォールバックとして残す。
         if (!planeManager) planeManager = FindFirstObjectByType<ARPlaneManager>(FindObjectsInactive.Include);
         if (!anchorManager) anchorManager = FindFirstObjectByType<ARAnchorManager>(FindObjectsInactive.Include);
         if (!occlusionManager) occlusionManager = FindFirstObjectByType<AROcclusionManager>(FindObjectsInactive.Include);
@@ -168,8 +197,35 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
             UpdateFollowMode();
         }
 
-        // スワイプ操作の処理（固定モード時のみ）
-        if (currentFollowMode != FollowMode.Off && avatar && Input.touchCount > 0)
+        // Issue #395, #429: ピンチスケール（[青]Off + [橙]PlaneLocked + [紫]CameraLockedモード、全モードで有効）
+        if (enablePinchScale && avatar && Input.touchCount == 2)
+        {
+            HandlePinchScale();
+        }
+        else
+        {
+            previousPinchDistance = 0f; // ピンチ解除時にリセット
+        }
+
+        // Issue #395: 長押しドラッグ（[紫]CameraLockedモード）
+        if (enableLongPressDrag && avatar && currentFollowMode == FollowMode.CameraLocked && Input.touchCount == 1)
+        {
+            HandleLongPressDrag();
+        }
+        else if (Input.touchCount != 1)
+        {
+            isLongPressActive = false; // タッチ解除時にリセット
+        }
+
+        // Issue #395: [青]Offモードでの回転操作
+        if (currentFollowMode == FollowMode.Off && avatar && Input.touchCount == 1)
+        {
+            HandleOffModeRotation();
+        }
+
+        // スワイプ操作の処理（[橙]PlaneLocked + [紫]CameraLockedモード時のみ）
+        if ((currentFollowMode == FollowMode.PlaneLocked || currentFollowMode == FollowMode.CameraLocked)
+            && avatar && Input.touchCount == 1)
         {
             HandleSwipeInteraction();
         }
@@ -476,32 +532,10 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
 
     void ToggleFollowMode()
     {
-        // Off → PlaneLocked → CameraLocked → Off
+        // Issue #429: Off → CameraLocked → PlaneLocked → Off（紫モードの利用頻度が高いため順序変更）
         switch (currentFollowMode)
         {
             case FollowMode.Off:
-                currentFollowMode = FollowMode.PlaneLocked;
-                avatarRotationY = 0f;  // 回転リセット
-
-                // 現在の水平距離を保存
-                if (arCamera && avatar)
-                {
-                    Vector3 camPos = arCamera.transform.position;
-                    Vector3 avatarPos = avatar.transform.position;
-                    float horizontalDist = Vector3.Distance(
-                        new Vector3(camPos.x, 0, camPos.z),
-                        new Vector3(avatarPos.x, 0, avatarPos.z)
-                    );
-                    followDistance = Mathf.Max(minDistance, horizontalDist);
-                    Debug.Log($"[PlaceAvatarOnPlaneOnly] Follow Mode: PlaneLocked (平面追従) - Locked horizontal distance: {followDistance:F2}m");
-                }
-
-                // 視覚フィードバック: 平面をオレンジに、オクルージョンON
-                SetPlaneColor(planeLockedColor);
-                SetOcclusion(true);
-
-                break;
-            case FollowMode.PlaneLocked:
                 currentFollowMode = FollowMode.CameraLocked;
                 avatarRotationY = 0f;  // 回転リセット
 
@@ -528,6 +562,28 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
 
                 break;
             case FollowMode.CameraLocked:
+                currentFollowMode = FollowMode.PlaneLocked;
+                avatarRotationY = 0f;  // 回転リセット
+
+                // 現在の水平距離を保存
+                if (arCamera && avatar)
+                {
+                    Vector3 camPos = arCamera.transform.position;
+                    Vector3 avatarPos = avatar.transform.position;
+                    float horizontalDist = Vector3.Distance(
+                        new Vector3(camPos.x, 0, camPos.z),
+                        new Vector3(avatarPos.x, 0, avatarPos.z)
+                    );
+                    followDistance = Mathf.Max(minDistance, horizontalDist);
+                    Debug.Log($"[PlaceAvatarOnPlaneOnly] Follow Mode: PlaneLocked (平面追従) - Locked horizontal distance: {followDistance:F2}m");
+                }
+
+                // 視覚フィードバック: 平面をオレンジに、オクルージョンON
+                SetPlaneColor(planeLockedColor);
+                SetOcclusion(true);
+
+                break;
+            case FollowMode.PlaneLocked:
                 currentFollowMode = FollowMode.Off;
 
                 // 視覚フィードバック: 平面をデフォルトに、オクルージョンを元に戻す
@@ -690,8 +746,8 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
 
                 Vector2 delta = touch.position - swipeStartPosition;
 
-                // 上下スワイプ: 距離調整
-                if (enableSwipeDistance && Mathf.Abs(delta.y) > Mathf.Abs(delta.x))
+                // Issue #429: 上下スワイプ: 距離調整（[橙]PlaneLockedモードのみ有効、[紫]CameraLockedモードでは無効）
+                if (enableSwipeDistance && currentFollowMode == FollowMode.PlaneLocked && Mathf.Abs(delta.y) > Mathf.Abs(delta.x))
                 {
                     // 上にスワイプ(+Y) = 遠くに、下にスワイプ(-Y) = 近くに
                     float distanceDelta = delta.y / swipeDistanceSensitivity;
@@ -699,7 +755,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
 
                     Debug.Log($"[PlaceAvatarOnPlaneOnly] Swipe distance adjust: {followDistance:F2}m (delta: {distanceDelta:F2}m)");
                 }
-                // 左右スワイプ: 回転
+                // 左右スワイプ: 回転（[橙][紫]両方で有効）
                 else if (enableSwipeRotation && Mathf.Abs(delta.x) > Mathf.Abs(delta.y))
                 {
                     float rotationDelta = -delta.x * swipeRotationSensitivity;
@@ -719,6 +775,160 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
             case TouchPhase.Ended:
             case TouchPhase.Canceled:
                 isSwipeActive = false;
+                break;
+        }
+    }
+
+    // ========== Issue #395, #429: ピンチスケール ==========
+
+    /// <summary>
+    /// 2本指ピンチでアバターのスケールを調整
+    /// [青]Off + [橙]PlaneLocked + [紫]CameraLockedモード全てで有効
+    /// </summary>
+    void HandlePinchScale()
+    {
+        if (Input.touchCount != 2 || !avatar) return;
+
+        Touch touch0 = Input.GetTouch(0);
+        Touch touch1 = Input.GetTouch(1);
+
+        // UI上のタッチは無視
+        if (IsTouchOverUI(touch0) || IsTouchOverUI(touch1)) return;
+
+        // 現在の2点間の距離
+        float currentPinchDistance = Vector2.Distance(touch0.position, touch1.position);
+
+        if (previousPinchDistance > 0f)
+        {
+            // ピンチの変化量を計算
+            float pinchDelta = currentPinchDistance - previousPinchDistance;
+            float scaleDelta = pinchDelta * 0.001f * pinchScaleSensitivity;
+
+            // スケールを更新
+            currentAvatarScale = Mathf.Clamp(currentAvatarScale + scaleDelta, minScale, maxScale);
+            avatar.transform.localScale = Vector3.one * currentAvatarScale;
+
+            if (enableDebugLog && Mathf.Abs(scaleDelta) > 0.001f)
+            {
+                Debug.Log($"[PlaceAvatarOnPlaneOnly] Pinch scale: {currentAvatarScale:F2} (delta: {scaleDelta:F3})");
+            }
+        }
+
+        previousPinchDistance = currentPinchDistance;
+    }
+
+    // ========== Issue #395, #429: 長押しドラッグ ==========
+
+    /// <summary>
+    /// 長押し(0.3秒)+ドラッグでアバターの画面内位置を調整
+    /// [紫]CameraLockedモードで有効
+    /// </summary>
+    void HandleLongPressDrag()
+    {
+        if (Input.touchCount != 1 || !avatar || !arCamera) return;
+
+        Touch touch = Input.GetTouch(0);
+
+        // UI上のタッチは無視
+        if (IsTouchOverUI(touch)) return;
+
+        switch (touch.phase)
+        {
+            case TouchPhase.Began:
+                touchStartTime = Time.time;
+                longPressStartPosition = touch.position;
+                isLongPressActive = false;
+                break;
+
+            case TouchPhase.Stationary:
+                // 長押し判定
+                if (!isLongPressActive && Time.time - touchStartTime >= longPressThreshold)
+                {
+                    isLongPressActive = true;
+                    Debug.Log("[PlaceAvatarOnPlaneOnly] Long press detected - drag to adjust position");
+                }
+                break;
+
+            case TouchPhase.Moved:
+                if (isLongPressActive)
+                {
+                    // ドラッグ量を計算
+                    Vector2 dragDelta = touch.position - longPressStartPosition;
+
+                    // カメラの右方向と上方向を基準に移動
+                    Vector3 right = arCamera.transform.right;
+                    Vector3 up = arCamera.transform.up;
+
+                    // Y成分を除去して水平移動に限定（オプション）
+                    right.y = 0;
+                    right.Normalize();
+
+                    // オフセットを更新
+                    Vector3 offsetDelta = (right * dragDelta.x + up * dragDelta.y) * dragPositionSensitivity;
+                    cameraLocalOffset += Quaternion.Inverse(arCamera.transform.rotation) * offsetDelta;
+
+                    if (enableDebugLog && offsetDelta.magnitude > 0.001f)
+                    {
+                        Debug.Log($"[PlaceAvatarOnPlaneOnly] Drag position: offset={cameraLocalOffset}, delta={offsetDelta.magnitude:F3}");
+                    }
+
+                    longPressStartPosition = touch.position;
+                }
+                else if (Time.time - touchStartTime >= longPressThreshold)
+                {
+                    // 移動中に長押し時間が経過した場合も有効化
+                    isLongPressActive = true;
+                }
+                break;
+
+            case TouchPhase.Ended:
+            case TouchPhase.Canceled:
+                isLongPressActive = false;
+                break;
+        }
+    }
+
+    // ========== Issue #395: Offモード回転 ==========
+
+    /// <summary>
+    /// [青]Offモードでも左右スワイプでアバターを回転
+    /// アンカー位置でその場回転
+    /// </summary>
+    void HandleOffModeRotation()
+    {
+        if (Input.touchCount != 1 || !avatar) return;
+        if (!enableSwipeRotation) return;
+
+        Touch touch = Input.GetTouch(0);
+
+        // UI上のタッチは無視
+        if (IsTouchOverUI(touch)) return;
+        if (EventSystem.current && EventSystem.current.IsPointerOverGameObject(touch.fingerId)) return;
+
+        switch (touch.phase)
+        {
+            case TouchPhase.Began:
+                swipeStartPosition = touch.position;
+                break;
+
+            case TouchPhase.Moved:
+                Vector2 delta = touch.position - swipeStartPosition;
+
+                // 左右スワイプで回転
+                if (Mathf.Abs(delta.x) > 5f) // 最小閾値
+                {
+                    float rotationDelta = -delta.x * swipeRotationSensitivity;
+
+                    // アバターを直接回転
+                    avatar.transform.Rotate(0, rotationDelta, 0, Space.World);
+
+                    if (enableDebugLog && Mathf.Abs(rotationDelta) > 0.5f)
+                    {
+                        Debug.Log($"[PlaceAvatarOnPlaneOnly] Off mode rotation: {avatar.transform.eulerAngles.y:F1}° (delta: {rotationDelta:F1}°)");
+                    }
+
+                    swipeStartPosition = touch.position;
+                }
                 break;
         }
     }
