@@ -25,6 +25,11 @@ UserSettings/
 # Crashlytics / その他ログ
 .crashlytics/
 
+# Firebase large native libraries (desktop only, not needed for mobile builds)
+aiCam/Assets/Firebase/Plugins/x86_64/FirebaseCppApp*.bundle
+aiCam/Assets/Firebase/Plugins/x86_64/FirebaseCppApp*.so
+aiCam/Assets/Firebase/Plugins/x86_64/FirebaseCppApp*.dll
+
 *.sln
 *.csproj
 
