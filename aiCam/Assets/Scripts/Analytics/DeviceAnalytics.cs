@@ -1,16 +1,14 @@
 using UnityEngine;
 using System.Collections.Generic;
-
-#if FIREBASE_ANALYTICS
-using Firebase;
-using Firebase.Analytics;
-using Firebase.Extensions;
-#endif
+using AICam.Analytics;
 
 namespace PierCamera.Analytics
 {
     /// <summary>
-    /// デバイス情報をFirebase Analyticsに送信するクラス
+    /// デバイス情報をAnalyticsに送信するクラス
+    ///
+    /// 注: Firebase SDKを直接使用せず、AnalyticsBridge経由で親アプリに情報を送信
+    /// 親アプリ側でFirebase Analytics SDKを使用して実際の送信を行う
     /// </summary>
     public class DeviceAnalytics : MonoBehaviour
     {
@@ -20,8 +18,6 @@ namespace PierCamera.Analytics
         [Header("Settings")]
         [SerializeField] private bool logOnStart = true;
         [SerializeField] private bool debugMode = true;
-
-        private bool _isInitialized = false;
 
         // LiDAR搭載機種のリスト（iPhone識別子）
         private static readonly HashSet<string> LiDARDevices = new HashSet<string>
@@ -63,41 +59,20 @@ namespace PierCamera.Analytics
             _instance = this;
             DontDestroyOnLoad(gameObject);
 
-            InitializeFirebase();
+            // AnalyticsBridgeを初期化
+            AnalyticsBridge.Initialize();
         }
 
-        private void InitializeFirebase()
+        private void Start()
         {
-#if FIREBASE_ANALYTICS
-            FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
+            if (logOnStart)
             {
-                var dependencyStatus = task.Result;
-                if (dependencyStatus == DependencyStatus.Available)
-                {
-                    _isInitialized = true;
-                    Debug.Log("[DeviceAnalytics] Firebase initialized successfully");
-
-                    if (logOnStart)
-                    {
-                        LogDeviceInfo();
-                    }
-                }
-                else
-                {
-                    Debug.LogError($"[DeviceAnalytics] Firebase initialization failed: {dependencyStatus}");
-                }
-            });
-#else
-            Debug.Log("[DeviceAnalytics] Firebase Analytics not available (FIREBASE_ANALYTICS not defined)");
-            if (logOnStart && debugMode)
-            {
-                LogDeviceInfoDebug();
+                LogDeviceInfo();
             }
-#endif
         }
 
         /// <summary>
-        /// デバイス情報をFirebase Analyticsに送信
+        /// デバイス情報をAnalyticsに送信
         /// </summary>
         public void LogDeviceInfo()
         {
@@ -115,48 +90,16 @@ namespace PierCamera.Analytics
                 Debug.Log($"[DeviceAnalytics] Category: {category}");
             }
 
-#if FIREBASE_ANALYTICS
-            if (!_isInitialized)
-            {
-                Debug.LogWarning("[DeviceAnalytics] Firebase not initialized yet");
-                return;
-            }
-
-            FirebaseAnalytics.LogEvent("device_info", new Parameter[]
-            {
-                new Parameter("device_model", deviceModel),
-                new Parameter("device_name", friendlyName),
-                new Parameter("os_version", osVersion),
-                new Parameter("has_lidar", hasLiDAR ? "yes" : "no"),
-                new Parameter("device_category", category.ToString()),
-                new Parameter("memory_mb", SystemInfo.systemMemorySize),
-                new Parameter("graphics_memory_mb", SystemInfo.graphicsMemorySize)
-            });
-
-            // ユーザープロパティとしても設定（セグメント分析用）
-            FirebaseAnalytics.SetUserProperty("device_category", category.ToString());
-            FirebaseAnalytics.SetUserProperty("has_lidar", hasLiDAR ? "yes" : "no");
-#endif
-        }
-
-        /// <summary>
-        /// デバッグ用：Firebase無しでデバイス情報をログ出力
-        /// </summary>
-        private void LogDeviceInfoDebug()
-        {
-            string deviceModel = SystemInfo.deviceModel;
-            string friendlyName = GetFriendlyDeviceName(deviceModel);
-            bool hasLiDAR = HasLiDAR(deviceModel);
-            DeviceCategory category = GetDeviceCategory(deviceModel);
-
-            Debug.Log("=== Device Analytics (Debug Mode) ===");
-            Debug.Log($"Model: {friendlyName} ({deviceModel})");
-            Debug.Log($"OS: {SystemInfo.operatingSystem}");
-            Debug.Log($"LiDAR: {hasLiDAR}");
-            Debug.Log($"Category: {category}");
-            Debug.Log($"Memory: {SystemInfo.systemMemorySize}MB");
-            Debug.Log($"Graphics Memory: {SystemInfo.graphicsMemorySize}MB");
-            Debug.Log("=====================================");
+            // AnalyticsBridge経由で親アプリに送信
+            AnalyticsBridge.LogDeviceInfo(
+                deviceModel,
+                friendlyName,
+                osVersion,
+                hasLiDAR,
+                category.ToString(),
+                SystemInfo.systemMemorySize,
+                SystemInfo.graphicsMemorySize
+            );
         }
 
         /// <summary>
@@ -286,46 +229,42 @@ namespace PierCamera.Analytics
         /// </summary>
         public void LogCustomEvent(string eventName, Dictionary<string, object> parameters = null)
         {
-#if FIREBASE_ANALYTICS
-            if (!_isInitialized)
-            {
-                Debug.LogWarning("[DeviceAnalytics] Firebase not initialized");
-                return;
-            }
+            string parametersJson = "{}";
 
-            if (parameters == null || parameters.Count == 0)
+            if (parameters != null && parameters.Count > 0)
             {
-                FirebaseAnalytics.LogEvent(eventName);
-            }
-            else
-            {
-                var paramList = new List<Parameter>();
+                var jsonParts = new List<string>();
                 foreach (var kvp in parameters)
                 {
+                    string value;
                     if (kvp.Value is string strVal)
-                        paramList.Add(new Parameter(kvp.Key, strVal));
-                    else if (kvp.Value is int intVal)
-                        paramList.Add(new Parameter(kvp.Key, intVal));
-                    else if (kvp.Value is long longVal)
-                        paramList.Add(new Parameter(kvp.Key, longVal));
-                    else if (kvp.Value is double doubleVal)
-                        paramList.Add(new Parameter(kvp.Key, doubleVal));
+                        value = $"\"{EscapeJson(strVal)}\"";
+                    else if (kvp.Value is bool boolVal)
+                        value = boolVal ? "true" : "false";
                     else
-                        paramList.Add(new Parameter(kvp.Key, kvp.Value.ToString()));
+                        value = kvp.Value.ToString();
+
+                    jsonParts.Add($"\"{EscapeJson(kvp.Key)}\":{value}");
                 }
-                FirebaseAnalytics.LogEvent(eventName, paramList.ToArray());
+                parametersJson = "{" + string.Join(",", jsonParts) + "}";
             }
+
+            // AnalyticsBridge経由で親アプリに送信
+            AnalyticsBridge.LogEvent(eventName, parametersJson);
 
             if (debugMode)
             {
                 Debug.Log($"[DeviceAnalytics] Event logged: {eventName}");
             }
-#else
-            if (debugMode)
-            {
-                Debug.Log($"[DeviceAnalytics] Event (debug): {eventName}");
-            }
-#endif
+        }
+
+        /// <summary>
+        /// JSON文字列エスケープ
+        /// </summary>
+        private static string EscapeJson(string str)
+        {
+            if (string.IsNullOrEmpty(str)) return "";
+            return str.Replace("\\", "\\\\").Replace("\"", "\\\"");
         }
 
         /// <summary>
