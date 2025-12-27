@@ -428,6 +428,9 @@ namespace AICam.FBXLoader
                 // アニメーションの設定（スクリーンショット撮影後）
                 SetupAnimator(currentModel);
 
+                // Blob Shadow（足元の丸影）にアバターを設定
+                SetupBlobShadow(currentModel.transform);
+
                 onProgress?.Invoke(100f);
 
                 onComplete?.Invoke(true);
@@ -540,6 +543,9 @@ namespace AICam.FBXLoader
 
                 SetupAnimator(currentModel);
 
+                // Blob Shadow（足元の丸影）にアバターを設定
+                SetupBlobShadow(currentModel.transform);
+
                 // アイコン撮影
                 await CaptureIconIfNeeded();
 
@@ -635,6 +641,9 @@ namespace AICam.FBXLoader
                     onProgress?.Invoke(90f);
 
                     SetupAnimator(currentModel);
+
+                    // Blob Shadow（足元の丸影）にアバターを設定
+                    SetupBlobShadow(currentModel.transform);
 
                     // アイコン撮影
                     await CaptureIconIfNeeded();
@@ -772,6 +781,9 @@ namespace AICam.FBXLoader
                     // アニメーションの設定
                     SetupAnimator(currentModel);
 
+                    // Blob Shadow（足元の丸影）にアバターを設定
+                    SetupBlobShadow(currentModel.transform);
+
                     onProgress?.Invoke(100f);
                     loadSuccess = true;
                 }
@@ -819,6 +831,8 @@ namespace AICam.FBXLoader
 
         /// <summary>
         /// モデルを配置
+        /// Issue #425: アバターロード後にカメラの1m前方に表示するよう初期位置を調整
+        /// Issue #433: マテリアルキャッシュをクリアしてライティング設定を正しく反映
         /// </summary>
         private void PlaceModel(GameObject model)
         {
@@ -826,14 +840,48 @@ namespace AICam.FBXLoader
 
             Transform parent = modelParent != null ? modelParent : transform;
             model.transform.SetParent(parent, false);
-            model.transform.localPosition = modelPosition;
-            model.transform.localRotation = Quaternion.Euler(modelRotation);
+
+            // Issue #425: カメラの1m前方に配置（デバイス位置からアバター内部が見える問題を回避）
+            Camera mainCamera = Camera.main;
+            if (mainCamera != null)
+            {
+                // カメラの前方1mの位置を計算（Y軸は0=地面レベル）
+                Vector3 cameraPosition = mainCamera.transform.position;
+                Vector3 cameraForward = mainCamera.transform.forward;
+                // 水平面上の前方ベクトルを計算（Y成分を0に）
+                Vector3 horizontalForward = new Vector3(cameraForward.x, 0f, cameraForward.z).normalized;
+                // カメラの前方1mの位置、地面レベルに配置
+                Vector3 spawnPosition = cameraPosition + horizontalForward * 1.0f;
+                spawnPosition.y = 0f; // 地面レベル
+
+                model.transform.position = spawnPosition;
+
+                // カメラの方を向かせる（Y軸のみ回転）
+                Vector3 lookDirection = new Vector3(cameraPosition.x - spawnPosition.x, 0f, cameraPosition.z - spawnPosition.z);
+                if (lookDirection.sqrMagnitude > 0.001f)
+                {
+                    model.transform.rotation = Quaternion.LookRotation(lookDirection);
+                }
+
+                Debug.Log($"[RuntimeFBXLoaderBridge] Issue #425: Avatar placed 1m in front of camera at {spawnPosition}");
+            }
+            else
+            {
+                // フォールバック: カメラが見つからない場合は従来の位置を使用
+                model.transform.localPosition = modelPosition;
+                model.transform.localRotation = Quaternion.Euler(modelRotation);
+                Debug.Log($"[RuntimeFBXLoaderBridge] Fallback: Camera not found, using default position {modelPosition}");
+            }
+
             model.transform.localScale = modelScale;
 
             Debug.Log($"[RuntimeFBXLoaderBridge] Model placed at World Position: {model.transform.position}");
             Debug.Log($"[RuntimeFBXLoaderBridge] Model Rotation: {model.transform.rotation.eulerAngles}");
             Debug.Log($"[RuntimeFBXLoaderBridge] Model Scale: {model.transform.lossyScale}");
             Debug.Log($"[RuntimeFBXLoaderBridge] Parent: {(parent != null ? parent.name : "null")}");
+
+            // Issue #433: LightingPanelControllerのマテリアルキャッシュをクリア
+            ClearLightingMaterialCache();
 
             // レンダラーの確認
             var renderers = model.GetComponentsInChildren<Renderer>();
@@ -845,7 +893,22 @@ namespace AICam.FBXLoader
         }
 
         /// <summary>
+        /// Issue #433: LightingPanelControllerのマテリアルキャッシュをクリア
+        /// 新しいアバターがロードされた時に呼び出す
+        /// </summary>
+        private void ClearLightingMaterialCache()
+        {
+            var lightingPanel = FindFirstObjectByType<AICam.UI.LightingPanelController>();
+            if (lightingPanel != null)
+            {
+                lightingPanel.ClearMaterialCache();
+                Debug.Log("[RuntimeFBXLoaderBridge] Issue #433: Cleared LightingPanelController material cache");
+            }
+        }
+
+        /// <summary>
         /// Animatorの設定
+        /// Issue #430: 診断ログを強化して問題特定を容易に
         /// </summary>
         private void SetupAnimator(GameObject model)
         {
@@ -868,18 +931,101 @@ namespace AICam.FBXLoader
                 Debug.Log($"[RuntimeFBXLoaderBridge] Found existing Animator component. Current controller: {(animator.runtimeAnimatorController != null ? animator.runtimeAnimatorController.name : "null")}");
             }
 
-            // Avatarのチェック
+            // Issue #430: Avatarの詳細な診断ログ
             if (animator.avatar != null)
             {
                 Debug.Log($"[RuntimeFBXLoaderBridge] Avatar is assigned: {animator.avatar.name}, IsValid: {animator.avatar.isValid}, IsHuman: {animator.avatar.isHuman}");
+
+                // Humanoid Avatarの場合、ボーンマッピングを検証
+                if (animator.avatar.isHuman)
+                {
+                    ValidateHumanoidBones(animator, model.name);
+                }
+                else
+                {
+                    Debug.LogWarning($"[RuntimeFBXLoaderBridge] Issue #430: Avatar '{animator.avatar.name}' is NOT Humanoid. Pose playback will not work correctly.");
+                    AlertBarController.ShowWarning($"アバター '{model.name}' はHumanoidではありません。ポーズが正常に動作しない可能性があります。");
+                }
             }
             else
             {
                 Debug.LogWarning("[RuntimeFBXLoaderBridge] ⚠ Avatar is NOT assigned! Humanoid animation will not work.");
+                AlertBarController.ShowWarning($"アバター '{model.name}' のAvatarが未設定です。ポーズが動作しません。");
             }
 
             // Issue #407: AnimatorControllerはCameraCaptureController.ApplyDefaultAOCで設定するため、ここでは設定しない
             Debug.Log($"[RuntimeFBXLoaderBridge] Animator setup complete. Controller will be assigned by CameraCaptureController.ApplyDefaultAOC()");
+        }
+
+        /// <summary>
+        /// Issue #430: Humanoidボーンマッピングを検証
+        /// 必須ボーンが正しくマッピングされているかチェック
+        /// </summary>
+        private void ValidateHumanoidBones(Animator animator, string modelName)
+        {
+            // 必須ボーンのリスト
+            HumanBodyBones[] requiredBones = new HumanBodyBones[]
+            {
+                HumanBodyBones.Hips,
+                HumanBodyBones.Spine,
+                HumanBodyBones.Head,
+                HumanBodyBones.LeftUpperArm,
+                HumanBodyBones.LeftLowerArm,
+                HumanBodyBones.RightUpperArm,
+                HumanBodyBones.RightLowerArm,
+                HumanBodyBones.LeftUpperLeg,
+                HumanBodyBones.LeftLowerLeg,
+                HumanBodyBones.RightUpperLeg,
+                HumanBodyBones.RightLowerLeg
+            };
+
+            int missingCount = 0;
+            System.Text.StringBuilder missingBones = new System.Text.StringBuilder();
+
+            foreach (var bone in requiredBones)
+            {
+                Transform boneTransform = animator.GetBoneTransform(bone);
+                if (boneTransform == null)
+                {
+                    missingCount++;
+                    if (missingBones.Length > 0) missingBones.Append(", ");
+                    missingBones.Append(bone.ToString());
+                }
+            }
+
+            if (missingCount > 0)
+            {
+                Debug.LogWarning($"[RuntimeFBXLoaderBridge] Issue #430: Model '{modelName}' is missing {missingCount} required bones: {missingBones}");
+                AlertBarController.ShowWarning($"アバター '{modelName}' に必須ボーンが不足しています。ポーズが正常に動作しない可能性があります。");
+            }
+            else
+            {
+                Debug.Log($"[RuntimeFBXLoaderBridge] Issue #430: All required Humanoid bones are present for '{modelName}'");
+            }
+        }
+
+        /// <summary>
+        /// Blob Shadow（足元の丸影）を設定
+        /// BlobShadowControllerが存在しなければ作成する
+        /// </summary>
+        private void SetupBlobShadow(Transform avatarRoot)
+        {
+            if (avatarRoot == null) return;
+
+            var blobShadow = AICam.AR.BlobShadowController.Instance;
+
+            // BlobShadowControllerが存在しなければ作成
+            if (blobShadow == null)
+            {
+                var shadowObj = new GameObject("BlobShadow");
+                blobShadow = shadowObj.AddComponent<AICam.AR.BlobShadowController>();
+                Debug.Log("[RuntimeFBXLoaderBridge] Created BlobShadowController");
+            }
+
+            // アバターを設定して有効化
+            blobShadow.SetAvatar(avatarRoot);
+            blobShadow.SetEnabled(true);
+            Debug.Log($"[RuntimeFBXLoaderBridge] BlobShadow set for avatar: {avatarRoot.name}");
         }
 
         /// <summary>
@@ -1004,6 +1150,9 @@ namespace AICam.FBXLoader
                 loadedVrmVersion = VrmVersion.Unknown;
             }
 
+            // Blob Shadow（足元の丸影）にアバターを設定
+            SetupBlobShadow(model.transform);
+
             Debug.Log($"[RuntimeFBXLoaderBridge] Set current model from cache: {model.name}, slot: {slotIndex}");
         }
 
@@ -1084,6 +1233,9 @@ namespace AICam.FBXLoader
                     loadedVrmVersion = VrmVersion.Unknown;
                 }
             }
+
+            // Blob Shadow（足元の丸影）にアバターを設定
+            SetupBlobShadow(model.transform);
 
             Debug.Log($"[RuntimeFBXLoaderBridge] Restored model from cache: {model.name}, slot: {slotIndex}");
             Debug.Log($"[RuntimeFBXLoaderBridge] Final Position: {model.transform.position}, Parent: {model.transform.parent?.name ?? "null"}");
