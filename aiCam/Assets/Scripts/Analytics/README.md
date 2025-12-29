@@ -6,7 +6,7 @@
 ## アーキテクチャ
 
 ```
-┌─────────────────┐    JSON message    ┌─────────────────┐
+┌─────────────────┐    event_name|json ┌─────────────────┐
 │     Unity       │ ─────────────────> │   親アプリ(iOS) │
 │ AnalyticsBridge │  sendMessageTo     │ NativeCallProxy │
 │                 │  MobileApp()       │                 │
@@ -24,6 +24,18 @@
 - **参照関係の遵守**: 親アプリ → PierCamera（Unity）の参照方向を維持
 - **Firebase SDK非依存**: Unity側にFirebase SDKを入れない
 - **既存インフラの活用**: `NativeCallProxy.sendMessageToMobileApp()` を使用
+
+## メッセージ形式
+
+```
+event_name|payloadJson
+```
+
+### プレフィックス
+| プレフィックス | 用途 |
+|--------------|------|
+| `Analytics_` | Firebase Analytics |
+| `Crashlytics_` | Firebase Crashlytics |
 
 ## ファイル構成
 
@@ -90,89 +102,74 @@ switch (category)
 親アプリは `NativeCallsProtocol` で受信したメッセージを解析し、Firebase SDKを呼び出します：
 
 ```swift
-func sendMessageToUnity(_ message: String) {
-    guard let data = message.data(using: .utf8),
-          let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-          let type = json["type"] as? String else { return }
+func handleUnityMessage(_ message: String) {
+    // メッセージを分割: "event_name|payloadJson"
+    let parts = message.split(separator: "|", maxSplits: 1)
+    guard parts.count == 2 else { return }
 
-    switch type {
-    case "analytics_init":
-        // 初期化完了
-        break
-    case "analytics_logEvent":
-        let eventName = json["eventName"] as? String ?? ""
-        let params = json["parameters"] as? [String: Any] ?? [:]
-        Analytics.logEvent(eventName, parameters: params)
-    case "analytics_setCustomKey":
-        let key = json["key"] as? String ?? ""
-        let value = json["value"] as? String ?? ""
-        Crashlytics.crashlytics().setCustomValue(value, forKey: key)
-    case "analytics_log":
-        let message = json["message"] as? String ?? ""
-        Crashlytics.crashlytics().log(message)
-    case "analytics_logError":
-        let domain = json["domain"] as? String ?? "Unity"
-        let message = json["message"] as? String ?? ""
-        let error = NSError(domain: domain, code: 0, userInfo: [NSLocalizedDescriptionKey: message])
-        Crashlytics.crashlytics().record(error: error)
-    case "analytics_setUserProperty":
-        let name = json["name"] as? String ?? ""
-        let value = json["value"] as? String
-        Analytics.setUserProperty(value, forName: name)
-    default:
-        break
+    let eventName = String(parts[0])
+    let payloadString = String(parts[1])
+
+    guard let data = payloadString.data(using: .utf8),
+          let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
+
+    // Analytics系
+    if eventName.hasPrefix("Analytics_") {
+        switch eventName {
+        case "Analytics_init":
+            // 初期化完了
+            break
+        case "Analytics_logEvent":
+            let name = json["eventName"] as? String ?? ""
+            let params = json["parameters"] as? [String: Any] ?? [:]
+            Analytics.logEvent(name, parameters: params)
+        case "Analytics_setUserProperty":
+            let name = json["name"] as? String ?? ""
+            let value = json["value"] as? String
+            Analytics.setUserProperty(value, forName: name)
+        default:
+            break
+        }
+    }
+    // Crashlytics系
+    else if eventName.hasPrefix("Crashlytics_") {
+        switch eventName {
+        case "Crashlytics_setCustomKey":
+            let key = json["key"] as? String ?? ""
+            let value = json["value"] as? String ?? ""
+            Crashlytics.crashlytics().setCustomValue(value, forKey: key)
+        case "Crashlytics_log":
+            let msg = json["message"] as? String ?? ""
+            Crashlytics.crashlytics().log(msg)
+        case "Crashlytics_logError":
+            let domain = json["domain"] as? String ?? "Unity"
+            let msg = json["message"] as? String ?? ""
+            let error = NSError(domain: domain, code: 0, userInfo: [NSLocalizedDescriptionKey: msg])
+            Crashlytics.crashlytics().record(error: error)
+        default:
+            break
+        }
     }
 }
 ```
 
-## JSONメッセージ形式
+## メッセージ一覧
 
-### analytics_logEvent
-```json
-{
-  "type": "analytics_logEvent",
-  "eventName": "app_launch",
-  "parameters": {
-    "device_category": "HighEnd",
-    "has_lidar": "yes"
-  }
-}
-```
+### Analytics
 
-### analytics_setCustomKey
-```json
-{
-  "type": "analytics_setCustomKey",
-  "key": "avatar_filename",
-  "value": "model.vrm"
-}
-```
+| イベント名 | ペイロード例 |
+|-----------|-------------|
+| `Analytics_init` | `{"version":"1.0"}` |
+| `Analytics_logEvent` | `{"eventName":"app_launch","parameters":{"device_category":"HighEnd"}}` |
+| `Analytics_setUserProperty` | `{"name":"device_category","value":"HighEnd"}` |
 
-### analytics_log
-```json
-{
-  "type": "analytics_log",
-  "message": "Avatar loaded: model.vrm (1234567 bytes)"
-}
-```
+### Crashlytics
 
-### analytics_logError
-```json
-{
-  "type": "analytics_logError",
-  "domain": "AvatarLoad",
-  "message": "model.vrm: Texture load failed"
-}
-```
-
-### analytics_setUserProperty
-```json
-{
-  "type": "analytics_setUserProperty",
-  "name": "device_category",
-  "value": "HighEnd"
-}
-```
+| イベント名 | ペイロード例 |
+|-----------|-------------|
+| `Crashlytics_setCustomKey` | `{"key":"avatar_filename","value":"model.vrm"}` |
+| `Crashlytics_log` | `{"message":"Avatar loaded: model.vrm (1234567 bytes)"}` |
+| `Crashlytics_logError` | `{"domain":"AvatarLoad","message":"model.vrm: Texture load failed"}` |
 
 ## デバッグモード
 Unity Editor または非iOSプラットフォームでは、メッセージが `Debug.Log` に出力されます。

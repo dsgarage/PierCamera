@@ -843,16 +843,40 @@ namespace AICam.FBXLoader
 
             // Issue #425: カメラの1m前方に配置（デバイス位置からアバター内部が見える問題を回避）
             Camera mainCamera = Camera.main;
+            Debug.Log($"[RuntimeFBXLoaderBridge] Issue #425: Camera.main = {(mainCamera != null ? mainCamera.name : "null")}");
+
             if (mainCamera != null)
             {
                 // カメラの前方1mの位置を計算（Y軸は0=地面レベル）
                 Vector3 cameraPosition = mainCamera.transform.position;
                 Vector3 cameraForward = mainCamera.transform.forward;
+                Debug.Log($"[RuntimeFBXLoaderBridge] Issue #425: Camera position = {cameraPosition}, forward = {cameraForward}");
+
                 // 水平面上の前方ベクトルを計算（Y成分を0に）
-                Vector3 horizontalForward = new Vector3(cameraForward.x, 0f, cameraForward.z).normalized;
-                // カメラの前方1mの位置、地面レベルに配置
-                Vector3 spawnPosition = cameraPosition + horizontalForward * 1.0f;
-                spawnPosition.y = 0f; // 地面レベル
+                Vector3 horizontalForward = new Vector3(cameraForward.x, 0f, cameraForward.z);
+                float horizontalMagnitude = horizontalForward.magnitude;
+                Debug.Log($"[RuntimeFBXLoaderBridge] Issue #425: horizontalForward = {horizontalForward}, magnitude = {horizontalMagnitude}");
+
+                Vector3 spawnPosition;
+
+                // 水平方向成分が十分にある場合のみ使用（カメラが真上/真下を向いている場合は使えない）
+                if (horizontalMagnitude > 0.1f)
+                {
+                    horizontalForward = horizontalForward / horizontalMagnitude; // 正規化
+                    // カメラの水平前方1mの位置、地面レベルに配置
+                    spawnPosition = new Vector3(
+                        cameraPosition.x + horizontalForward.x * 1.0f,
+                        0f, // 地面レベル
+                        cameraPosition.z + horizontalForward.z * 1.0f
+                    );
+                    Debug.Log($"[RuntimeFBXLoaderBridge] Issue #425: Using camera-relative position");
+                }
+                else
+                {
+                    // カメラが真上/真下を向いている場合はカメラのZ方向に1m前に配置
+                    spawnPosition = new Vector3(cameraPosition.x, 0f, cameraPosition.z + 1.0f);
+                    Debug.Log($"[RuntimeFBXLoaderBridge] Issue #425: Camera pointing up/down, using fallback Z+1m");
+                }
 
                 model.transform.position = spawnPosition;
 
@@ -862,15 +886,20 @@ namespace AICam.FBXLoader
                 {
                     model.transform.rotation = Quaternion.LookRotation(lookDirection);
                 }
+                else
+                {
+                    // lookDirectionがゼロに近い場合はデフォルトの向き
+                    model.transform.rotation = Quaternion.identity;
+                }
 
-                Debug.Log($"[RuntimeFBXLoaderBridge] Issue #425: Avatar placed 1m in front of camera at {spawnPosition}");
+                Debug.Log($"[RuntimeFBXLoaderBridge] Issue #425: Avatar placed at {spawnPosition}, rotation = {model.transform.rotation.eulerAngles}");
             }
             else
             {
                 // フォールバック: カメラが見つからない場合は従来の位置を使用
                 model.transform.localPosition = modelPosition;
                 model.transform.localRotation = Quaternion.Euler(modelRotation);
-                Debug.Log($"[RuntimeFBXLoaderBridge] Fallback: Camera not found, using default position {modelPosition}");
+                Debug.Log($"[RuntimeFBXLoaderBridge] Issue #425 Fallback: Camera not found, using default position {modelPosition}");
             }
 
             model.transform.localScale = modelScale;

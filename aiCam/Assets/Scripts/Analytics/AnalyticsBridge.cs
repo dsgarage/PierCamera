@@ -11,18 +11,15 @@ namespace AICam.Analytics
     /// 設計方針：
     /// - 親→PierCamera の参照関係を遵守
     /// - 既存のNativeCallProxy (sendMessageToMobileApp) を使用
-    /// - JSON形式でメッセージを送信し、親アプリ側でFirebase SDKを呼び出す
+    /// - メッセージ形式: event_name|payloadJson
     /// </summary>
     public static class AnalyticsBridge
     {
         private const string TAG = "[AnalyticsBridge]";
 
-        // メッセージタイプ定義
-        private const string TYPE_SET_CUSTOM_KEY = "analytics_setCustomKey";
-        private const string TYPE_LOG = "analytics_log";
-        private const string TYPE_LOG_ERROR = "analytics_logError";
-        private const string TYPE_LOG_EVENT = "analytics_logEvent";
-        private const string TYPE_SET_USER_PROPERTY = "analytics_setUserProperty";
+        // プレフィックス定義
+        private const string PREFIX_ANALYTICS = "Analytics";
+        private const string PREFIX_CRASHLYTICS = "Crashlytics";
 
 #if UNITY_IOS && !UNITY_EDITOR
         // 既存のNativeCallProxyを使用
@@ -32,21 +29,23 @@ namespace AICam.Analytics
 
         /// <summary>
         /// 親アプリにメッセージを送信
+        /// フォーマット: event_name|payloadJson
         /// </summary>
-        private static void SendMessage(string jsonMessage)
+        private static void SendMessage(string eventName, string payloadJson)
         {
+            string message = $"{eventName}|{payloadJson}";
 #if UNITY_IOS && !UNITY_EDITOR
             try
             {
-                sendMessageToMobileApp(jsonMessage);
-                Debug.Log($"{TAG} Sent: {jsonMessage}");
+                sendMessageToMobileApp(message);
+                Debug.Log($"{TAG} Sent: {message}");
             }
             catch (Exception e)
             {
                 Debug.LogWarning($"{TAG} SendMessage failed: {e.Message}");
             }
 #else
-            Debug.Log($"{TAG} [Local] {jsonMessage}");
+            Debug.Log($"{TAG} [Local] {message}");
 #endif
         }
 
@@ -59,8 +58,8 @@ namespace AICam.Analytics
         {
             if (string.IsNullOrEmpty(key)) return;
 
-            string json = $"{{\"type\":\"{TYPE_SET_CUSTOM_KEY}\",\"key\":\"{EscapeJson(key)}\",\"value\":\"{EscapeJson(value ?? "")}\"}}";
-            SendMessage(json);
+            string json = $"{{\"key\":\"{EscapeJson(key)}\",\"value\":\"{EscapeJson(value ?? "")}\"}}";
+            SendMessage($"{PREFIX_CRASHLYTICS}_setCustomKey", json);
         }
 
         /// <summary>
@@ -70,8 +69,8 @@ namespace AICam.Analytics
         {
             if (string.IsNullOrEmpty(message)) return;
 
-            string json = $"{{\"type\":\"{TYPE_LOG}\",\"message\":\"{EscapeJson(message)}\"}}";
-            SendMessage(json);
+            string json = $"{{\"message\":\"{EscapeJson(message)}\"}}";
+            SendMessage($"{PREFIX_CRASHLYTICS}_log", json);
         }
 
         /// <summary>
@@ -79,8 +78,8 @@ namespace AICam.Analytics
         /// </summary>
         public static void LogNonFatalError(string domain, string message)
         {
-            string json = $"{{\"type\":\"{TYPE_LOG_ERROR}\",\"domain\":\"{EscapeJson(domain ?? "Unity")}\",\"message\":\"{EscapeJson(message ?? "")}\"}}";
-            SendMessage(json);
+            string json = $"{{\"domain\":\"{EscapeJson(domain ?? "Unity")}\",\"message\":\"{EscapeJson(message ?? "")}\"}}";
+            SendMessage($"{PREFIX_CRASHLYTICS}_logError", json);
         }
 
         #endregion
@@ -98,8 +97,8 @@ namespace AICam.Analytics
 
             // parametersJsonはすでにJSON形式なので、そのまま埋め込む
             string paramsStr = string.IsNullOrEmpty(parametersJson) ? "{}" : parametersJson;
-            string json = $"{{\"type\":\"{TYPE_LOG_EVENT}\",\"eventName\":\"{EscapeJson(eventName)}\",\"parameters\":{paramsStr}}}";
-            SendMessage(json);
+            string json = $"{{\"eventName\":\"{EscapeJson(eventName)}\",\"parameters\":{paramsStr}}}";
+            SendMessage($"{PREFIX_ANALYTICS}_logEvent", json);
         }
 
         /// <summary>
@@ -109,8 +108,8 @@ namespace AICam.Analytics
         {
             if (string.IsNullOrEmpty(name)) return;
 
-            string json = $"{{\"type\":\"{TYPE_SET_USER_PROPERTY}\",\"name\":\"{EscapeJson(name)}\",\"value\":\"{EscapeJson(value ?? "")}\"}}";
-            SendMessage(json);
+            string json = $"{{\"name\":\"{EscapeJson(name)}\",\"value\":\"{EscapeJson(value ?? "")}\"}}";
+            SendMessage($"{PREFIX_ANALYTICS}_setUserProperty", json);
         }
 
         #endregion
@@ -187,8 +186,8 @@ namespace AICam.Analytics
         /// </summary>
         public static void Initialize()
         {
-            string json = $"{{\"type\":\"analytics_init\",\"version\":\"1.0\"}}";
-            SendMessage(json);
+            string json = $"{{\"version\":\"1.0\"}}";
+            SendMessage($"{PREFIX_ANALYTICS}_init", json);
             Debug.Log($"{TAG} Initialized");
         }
 
