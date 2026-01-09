@@ -909,8 +909,8 @@ namespace AICam.FBXLoader
             Debug.Log($"[RuntimeFBXLoaderBridge] Model Scale: {model.transform.lossyScale}");
             Debug.Log($"[RuntimeFBXLoaderBridge] Parent: {(parent != null ? parent.name : "null")}");
 
-            // Issue #433: LightingPanelControllerのマテリアルキャッシュをクリア
-            ClearLightingMaterialCache();
+            // Issue #433/#442: LightingPanelControllerのライティング・シャドウ設定を再適用
+            ReapplyLightingSettings();
 
             // レンダラーの確認
             var renderers = model.GetComponentsInChildren<Renderer>();
@@ -922,16 +922,16 @@ namespace AICam.FBXLoader
         }
 
         /// <summary>
-        /// Issue #433: LightingPanelControllerのマテリアルキャッシュをクリア
+        /// Issue #433/#442: LightingPanelControllerのライティング・シャドウ設定を再適用
         /// 新しいアバターがロードされた時に呼び出す
         /// </summary>
-        private void ClearLightingMaterialCache()
+        private void ReapplyLightingSettings()
         {
             var lightingPanel = FindFirstObjectByType<AICam.UI.LightingPanelController>();
             if (lightingPanel != null)
             {
-                lightingPanel.ClearMaterialCache();
-                Debug.Log("[RuntimeFBXLoaderBridge] Issue #433: Cleared LightingPanelController material cache");
+                lightingPanel.ReapplyAllSettings();
+                Debug.Log("[RuntimeFBXLoaderBridge] Issue #442: Reapplied lighting and shadow settings");
             }
         }
 

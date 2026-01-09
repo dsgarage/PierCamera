@@ -1096,6 +1096,27 @@ namespace AICam.UI
         }
 
         /// <summary>
+        /// Issue #442: 現在のライティング・シャドウ設定を再適用
+        /// アバターロード後に呼び出して、新しいマテリアルに設定を適用する
+        /// </summary>
+        public void ReapplyAllSettings()
+        {
+            Debug.Log("[LightingPanel] Issue #442: Reapplying all lighting and shadow settings");
+
+            // マテリアルキャッシュをクリア
+            ClearMaterialCache();
+
+            // ライティング設定を再適用
+            ApplyLighting();
+            ApplyLightDirection();
+
+            // シャドウ設定を再適用
+            ApplyShadow();
+
+            Debug.Log("[LightingPanel] Issue #442: All settings reapplied");
+        }
+
+        /// <summary>
         /// Issue #433: Rendererのキャッシュされたマテリアル配列を取得
         /// 初回アクセス時にrenderer.materialsでインスタンス化し、以降は同じインスタンスを返す
         /// </summary>

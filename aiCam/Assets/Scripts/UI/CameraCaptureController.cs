@@ -1482,6 +1482,9 @@ namespace AICam.UI
                 // Issue #425: アバターをカメラの1m前方に配置
                 PlaceAvatarAheadOfCamera(avatar);
 
+                // Issue #442: ライティング・シャドウ設定を再適用
+                ReapplyLightingSettings();
+
                 // Issue #73: プログレス更新
                 UpdateSlotProgress(targetButton, 0.7f); // 70%: VRM生成完了
 
@@ -1606,6 +1609,10 @@ namespace AICam.UI
 
                 // Issue #425: アバターをカメラの1m前方に配置
                 PlaceAvatarAheadOfCamera(loadedModel);
+
+                // Issue #442: ライティング・シャドウ設定を再適用
+                // Note: RuntimeFBXLoaderBridgeでも呼ばれるが、全セットアップ完了後にも再適用
+                ReapplyLightingSettings();
 
                 // Issue #73: プログレス更新
                 UpdateSlotProgress(targetButton, 0.9f); // 90%: FBX生成完了
@@ -2519,6 +2526,24 @@ namespace AICam.UI
             else
             {
                 Debug.LogWarning("⚠️ PlaceAvatarOnPlaneOnly not found - avatar position unchanged");
+            }
+        }
+
+        /// <summary>
+        /// Issue #442: ライティング・シャドウ設定を再適用
+        /// アバターロード後に呼び出して、新しいマテリアルに設定を適用する
+        /// </summary>
+        void ReapplyLightingSettings()
+        {
+            var lightingPanel = FindFirstObjectByType<AICam.UI.LightingPanelController>();
+            if (lightingPanel != null)
+            {
+                lightingPanel.ReapplyAllSettings();
+                Debug.Log("💡 Issue #442: Reapplied lighting and shadow settings");
+            }
+            else
+            {
+                Debug.LogWarning("⚠️ LightingPanelController not found");
             }
         }
 
