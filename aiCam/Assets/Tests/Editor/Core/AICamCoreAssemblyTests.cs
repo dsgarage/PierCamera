@@ -91,13 +91,19 @@ namespace AICam.Core.Tests
         {
             // Arrange
             var type = _coreAssembly.GetType("AICam.Core.IO.ChunkedFileReader");
-            var method = type.GetMethod("ReadAllBytesAsync", BindingFlags.Public | BindingFlags.Static);
+            // 複数のオーバーロードがある場合に備えてGetMethodsを使用
+            var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .Where(m => m.Name == "ReadAllBytesAsync")
+                .ToArray();
 
             // Assert
-            Assert.IsNotNull(method, "ChunkedFileReader should have ReadAllBytesAsync method");
+            Assert.Greater(methods.Length, 0, "ChunkedFileReader should have ReadAllBytesAsync method");
+
+            // 最初のオーバーロードを確認
+            var method = methods[0];
             Assert.IsTrue(method.IsStatic, "ReadAllBytesAsync should be static");
 
-            // パラメータ確認
+            // パラメータ確認（最初のパラメータがfilePathであることを確認）
             var parameters = method.GetParameters();
             Assert.GreaterOrEqual(parameters.Length, 1, "ReadAllBytesAsync should have at least 1 parameter");
             Assert.AreEqual("filePath", parameters[0].Name, "First parameter should be filePath");
