@@ -13,7 +13,38 @@ namespace AICam.Core.Texture
     /// RuntimeTextureCompressor を使用して VRM テクスチャを圧縮形式でロードする ITextureDeserializer 実装
     /// RGBA32 (無圧縮) → ASTC/ETC2 (圧縮) で約89%のメモリ削減を実現
     ///
-    /// 使用方法:
+    /// Issue #440: 低スペック端末最適化 Phase 4 の実装
+    ///
+    /// ■ 実装サマリー (2024年完了)
+    ///
+    /// Phase 1: アセンブリ分割 (AICam.Core)
+    ///   - ChunkedFileReader, CompressedTextureDeserializer を AICam.Core に分離
+    ///   - UniTask, UniGLTF への依存を明確化
+    ///   - テスト: AICamCoreAssemblyTests.cs
+    ///
+    /// Phase 2: メモリキャッシュ (AvatarMemoryCache)
+    ///   - アバター再ロード回避のためのインメモリキャッシュ
+    ///   - 最大6体のキャッシュ管理、LRU方式での削除
+    ///   - テスト: AvatarMemoryCacheTests.cs (31テスト)
+    ///
+    /// Phase 3: Chunked File Reader
+    ///   - 1MB超のファイルをチャンク分割で非同期読み込み
+    ///   - プログレスコールバック対応
+    ///   - テスト: ChunkedFileReaderTests.cs (11テスト)
+    ///
+    /// Phase 4: テクスチャ圧縮 (本クラス)
+    ///   - RuntimeTextureCompressor 統合
+    ///   - ASTC 6x6 (iOS/Android) / BC7 (Windows) 自動選択
+    ///   - フォールバック: RGBA32 (パッケージ未インストール時)
+    ///   - テスト: CompressedTextureDeserializerTests.cs
+    ///
+    /// ■ テスト結果: 全76テスト成功
+    ///
+    /// ■ 実機テスト方法
+    ///   LowSpecOptimizationChecker を使用 (AICam.Diagnostics名前空間)
+    ///   Xcodeログで "[LowSpec]" でフィルタして確認
+    ///
+    /// ■ 使用方法:
     /// 1. RuntimeTextureCompressor パッケージをインストール
     /// 2. Project Settings > Player > Scripting Define Symbols に "RUNTIME_TEXTURE_COMPRESSOR" を追加
     /// 3. VrmUtility.LoadBytesAsync() の textureDeserializer 引数に渡す

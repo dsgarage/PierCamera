@@ -14,10 +14,41 @@ namespace AICam.Diagnostics
     /// 低スペック端末最適化の実機テスト用チェッカー
     /// Issue #440: Phase 1-4 の動作確認
     ///
-    /// Xcodeログで確認する場合:
-    /// 1. iPhoneにインストール
-    /// 2. Xcode > Window > Devices and Simulators > 端末選択 > Open Console
+    /// ■ 実機テストフロー (iPhone + Xcode)
+    ///
+    /// 【準備】
+    /// 1. 本コンポーネントをシーン内のGameObjectにアタッチ
+    /// 2. testVrmFileName にStreamingAssets内のVRMファイル名を設定 (任意)
+    /// 3. iOSビルドして実機インストール
+    ///
+    /// 【確認方法】
+    /// 1. Xcode > Window > Devices and Simulators
+    /// 2. 対象端末を選択 > Open Console
     /// 3. フィルタに "[LowSpec]" を入力
+    ///
+    /// 【チェック項目】
+    /// Step 1: 環境情報
+    ///   - Device Model, OS Version, Graphics API
+    ///   - ASTC Support (iOS/Androidでtrue必須)
+    ///
+    /// Step 2: テクスチャ圧縮 (Phase 4)
+    ///   - RuntimeTextureCompressor: INSTALLED ✓ が期待値
+    ///   - Compression Available: True ✓ が期待値
+    ///
+    /// Step 3: メモリ使用量
+    ///   - Texture Memory が500MB以下であること
+    ///   - Compressed > 0 が期待値 (Phase 4有効時)
+    ///
+    /// Step 4: ファイル読み込み (Phase 3, オプション)
+    ///   - Progress Callbacks > 1 が期待値 (大きいファイル時)
+    ///   - Throughput: 読み込み速度の確認
+    ///
+    /// ■ テスト結果サマリー
+    /// Unit Tests: 全76テスト成功
+    ///   - AICamCoreAssemblyTests: 10テスト
+    ///   - AvatarMemoryCacheTests: 31テスト
+    ///   - ChunkedFileReaderTests: 11テスト
+    ///   - CompressedTextureDeserializerTests: 24テスト
     /// </summary>
     public class LowSpecOptimizationChecker : MonoBehaviour
     {
