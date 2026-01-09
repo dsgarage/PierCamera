@@ -167,7 +167,7 @@ namespace AICam.Core.Texture
         private async Task<Texture2D> LoadDefaultAsync(DeserializingTextureInfo textureInfo, IAwaitCaller awaitCaller)
         {
             // UniVRM デフォルトと同様の処理
-            var texture = new Texture2D(2, 2, TextureFormat.RGBA32, textureInfo.UseMipmap, textureInfo.ColorSpace == ColorSpace.Linear);
+            var texture = new Texture2D(2, 2, TextureFormat.RGBA32, textureInfo.UseMipmap, textureInfo.ColorSpace == UniGLTF.ColorSpace.Linear);
 
             bool loaded = texture.LoadImage(textureInfo.ImageData, false);
 
