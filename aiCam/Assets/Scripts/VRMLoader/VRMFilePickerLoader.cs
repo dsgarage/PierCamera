@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using AICam.Core.IO;
+using AICam.Core.Texture;
 
 public class VRMFilePickerLoader : MonoBehaviour
 {
@@ -21,6 +22,9 @@ public class VRMFilePickerLoader : MonoBehaviour
     public GameObject LoadedModel => _loadedInstance?.Root;
 
     private bool _isLoading;
+
+    // Issue #440: 圧縮テクスチャデシリアライザ (VRMテクスチャメモリ約89%削減)
+    private static readonly CompressedTextureDeserializer _textureDeserializer = new CompressedTextureDeserializer();
 
     /// <summary>
     /// ファイルピッカーを使ってVRMを読み込む
@@ -160,6 +164,7 @@ public class VRMFilePickerLoader : MonoBehaviour
             Debug.Log($"[VRMFilePicker] Read {bytes.Length} bytes");
 
             // VrmUtility を使って読み込み
+            // Issue #440: 圧縮テクスチャデシリアライザを使用
             Debug.Log($"[VRMFilePicker] Calling VrmUtility.LoadBytesAsync...");
             _loadedInstance = await VrmUtility.LoadBytesAsync(
                 path: System.IO.Path.GetFileName(path),
@@ -167,7 +172,7 @@ public class VRMFilePickerLoader : MonoBehaviour
                 awaitCaller: new RuntimeOnlyAwaitCaller(),
                 materialGeneratorCallback: null,
                 metaCallback: null,
-                textureDeserializer: null,
+                textureDeserializer: _textureDeserializer,
                 loadAnimation: false,
                 springboneRuntime: null
             );

@@ -4,6 +4,7 @@ using UniGLTF;
 using Cysharp.Threading.Tasks;
 using System;
 using AICam.Core.IO;
+using AICam.Core.Texture;
 
 namespace AICam.VRM
 {
@@ -23,6 +24,9 @@ namespace AICam.VRM
 
         private RuntimeGltfInstance currentInstance;
         private GameObject currentAvatarRoot;
+
+        // Issue #440: 圧縮テクスチャデシリアライザ (VRMテクスチャメモリ約89%削減)
+        private static readonly CompressedTextureDeserializer _textureDeserializer = new CompressedTextureDeserializer();
 
         /// <summary>
         /// 現在読み込まれているアバターのGameObject
@@ -161,13 +165,14 @@ namespace AICam.VRM
                 Debug.Log($"[RuntimeAvatarLoader] Read {bytes.Length} bytes from file");
 
                 // VRMをパース
+                // Issue #440: 圧縮テクスチャデシリアライザを使用
                 currentInstance = await VrmUtility.LoadBytesAsync(
                     path: System.IO.Path.GetFileName(filePath),
                     bytes: bytes,
                     awaitCaller: new RuntimeOnlyAwaitCaller(),
                     materialGeneratorCallback: null,
                     metaCallback: null,
-                    textureDeserializer: null,
+                    textureDeserializer: _textureDeserializer,
                     loadAnimation: false,
                     springboneRuntime: null
                 );

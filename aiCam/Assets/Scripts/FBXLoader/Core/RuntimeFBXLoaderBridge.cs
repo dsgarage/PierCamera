@@ -4,6 +4,7 @@ using System.Text;
 using Cysharp.Threading.Tasks;
 using AICam.AvatarBuilder;
 using AICam.Core.IO;
+using AICam.Core.Texture;
 using UniGLTF;
 using VRM;
 using UniVRM10;
@@ -40,6 +41,9 @@ namespace AICam.FBXLoader
         private Vrm10Instance currentVrm10Instance;
         // 読み込まれたVRMのバージョン
         private VrmVersion loadedVrmVersion = VrmVersion.Unknown;
+
+        // Issue #440: 圧縮テクスチャデシリアライザ (VRMテクスチャメモリ約89%削減)
+        private static readonly CompressedTextureDeserializer _textureDeserializer = new CompressedTextureDeserializer();
 
         private GameObject currentModel;
 
@@ -346,11 +350,13 @@ namespace AICam.FBXLoader
                     Debug.Log("[RuntimeFBXLoaderBridge] Loading as VRM 1.0 using Vrm10.LoadBytesAsync...");
                     // ControlRigGenerationOption.None: ControlRigがAnimator.avatarを上書きするのを防ぐ
                     // これにより、AnimatorOverrideControllerでのポーズ切り替えが正常に動作する
+                    // Issue #440: 圧縮テクスチャデシリアライザを使用
                     currentVrm10Instance = await Vrm10.LoadBytesAsync(
                         bytes: bytes,
                         canLoadVrm0X: false,
                         showMeshes: true,
                         awaitCaller: new RuntimeOnlyAwaitCaller(),
+                        textureDeserializer: _textureDeserializer,
                         controlRigGenerationOption: ControlRigGenerationOption.None
                     );
 
@@ -375,7 +381,7 @@ namespace AICam.FBXLoader
                         awaitCaller: new RuntimeOnlyAwaitCaller(),
                         materialGeneratorCallback: null,
                         metaCallback: null,
-                        textureDeserializer: null,
+                        textureDeserializer: _textureDeserializer,
                         loadAnimation: false,
                         springboneRuntime: null
                     );
@@ -481,11 +487,13 @@ namespace AICam.FBXLoader
                 {
                     Debug.Log("[RuntimeFBXLoaderBridge] Loading as VRM 1.0...");
                     // ControlRigGenerationOption.None: ControlRigがAnimator.avatarを上書きするのを防ぐ
+                    // Issue #440: 圧縮テクスチャデシリアライザを使用
                     currentVrm10Instance = await Vrm10.LoadBytesAsync(
                         bytes: bytes,
                         canLoadVrm0X: false,
                         showMeshes: true,
                         awaitCaller: new RuntimeOnlyAwaitCaller(),
+                        textureDeserializer: _textureDeserializer,
                         controlRigGenerationOption: ControlRigGenerationOption.None
                     );
 
@@ -509,7 +517,7 @@ namespace AICam.FBXLoader
                         awaitCaller: new RuntimeOnlyAwaitCaller(),
                         materialGeneratorCallback: null,
                         metaCallback: null,
-                        textureDeserializer: null,
+                        textureDeserializer: _textureDeserializer,
                         loadAnimation: false,
                         springboneRuntime: null
                     );
@@ -1644,11 +1652,13 @@ namespace AICam.FBXLoader
                 await UniTask.Yield();
 
                 // ControlRigGenerationOption.None: ControlRigがAnimator.avatarを上書きするのを防ぐ
+                // Issue #440: 圧縮テクスチャデシリアライザを使用
                 var vrm10 = await Vrm10.LoadBytesAsync(
                     bytes: bytes,
                     canLoadVrm0X: false,
                     showMeshes: true,
                     awaitCaller: new RuntimeOnlyAwaitCaller(),
+                    textureDeserializer: _textureDeserializer,
                     controlRigGenerationOption: ControlRigGenerationOption.None
                 );
 
@@ -1670,7 +1680,7 @@ namespace AICam.FBXLoader
                     awaitCaller: new RuntimeOnlyAwaitCaller(),
                     materialGeneratorCallback: null,
                     metaCallback: null,
-                    textureDeserializer: null,
+                    textureDeserializer: _textureDeserializer,
                     loadAnimation: false,
                     springboneRuntime: null
                 );
