@@ -167,6 +167,30 @@ namespace AICam.UI
             }
         }
 
+        // Issue #443: AR Sync用のイベント購読状態
+        private ARLightEstimationController subscribedArLightEstimation;
+
+        /// <summary>
+        /// Issue #443: ARLightEstimationControllerからのライト値変更イベントハンドラー
+        /// </summary>
+        void OnArLightValuesChanged(Color lightColor, float intensity)
+        {
+            if (!isArSyncEnabled) return;
+
+            // マテリアルにライト値を適用
+            ApplyToAvatarMaterials(lightColor * intensity);
+        }
+
+        void OnDestroy()
+        {
+            // Issue #443: イベント購読を解除してメモリリークを防ぐ
+            if (subscribedArLightEstimation != null)
+            {
+                subscribedArLightEstimation.OnLightValuesChanged -= OnArLightValuesChanged;
+                subscribedArLightEstimation = null;
+            }
+        }
+
         /// <summary>
         /// 遅延初期化用（外部からの呼び出し）
         /// </summary>
@@ -343,6 +367,8 @@ namespace AICam.UI
                     UpdateColorTempDisplay();
                     ApplyLighting();
                     ClearPresetSelection();
+                    // Issue #443: 手動調整時はAR Syncを無効化
+                    DisableArSyncOnManualAdjustment();
                 });
             }
 
@@ -359,6 +385,8 @@ namespace AICam.UI
                     UpdateBrightnessDisplay();
                     ApplyLighting();
                     ClearPresetSelection();
+                    // Issue #443: 手動調整時はAR Syncを無効化
+                    DisableArSyncOnManualAdjustment();
                 });
             }
 
@@ -375,6 +403,8 @@ namespace AICam.UI
                     UpdateElevationDisplay();
                     ApplyLightDirection();
                     ClearPresetSelection();
+                    // Issue #443: 手動調整時はAR Syncを無効化
+                    DisableArSyncOnManualAdjustment();
                 });
             }
 
@@ -571,6 +601,8 @@ namespace AICam.UI
 
             ApplyLightDirection();
             ClearPresetSelection();
+            // Issue #443: 手動調整時はAR Syncを無効化
+            DisableArSyncOnManualAdjustment();
         }
 
         void SelectPreset(int index, Button button)
@@ -617,6 +649,30 @@ namespace AICam.UI
         {
             currentPresetButton?.RemoveFromClassList("preset-selected");
             currentPresetButton = null;
+        }
+
+        /// <summary>
+        /// Issue #443: 手動調整時にAR Syncを無効化
+        /// スライダーやノブの操作時に呼び出される
+        /// </summary>
+        void DisableArSyncOnManualAdjustment()
+        {
+            if (!isArSyncEnabled) return;
+
+            isArSyncEnabled = false;
+            if (arSyncToggle != null)
+            {
+                arSyncToggle.SetValueWithoutNotify(false);
+            }
+
+            // AR Light Estimationを無効化
+            var arLightEstimation = FindFirstObjectByType<ARLightEstimationController>();
+            if (arLightEstimation != null)
+            {
+                arLightEstimation.enabled = false;
+            }
+
+            Debug.Log("[LightingPanel] AR Sync disabled due to manual adjustment");
         }
 
         void SelectSoftness(LightShadows softness, Button button)
@@ -1182,12 +1238,45 @@ namespace AICam.UI
 
                 if (isArSyncEnabled)
                 {
-                    // AR同期が有効の場合、手動設定を無効化するヒントを表示
+                    // Issue #443: AR同期が有効の場合、イベントを購読してマテリアルを更新
                     Debug.Log($"[LightingPanel] AR Light Sync enabled - using AR Foundation light estimation");
+
+                    // 以前の購読を解除
+                    if (subscribedArLightEstimation != null && subscribedArLightEstimation != arLightEstimation)
+                    {
+                        subscribedArLightEstimation.OnLightValuesChanged -= OnArLightValuesChanged;
+                    }
+
+                    // イベントを購読
+                    arLightEstimation.OnLightValuesChanged -= OnArLightValuesChanged; // 重複防止
+                    arLightEstimation.OnLightValuesChanged += OnArLightValuesChanged;
+                    subscribedArLightEstimation = arLightEstimation;
+
+                    // マテリアルキャッシュをクリア（新しい値で更新するため）
+                    ClearMaterialCache();
+
+                    // 現在のメインライトの値を取得してスライダーとマテリアルに反映
+                    if (mainLight != null)
+                    {
+                        // ライトの現在値をスライダーに反映
+                        brightness = mainLight.intensity;
+                        if (brightnessSlider != null) brightnessSlider.SetValueWithoutNotify(brightness);
+                        UpdateBrightnessDisplay();
+
+                        // マテリアルにも現在のライト値を適用
+                        ApplyToAvatarMaterials(mainLight.color * brightness);
+                    }
                 }
                 else
                 {
-                    // AR同期が無効の場合、手動設定を適用
+                    // Issue #443: AR同期が無効の場合、イベント購読を解除
+                    if (subscribedArLightEstimation != null)
+                    {
+                        subscribedArLightEstimation.OnLightValuesChanged -= OnArLightValuesChanged;
+                        subscribedArLightEstimation = null;
+                    }
+
+                    // 手動設定を適用
                     Debug.Log($"[LightingPanel] AR Light Sync disabled - using manual settings");
                     ApplyLighting();
                     ApplyLightDirection();

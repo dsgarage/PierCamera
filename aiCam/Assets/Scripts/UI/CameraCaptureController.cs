@@ -2537,7 +2537,10 @@ namespace AICam.UI
             animator.Play("Pose00", 0, 0f);
 
             Debug.Log($"🎭 ApplyDefaultAOC: Applied {defaultAOC.name} to {avatar.name}");
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+            // Issue #439: デバッグビルドのみAOC適用メッセージを表示
             ShowInfo("AOC", defaultAOC.name, 1.5f);
+#endif
         }
 
         // Issue #145/#411: VRM 0.x用の表情コントローラー

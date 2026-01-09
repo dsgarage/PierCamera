@@ -13,6 +13,12 @@ namespace AICam.AR
         [Header("AR Camera")]
         [SerializeField] private ARCameraManager arCameraManager;
 
+        /// <summary>
+        /// Issue #443: ライト値が変更された時に発火するイベント
+        /// パラメータ: (Color lightColor, float intensity)
+        /// </summary>
+        public event System.Action<Color, float> OnLightValuesChanged;
+
         [Header("Light Estimation Settings")]
         [Tooltip("色温度を適用する")]
         [SerializeField] private bool applyColorTemperature = true;
@@ -107,6 +113,9 @@ namespace AICam.AR
                 _mainLight.color = _currentColor;
                 _mainLight.intensity = _currentIntensity;
                 transform.rotation = _currentRotation;
+
+                // Issue #443: ライト値変更イベントを発火
+                OnLightValuesChanged?.Invoke(_currentColor, _currentIntensity);
             }
         }
 
