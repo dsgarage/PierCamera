@@ -279,7 +279,7 @@ namespace AICam.Core.Tests
             byte[] imageData,
             string mimeType,
             bool useMipmap = false,
-            ColorSpace colorSpace = ColorSpace.Gamma,
+            UniGLTF.ColorSpace colorSpace = UniGLTF.ColorSpace.Gamma,
             FilterMode filterMode = FilterMode.Bilinear,
             TextureWrapMode wrapModeU = TextureWrapMode.Clamp,
             TextureWrapMode wrapModeV = TextureWrapMode.Clamp)

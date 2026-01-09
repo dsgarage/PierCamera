@@ -2,10 +2,10 @@
     "name": "AICam.Core.Tests",
     "rootNamespace": "AICam.Core.Tests",
     "references": [
-        "GUID:f51ebe6a0ceec4240a699833d6309b23",
-        "GUID:5562a255ac1ac491e9ff816ed0993867",
-        "GUID:23aa364a5d8a544869ff5723c1dbd777",
-        "GUID:8d76e605759c3f64a957d63ef96ada7c"
+        "UniTask",
+        "AICam.Core",
+        "AICam.VRMLoader",
+        "UniGLTF"
     ],
     "includePlatforms": [
         "Editor"
