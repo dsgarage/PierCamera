@@ -1479,6 +1479,9 @@ namespace AICam.UI
                 // Issue #145/#411: 表情システムをセットアップ
                 SetupExpressionSystem(avatar);
 
+                // Issue #425: アバターをカメラの1m前方に配置
+                PlaceAvatarAheadOfCamera(avatar);
+
                 // Issue #73: プログレス更新
                 UpdateSlotProgress(targetButton, 0.7f); // 70%: VRM生成完了
 
@@ -1600,6 +1603,9 @@ namespace AICam.UI
 
                 // Issue #145/#411: 表情システムをセットアップ
                 SetupExpressionSystem(loadedModel);
+
+                // Issue #425: アバターをカメラの1m前方に配置
+                PlaceAvatarAheadOfCamera(loadedModel);
 
                 // Issue #73: プログレス更新
                 UpdateSlotProgress(targetButton, 0.9f); // 90%: FBX生成完了
@@ -2494,6 +2500,26 @@ namespace AICam.UI
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Issue #425: アバターをカメラの1m前方に配置
+        /// PlaceAvatarOnPlaneOnlyを使用して平面優先で配置
+        /// </summary>
+        void PlaceAvatarAheadOfCamera(GameObject avatar)
+        {
+            if (avatar == null) return;
+
+            var placer = FindFirstObjectByType<PlaceAvatarOnPlaneOnly>();
+            if (placer != null)
+            {
+                bool success = placer.PlaceAvatarAhead(avatar, 1.0f);
+                Debug.Log($"📍 Issue #425: Avatar placement result: {(success ? "success" : "failed")}");
+            }
+            else
+            {
+                Debug.LogWarning("⚠️ PlaceAvatarOnPlaneOnly not found - avatar position unchanged");
+            }
         }
 
         /// <summary>

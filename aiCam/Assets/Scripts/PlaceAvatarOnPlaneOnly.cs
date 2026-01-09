@@ -1130,4 +1130,138 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
 
         Debug.Log($"[PlaceAvatarOnPlaneOnly] Requested: {occlusionManager.requestedEnvironmentDepthMode}, Current: {occlusionManager.currentEnvironmentDepthMode}");
     }
+
+    // ========== Issue #425: アバター初期配置 ==========
+
+    /// <summary>
+    /// Issue #425: ロードされたアバターをカメラの1m前方に配置
+    /// 平面が検出されていればその上に、なければカメラ高さで配置
+    /// </summary>
+    /// <param name="loadedAvatar">ロード済みアバター</param>
+    /// <param name="distanceAhead">カメラからの距離（メートル）</param>
+    /// <returns>配置成功した場合true</returns>
+    public bool PlaceAvatarAhead(GameObject loadedAvatar, float distanceAhead = 1.0f)
+    {
+        if (loadedAvatar == null)
+        {
+            Debug.LogWarning("[PlaceAvatarOnPlaneOnly] PlaceAvatarAhead: avatar is null");
+            return false;
+        }
+
+        if (arCamera == null)
+        {
+            arCamera = Camera.main;
+            if (arCamera == null)
+            {
+                Debug.LogWarning("[PlaceAvatarOnPlaneOnly] PlaceAvatarAhead: No camera found");
+                return false;
+            }
+        }
+
+        // カメラの前方方向（水平のみ）
+        Vector3 camPos = arCamera.transform.position;
+        Vector3 camForward = arCamera.transform.forward;
+        camForward.y = 0;
+        camForward.Normalize();
+
+        if (camForward.sqrMagnitude < 0.01f)
+        {
+            camForward = Vector3.forward;
+        }
+
+        // 1m前方の位置を計算
+        Vector3 targetPosition = camPos + camForward * distanceAhead;
+
+        // 平面を検索してY座標を調整
+        bool foundPlane = false;
+        ARPlane hitPlane = null;
+
+        if (rcMgr != null)
+        {
+            // カメラ位置から下方向にレイキャスト
+            Vector3 rayOrigin = new Vector3(targetPosition.x, camPos.y + 1f, targetPosition.z);
+            Ray ray = new Ray(rayOrigin, Vector3.down);
+
+            // スクリーン座標に変換してレイキャスト
+            Vector3 screenPoint = arCamera.WorldToScreenPoint(targetPosition);
+            if (rcMgr.Raycast(screenPoint, s_Hits, TrackableType.PlaneWithinPolygon))
+            {
+                var hit = s_Hits[0];
+                hitPlane = planeManager?.GetPlane(hit.trackableId) ?? hit.trackable as ARPlane;
+
+                if (hitPlane != null)
+                {
+                    // 水平面フィルター
+                    if (!onlyHorizontal || hitPlane.alignment == PlaneAlignment.HorizontalUp || hitPlane.alignment == PlaneAlignment.HorizontalDown)
+                    {
+                        targetPosition = hit.pose.position;
+                        foundPlane = true;
+                        Debug.Log($"[PlaceAvatarOnPlaneOnly] PlaceAvatarAhead: Found plane at {targetPosition}, alignment: {hitPlane.alignment}");
+                    }
+                }
+            }
+        }
+
+        // 平面が見つからなかった場合、検出済み平面から最も近いものを使用
+        if (!foundPlane && planeManager != null)
+        {
+            float closestDist = float.MaxValue;
+            ARPlane closestPlane = null;
+
+            foreach (var plane in planeManager.trackables)
+            {
+                if (onlyHorizontal && plane.alignment != PlaneAlignment.HorizontalUp && plane.alignment != PlaneAlignment.HorizontalDown)
+                    continue;
+
+                // 平面の中心からターゲット位置までの水平距離
+                Vector3 planeCenter = plane.center;
+                float dist = Vector3.Distance(
+                    new Vector3(targetPosition.x, 0, targetPosition.z),
+                    new Vector3(planeCenter.x, 0, planeCenter.z)
+                );
+
+                if (dist < closestDist)
+                {
+                    closestDist = dist;
+                    closestPlane = plane;
+                }
+            }
+
+            // 最も近い平面が3m以内なら使用
+            if (closestPlane != null && closestDist < 3f)
+            {
+                hitPlane = closestPlane;
+                // 平面上に投影
+                Vector3 planeNormal = closestPlane.normal;
+                float d = Vector3.Dot(planeNormal, targetPosition - closestPlane.center);
+                targetPosition = targetPosition - planeNormal * d;
+                foundPlane = true;
+                Debug.Log($"[PlaceAvatarOnPlaneOnly] PlaceAvatarAhead: Using closest plane at distance {closestDist:F2}m");
+            }
+        }
+
+        // 平面が見つからなかった場合、カメラより少し下に配置
+        if (!foundPlane)
+        {
+            targetPosition.y = camPos.y - 1.5f; // カメラの1.5m下（おおよそ床の高さ）
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] PlaceAvatarAhead: No plane found, using estimated floor height");
+        }
+
+        // アバターを配置
+        Quaternion rotation = GetFaceCameraRotation(targetPosition, hitPlane?.alignment ?? PlaneAlignment.HorizontalUp);
+        loadedAvatar.transform.SetPositionAndRotation(targetPosition, rotation);
+        loadedAvatar.SetActive(true);
+
+        // 内部状態を更新
+        avatar = loadedAvatar;
+        avatarPlane = hitPlane;
+        currentFollowMode = FollowMode.Off;
+        currentAvatarScale = loadedAvatar.transform.localScale.x;
+
+        // FaceControllerとAnimatorをバインド
+        BindAvatarFaceController();
+
+        Debug.Log($"[PlaceAvatarOnPlaneOnly] PlaceAvatarAhead: Avatar placed at {targetPosition}, foundPlane: {foundPlane}");
+        return true;
+    }
 }
