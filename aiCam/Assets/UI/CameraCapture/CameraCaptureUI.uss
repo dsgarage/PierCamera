@@ -679,3 +679,16 @@
 .icon-preview-button.retake:hover {
     background-color: rgba(120, 120, 120, 1);
 }
+/* ================================
+   バージョン表示ラベル
+================================ */
+.version-label {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    -unity-text-align: lower-right;
+    -unity-font-style: normal;
+    padding: 2px 4px;
+}

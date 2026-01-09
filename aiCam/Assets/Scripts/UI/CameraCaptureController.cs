@@ -32,6 +32,10 @@ namespace AICam.UI
         [Header("Expression System (Issue #145/#411)")]
         [SerializeField] private AICam.Expression.VrmExpressionSetup expressionSetup;
 
+        [Header("Debug (Issue #427)")]
+        [Tooltip("起動時のデバッグログを有効化（プロダクションビルドではOFFにして起動時間を短縮）")]
+        [SerializeField] private bool enableDebugLogging = false;
+
         private VisualElement root;
         private VisualElement captureButton;
         private VisualElement innerCircle;
@@ -48,6 +52,9 @@ namespace AICam.UI
         private VisualElement alertBar;
         private Label alertMessage;
         private Button alertClose;
+
+        // バージョン表示ラベル
+        private Label versionLabel;
 
         // アイコンプレビューパネル要素
         private VisualElement iconPreviewPanel;
@@ -220,7 +227,7 @@ namespace AICam.UI
 
         void OnEnable()
         {
-            Debug.Log("🔧 CameraCaptureController OnEnable called");
+            if (enableDebugLogging) Debug.Log("🔧 CameraCaptureController OnEnable called");
 
             // ARPhotoControllerのイベント登録
             if (photoController != null)
@@ -242,7 +249,7 @@ namespace AICam.UI
                 return;
             }
 
-            Debug.Log($"✅ Root element found: {root.name}");
+            if (enableDebugLogging) Debug.Log($"✅ Root element found: {root.name}");
 
             captureButton = root.Q<VisualElement>("captureButton");
             innerCircle = root.Q<VisualElement>("innerCircle");
@@ -258,6 +265,16 @@ namespace AICam.UI
             alertBar = root.Q<VisualElement>("alertBar");
             alertMessage = root.Q<Label>("alertMessage");
             alertClose = root.Q<Button>("alertClose");
+
+            // バージョン表示ラベルの取得と設定
+            versionLabel = root.Q<Label>("versionLabel");
+            if (versionLabel != null)
+            {
+                string version = Application.version;
+                string buildNumber = GetBuildNumber();
+                versionLabel.text = $"v{version} ({buildNumber})";
+                if (enableDebugLogging) Debug.Log($"✅ Version label set: v{version} ({buildNumber})");
+            }
 
             // アイコンプレビューパネル要素の取得
             iconPreviewPanel = root.Q<VisualElement>("iconPreviewPanel");
@@ -321,24 +338,28 @@ namespace AICam.UI
                 // マウスホイールスクロール（エディタ用）
                 bottomScrollView.mouseWheelScrollSize = 30f;
 
-                Debug.Log($"✅ ScrollView configured: mode={bottomScrollView.mode}, touchBehavior={bottomScrollView.touchScrollBehavior}");
+                if (enableDebugLogging) Debug.Log($"✅ ScrollView configured: mode={bottomScrollView.mode}, touchBehavior={bottomScrollView.touchScrollBehavior}");
             }
 
-            Debug.Log($"captureButton: {(captureButton != null ? "✅" : "❌")}");
-            Debug.Log($"innerCircle: {(innerCircle != null ? "✅" : "❌")}");
-            Debug.Log($"progressRing: {(progressRing != null ? "✅" : "❌")}");
-            Debug.Log($"progressArc: {(progressArc != null ? "✅" : "❌")}");
-            Debug.Log($"flashOverlay: {(flashOverlay != null ? "✅" : "❌")}");
-            Debug.Log($"galleryThumbnail: {(galleryThumbnail != null ? "✅" : "❌")}");
-            Debug.Log($"viewerOverlay: {(viewerOverlay != null ? "✅" : "❌")}");
-            Debug.Log($"viewerImage: {(viewerImage != null ? "✅" : "❌")}");
+            // Issue #427: デバッグログを条件付きに変更（起動時間短縮）
+            if (enableDebugLogging)
+            {
+                Debug.Log($"captureButton: {(captureButton != null ? "✅" : "❌")}");
+                Debug.Log($"innerCircle: {(innerCircle != null ? "✅" : "❌")}");
+                Debug.Log($"progressRing: {(progressRing != null ? "✅" : "❌")}");
+                Debug.Log($"progressArc: {(progressArc != null ? "✅" : "❌")}");
+                Debug.Log($"flashOverlay: {(flashOverlay != null ? "✅" : "❌")}");
+                Debug.Log($"galleryThumbnail: {(galleryThumbnail != null ? "✅" : "❌")}");
+                Debug.Log($"viewerOverlay: {(viewerOverlay != null ? "✅" : "❌")}");
+                Debug.Log($"viewerImage: {(viewerImage != null ? "✅" : "❌")}");
+            }
 
             if (captureButton != null)
             {
                 captureButton.RegisterCallback<PointerDownEvent>(OnPointerDown);
                 captureButton.RegisterCallback<PointerUpEvent>(OnPointerUp);
-                captureButton.RegisterCallback<ClickEvent>(evt => Debug.Log("🖱 Capture button clicked!"));
-                Debug.Log("✅ Capture button events registered");
+                if (enableDebugLogging) captureButton.RegisterCallback<ClickEvent>(evt => Debug.Log("🖱 Capture button clicked!"));
+                if (enableDebugLogging) Debug.Log("✅ Capture button events registered");
             }
             else
             {
@@ -348,65 +369,65 @@ namespace AICam.UI
             if (galleryThumbnail != null)
             {
                 galleryThumbnail.RegisterCallback<ClickEvent>(evt => OpenViewer());
-                Debug.Log("✅ Gallery thumbnail events registered");
+                if (enableDebugLogging) Debug.Log("✅ Gallery thumbnail events registered");
             }
 
             if (viewerOverlay != null)
             {
                 viewerOverlay.RegisterCallback<ClickEvent>(evt => CloseViewer());
-                Debug.Log("✅ Viewer overlay events registered");
+                if (enableDebugLogging) Debug.Log("✅ Viewer overlay events registered");
             }
 
             // アラートバーのイベント登録
             if (alertClose != null)
             {
                 alertClose.RegisterCallback<ClickEvent>(evt => HideAlert());
-                Debug.Log("✅ Alert close button events registered");
+                if (enableDebugLogging) Debug.Log("✅ Alert close button events registered");
             }
 
             // アイコンプレビューパネルのイベント登録
             if (iconPreviewConfirm != null)
             {
                 iconPreviewConfirm.RegisterCallback<ClickEvent>(evt => OnIconPreviewConfirmClicked());
-                Debug.Log("✅ Icon preview confirm button events registered");
+                if (enableDebugLogging) Debug.Log("✅ Icon preview confirm button events registered");
             }
 
             if (iconPreviewRetake != null)
             {
                 iconPreviewRetake.RegisterCallback<ClickEvent>(evt => OnIconPreviewRetakeClicked());
-                Debug.Log("✅ Icon preview retake button events registered");
+                if (enableDebugLogging) Debug.Log("✅ Icon preview retake button events registered");
             }
 
             if (bottomButtonAdd != null)
             {
                 bottomButtonAdd.RegisterCallback<ClickEvent>(evt => AddBottomPanelButton());
-                Debug.Log("✅ Add button events registered");
+                if (enableDebugLogging) Debug.Log("✅ Add button events registered");
             }
 
             // サイドパネルボタンのイベント登録
             if (sideButton1 != null)
             {
                 sideButton1.RegisterCallback<ClickEvent>(evt => OnSideButton1Clicked());
-                Debug.Log("✅ Side button 1 events registered");
+                if (enableDebugLogging) Debug.Log("✅ Side button 1 events registered");
             }
 
             if (sideButton2 != null)
             {
                 sideButton2.RegisterCallback<ClickEvent>(evt => OnSideButton2Clicked());
-                Debug.Log("✅ Side button 2 events registered");
+                if (enableDebugLogging) Debug.Log("✅ Side button 2 events registered");
             }
 
             if (sideButton3 != null)
             {
                 sideButton3.RegisterCallback<ClickEvent>(evt => OnSideButton3Clicked());
-                Debug.Log("✅ Side button 3 events registered");
+                if (enableDebugLogging) Debug.Log("✅ Side button 3 events registered");
             }
 
             // Issue #413: バグレポートボタンのイベント登録
             if (sideButtonBugReport != null)
             {
                 sideButtonBugReport.RegisterCallback<ClickEvent>(evt => OnBugReportButtonClicked());
-                Debug.Log("✅ Bug report button events registered");
+                if (enableDebugLogging) Debug.Log("✅ Bug report button events registered");
 
                 // バグレポートアイコンを設定
                 var bugReportIcon = Resources.Load<Texture2D>("Sprite/PictIcon/SideBear/04_BugReport");
@@ -417,45 +438,48 @@ namespace AICam.UI
             }
 
             // Issue #74/#75: トップパネルボタンのイベント登録
-            Debug.Log($"🔘 topButton1: {(topButton1 != null ? "✅ found" : "❌ NOT FOUND")}");
-            Debug.Log($"🔘 topButton2: {(topButton2 != null ? "✅ found" : "❌ NOT FOUND")}");
+            if (enableDebugLogging)
+            {
+                Debug.Log($"🔘 topButton1: {(topButton1 != null ? "✅ found" : "❌ NOT FOUND")}");
+                Debug.Log($"🔘 topButton2: {(topButton2 != null ? "✅ found" : "❌ NOT FOUND")}");
+            }
 
             if (topButton1 != null)
             {
                 // Issue #74 修正: 短押しでライティングパネル表示（パネル内にON/OFFトグルあり）
                 topButton1.RegisterCallback<ClickEvent>(evt => OnTopButton1Click());
-                Debug.Log("✅ Top button 1 (Light Estimation) click event registered");
+                if (enableDebugLogging) Debug.Log("✅ Top button 1 (Light Estimation) click event registered");
             }
 
             if (topButton2 != null)
             {
                 // Issue #75 修正: 短押しでシャドウパネル表示（パネル内にON/OFFトグルあり）
                 topButton2.RegisterCallback<ClickEvent>(evt => OnTopButton2Click());
-                Debug.Log("✅ Top button 2 (Shadow) click event registered");
+                if (enableDebugLogging) Debug.Log("✅ Top button 2 (Shadow) click event registered");
             }
 
             // Issue #33/#405: 表情切り替えボタンのイベント登録
-            Debug.Log($"🔘 topButton3: {(topButton3 != null ? "✅ found" : "❌ NOT FOUND")}");
+            if (enableDebugLogging) Debug.Log($"🔘 topButton3: {(topButton3 != null ? "✅ found" : "❌ NOT FOUND")}");
             if (topButton3 != null)
             {
                 topButton3.RegisterCallback<ClickEvent>(evt => OnTopButton3Click());
-                Debug.Log("✅ Top button 3 (Expression) click event registered");
+                if (enableDebugLogging) Debug.Log("✅ Top button 3 (Expression) click event registered");
             }
 
             // Issue #407: ポーズ切り替えボタンのイベント登録
-            Debug.Log($"🔘 topButton4: {(topButton4 != null ? "✅ found" : "❌ NOT FOUND")}");
+            if (enableDebugLogging) Debug.Log($"🔘 topButton4: {(topButton4 != null ? "✅ found" : "❌ NOT FOUND")}");
             if (topButton4 != null)
             {
                 topButton4.RegisterCallback<ClickEvent>(evt => OnTopButton4Click());
-                Debug.Log("✅ Top button 4 (Pose) click event registered");
+                if (enableDebugLogging) Debug.Log("✅ Top button 4 (Pose) click event registered");
             }
 
             // Issue #345: 平面表示切り替えボタンのイベント登録
-            Debug.Log($"🔘 topButton5: {(topButton5 != null ? "✅ found" : "❌ NOT FOUND")}");
+            if (enableDebugLogging) Debug.Log($"🔘 topButton5: {(topButton5 != null ? "✅ found" : "❌ NOT FOUND")}");
             if (topButton5 != null)
             {
                 topButton5.RegisterCallback<ClickEvent>(evt => OnTopButton5Click());
-                Debug.Log("✅ Top button 5 (Plane Visibility) click event registered");
+                if (enableDebugLogging) Debug.Log("✅ Top button 5 (Plane Visibility) click event registered");
 
                 // 初期アイコンを設定
                 UpdatePlaneVisibilityIcon();
@@ -474,46 +498,49 @@ namespace AICam.UI
                     // クリックがバックドロップ自体の場合のみ閉じる
                     if (evt.target == settingsPanelBackdrop)
                     {
-                        Debug.Log("🔲 Backdrop clicked directly - closing panels");
+                        if (enableDebugLogging) Debug.Log("🔲 Backdrop clicked directly - closing panels");
                         HideAllPanels();
                         evt.StopPropagation();
                     }
                 });
-                Debug.Log("✅ Settings panel backdrop events registered");
+                if (enableDebugLogging) Debug.Log("✅ Settings panel backdrop events registered");
             }
 
             var lightingCloseButton = root.Q<Button>("lightingPanelClose");
             if (lightingCloseButton != null)
             {
                 lightingCloseButton.RegisterCallback<ClickEvent>(evt => HideAllPanels());
-                Debug.Log("✅ Lighting panel close button events registered");
+                if (enableDebugLogging) Debug.Log("✅ Lighting panel close button events registered");
             }
 
             var shadowCloseButton = root.Q<Button>("shadowPanelClose");
             if (shadowCloseButton != null)
             {
                 shadowCloseButton.RegisterCallback<ClickEvent>(evt => HideAllPanels());
-                Debug.Log("✅ Shadow panel close button events registered");
+                if (enableDebugLogging) Debug.Log("✅ Shadow panel close button events registered");
             }
 
             // LightingPanelControllerは初回使用時に遅延初期化
             // 起動時間短縮のためFindFirstObjectByTypeをここでは呼ばない
             // InitializeLightingPanelControllerAsync().Forget() は必要時に呼び出される
-            Debug.Log($"💡 SettingsPanelBackdrop: {(settingsPanelBackdrop != null ? "✅" : "❌")}");
-            Debug.Log($"💡 LightingPanelOverlay: {(lightingPanelOverlay != null ? "✅" : "❌")}");
-            Debug.Log($"🌑 ShadowPanelOverlay: {(shadowPanelOverlay != null ? "✅" : "❌")}");
+            if (enableDebugLogging)
+            {
+                Debug.Log($"💡 SettingsPanelBackdrop: {(settingsPanelBackdrop != null ? "✅" : "❌")}");
+                Debug.Log($"💡 LightingPanelOverlay: {(lightingPanelOverlay != null ? "✅" : "❌")}");
+                Debug.Log($"🌑 ShadowPanelOverlay: {(shadowPanelOverlay != null ? "✅" : "❌")}");
 
-            // 削除ポップアップを作成（初期状態では非表示）
-            Debug.Log("🔧 Creating delete popup...");
+                // 削除ポップアップを作成（初期状態では非表示）
+                Debug.Log("🔧 Creating delete popup...");
+            }
             CreateDeletePopup(root);
-            Debug.Log($"🔧 Delete popup created: {(deletePopup != null ? "✅" : "❌")}");
+            if (enableDebugLogging) Debug.Log($"🔧 Delete popup created: {(deletePopup != null ? "✅" : "❌")}");
 
             // 既存のボタンに長押しイベントを登録
-            Debug.Log("🔧 Registering long press for existing buttons...");
+            if (enableDebugLogging) Debug.Log("🔧 Registering long press for existing buttons...");
             RegisterLongPressForExistingButtons();
 
             // GeometryChangedEventでアスペクト比マスクを更新（レイアウト確定後）
-            Debug.Log("🔧 Registering GeometryChangedEvent for aspect mask...");
+            if (enableDebugLogging) Debug.Log("🔧 Registering GeometryChangedEvent for aspect mask...");
             root.RegisterCallback<GeometryChangedEvent>(OnGeometryChanged);
 
             // ARPhotoControllerに初期アスペクト比を設定
@@ -521,7 +548,7 @@ namespace AICam.UI
             {
                 float targetAspect = aspectRatios[aspectRatioState];
                 photoController.SetAspectRatio(targetAspect);
-                Debug.Log($"✅ Initial aspect ratio set to: {targetAspect:F3}");
+                if (enableDebugLogging) Debug.Log($"✅ Initial aspect ratio set to: {targetAspect:F3}");
             }
 
             // Issue #407: AvatarSlotManagerのイベント購読
@@ -529,7 +556,7 @@ namespace AICam.UI
             {
                 AICam.FBXLoader.AvatarSlotManager.Instance.OnSlotLoadComplete += OnAvatarSlotLoadComplete;
                 AICam.FBXLoader.AvatarSlotManager.Instance.OnSlotCleared += OnAvatarSlotCleared;
-                Debug.Log("🎭 Subscribed to AvatarSlotManager events");
+                if (enableDebugLogging) Debug.Log("🎭 Subscribed to AvatarSlotManager events");
             }
             else
             {
@@ -3226,6 +3253,54 @@ namespace AICam.UI
         /// </summary>
         public bool IsIconPreviewShowing => iconPreviewPanel != null &&
             iconPreviewPanel.resolvedStyle.display == DisplayStyle.Flex;
+
+        #endregion
+
+        #region Version Info
+
+        /// <summary>
+        /// ビルド番号を取得
+        /// 実機: PlayerSettingsのビルド番号（iOS: CFBundleVersion, Android: bundleVersionCode）
+        /// Editor: 日付ベースの識別子
+        /// </summary>
+        private string GetBuildNumber()
+        {
+#if UNITY_EDITOR
+            // エディタでは日付ベースのビルド番号
+            return System.DateTime.Now.ToString("yyMMdd");
+#elif UNITY_ANDROID
+            // AndroidではpackageInfoからversionCodeを取得
+            try
+            {
+                using (var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+                using (var activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity"))
+                using (var packageManager = activity.Call<AndroidJavaObject>("getPackageManager"))
+                using (var packageInfo = packageManager.Call<AndroidJavaObject>("getPackageInfo",
+                    activity.Call<string>("getPackageName"), 0))
+                {
+                    var versionCode = packageInfo.Get<int>("versionCode");
+                    return versionCode.ToString();
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[VersionInfo] Failed to get Android versionCode: {e.Message}");
+                return "1";
+            }
+#elif UNITY_IOS
+            // iOSではビルド時に設定されたバージョンを使用
+            // PlayerSettings.iOS.buildNumberはビルド時にInfo.plistに埋め込まれる
+            // ランタイムでは直接アクセスできないため、ビルドGUIDの一部を使用
+            string buildGuid = Application.buildGUID;
+            if (!string.IsNullOrEmpty(buildGuid) && buildGuid.Length >= 8)
+            {
+                return buildGuid.Substring(0, 8);
+            }
+            return "1";
+#else
+            return "1";
+#endif
+        }
 
         #endregion
     }

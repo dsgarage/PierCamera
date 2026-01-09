@@ -18,6 +18,18 @@ namespace AICam.FBXLoader
         private Action<bool, string> onExtractCompleteCallback;
 
         /// <summary>
+        /// アプリ起動時に権限を事前チェック（ファイルブラウザの起動を高速化）
+        /// </summary>
+        private void Start()
+        {
+#if !UNITY_EDITOR
+            // 権限を事前にチェック（NativeFilePickerの初期化を促進）
+            bool hasPermission = NativeFilePicker.CheckPermission();
+            Debug.Log($"[FileBrowserController] Pre-check permission: {hasPermission}");
+#endif
+        }
+
+        /// <summary>
         /// ファイルピッカーを開く
         /// </summary>
         public void OpenFilePicker(Action<bool, string> onComplete)

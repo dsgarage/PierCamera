@@ -524,6 +524,9 @@ namespace AICam.FBXLoader
             isProcessing = true;
             Debug.Log($"[AvatarSlotManager] Opening file picker for slot {slotIndex}");
 
+            // UIの応答性を維持するためにYield（Issue #426）
+            await UniTask.Yield();
+
             try
             {
                 var tcs = new UniTaskCompletionSource<(bool success, string path)>();

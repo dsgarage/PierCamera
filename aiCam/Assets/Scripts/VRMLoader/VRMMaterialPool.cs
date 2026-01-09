@@ -10,6 +10,7 @@ public class VRMMaterialPool : MonoBehaviour
     public static VRMMaterialPool Instance => instance;
 
     private Dictionary<string, Material> materialPool = new Dictionary<string, Material>();
+    private bool isInitialized = false;
 
     [Header("ロードするマテリアルのパス")]
     [SerializeField] private string materialFolderPath = "VRMMaterials";
@@ -28,6 +29,17 @@ public class VRMMaterialPool : MonoBehaviour
         instance = this;
         DontDestroyOnLoad(gameObject);
 
+        // Issue #427: 起動時間短縮のため、マテリアルの読み込みを遅延初期化に変更
+        // LoadAllMaterials() は GetMaterial() の初回呼び出し時に実行される
+    }
+
+    /// <summary>
+    /// 遅延初期化を実行（初回アクセス時に呼び出される）
+    /// </summary>
+    private void EnsureInitialized()
+    {
+        if (isInitialized) return;
+        isInitialized = true;
         LoadAllMaterials();
     }
 
@@ -81,6 +93,9 @@ public class VRMMaterialPool : MonoBehaviour
     /// </summary>
     public Material GetMaterial(string shaderName)
     {
+        // Issue #427: 遅延初期化
+        EnsureInitialized();
+
         if (materialPool.TryGetValue(shaderName, out Material mat))
         {
             return mat;
@@ -97,6 +112,7 @@ public class VRMMaterialPool : MonoBehaviour
     /// </summary>
     public int GetPooledMaterialCount()
     {
+        EnsureInitialized();
         return materialPool.Count;
     }
 
@@ -105,6 +121,7 @@ public class VRMMaterialPool : MonoBehaviour
     /// </summary>
     public string[] GetAllShaderNames()
     {
+        EnsureInitialized();
         string[] names = new string[materialPool.Count];
         materialPool.Keys.CopyTo(names, 0);
         return names;
@@ -115,6 +132,7 @@ public class VRMMaterialPool : MonoBehaviour
     /// </summary>
     public void PrintPoolInfo()
     {
+        EnsureInitialized();
         Debug.Log($"[VRMMaterialPool] === Material Pool Info ===");
         Debug.Log($"[VRMMaterialPool] Total materials: {materialPool.Count}");
 

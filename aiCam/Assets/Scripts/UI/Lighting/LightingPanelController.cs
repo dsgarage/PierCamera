@@ -39,6 +39,9 @@ namespace AICam.UI
         // Issue #75: AR平面シャドウレシーバー
         private ARPlaneShadowReceiver arPlaneShadowReceiver;
 
+        // Blob Shadow（足元の丸影）
+        private BlobShadowController blobShadowController;
+
         // UI要素
         private VisualElement root;
         private VisualElement settingsPanelBackdrop;
@@ -725,7 +728,7 @@ namespace AICam.UI
 
         /// <summary>
         /// ロード済みアバターのマテリアルに直接適用
-        /// Issue #433: sharedMaterialsとmaterialsの両方に適用
+        /// Issue #433: マテリアルキャッシュを使用して変更を永続化
         /// </summary>
         void ApplyToAvatarMaterials(Color lightColor)
         {
@@ -742,9 +745,9 @@ namespace AICam.UI
                 // ARプレーンやUI要素は除外
                 if (renderer.gameObject.layer == LayerMask.NameToLayer("UI")) continue;
 
-                // Issue #433: インスタンス化されたマテリアル（materials）を使用
-                // sharedMaterialsだとVRMローダーで生成されたマテリアルに反映されない
-                var materials = renderer.materials;
+                // Issue #433: キャッシュされたマテリアルインスタンスを使用
+                // GetCachedMaterialsで初回のみインスタンス化し、以降は同じインスタンスを返す
+                var materials = GetCachedMaterials(renderer);
                 foreach (var mat in materials)
                 {
                     if (mat == null) continue;
@@ -953,6 +956,34 @@ namespace AICam.UI
                 arPlaneShadowReceiver.SetShadowIntensity(shadowIntensity);
             }
 
+            // Blob Shadow（足元の丸影）に適用
+            if (blobShadowController == null)
+            {
+                blobShadowController = FindFirstObjectByType<BlobShadowController>();
+                if (blobShadowController == null)
+                {
+                    // BlobShadowが存在しない場合は自動生成
+                    var shadowObj = new GameObject("BlobShadow");
+                    blobShadowController = shadowObj.AddComponent<BlobShadowController>();
+                    Debug.Log("[LightingPanel] Created BlobShadowController");
+                }
+            }
+            if (blobShadowController != null)
+            {
+                blobShadowController.SetEnabled(shadowEnabled);
+                blobShadowController.SetIntensity(shadowIntensity);
+
+                // アバターを検索して設定（未設定の場合）
+                if (shadowEnabled)
+                {
+                    var animator = FindFirstObjectByType<Animator>();
+                    if (animator != null && animator.avatar != null && animator.avatar.isHuman)
+                    {
+                        blobShadowController.SetAvatar(animator.transform);
+                    }
+                }
+            }
+
             // マテリアルのシャドウプロパティを更新
             ApplyShadowToMaterials(shadowEnabled);
 
@@ -961,7 +992,7 @@ namespace AICam.UI
 
         /// <summary>
         /// マテリアルのシャドウプロパティを更新
-        /// Issue #433: sharedMaterialsからmaterialsに変更
+        /// Issue #433: マテリアルキャッシュを使用して変更を永続化
         /// </summary>
         void ApplyShadowToMaterials(bool shadowEnabled)
         {
@@ -971,8 +1002,11 @@ namespace AICam.UI
             {
                 if (renderer == null) continue;
 
-                // Issue #433: インスタンス化されたマテリアルを使用
-                var materials = renderer.materials;
+                // ARプレーンやUI要素は除外
+                if (renderer.gameObject.layer == LayerMask.NameToLayer("UI")) continue;
+
+                // Issue #433: キャッシュされたマテリアルインスタンスを使用
+                var materials = GetCachedMaterials(renderer);
                 foreach (var mat in materials)
                 {
                     if (mat == null) continue;
@@ -987,6 +1021,42 @@ namespace AICam.UI
 
         // シェード色のオリジナル値を保持（リセット用）
         private Dictionary<Material, Color> originalShadeColors = new Dictionary<Material, Color>();
+
+        // Issue #433: マテリアルインスタンスキャッシュ（renderer.materialsが毎回新規インスタンスを返す問題への対策）
+        // キーはRendererのInstanceID、値はインスタンス化されたマテリアル配列
+        private Dictionary<int, Material[]> materialInstanceCache = new Dictionary<int, Material[]>();
+
+        /// <summary>
+        /// Issue #433: マテリアルキャッシュをクリア
+        /// アバターロード時に呼び出して、古いマテリアル参照を破棄する
+        /// </summary>
+        public void ClearMaterialCache()
+        {
+            materialInstanceCache.Clear();
+            originalShadeColors.Clear();
+            hasShownUnsupportedShaderWarning = false;
+            lastUnsupportedShaderName = "";
+            Debug.Log("[LightingPanel] Material cache cleared");
+        }
+
+        /// <summary>
+        /// Issue #433: Rendererのキャッシュされたマテリアル配列を取得
+        /// 初回アクセス時にrenderer.materialsでインスタンス化し、以降は同じインスタンスを返す
+        /// </summary>
+        private Material[] GetCachedMaterials(Renderer renderer)
+        {
+            int instanceId = renderer.GetInstanceID();
+
+            if (!materialInstanceCache.TryGetValue(instanceId, out Material[] cachedMaterials))
+            {
+                // 初回アクセス：インスタンス化してキャッシュ
+                cachedMaterials = renderer.materials;
+                materialInstanceCache[instanceId] = cachedMaterials;
+                Debug.Log($"[LightingPanel] Cached materials for {renderer.name}: {cachedMaterials.Length} materials");
+            }
+
+            return cachedMaterials;
+        }
 
         /// <summary>
         /// Issue #433: 個別マテリアルにシャドウ設定を適用
