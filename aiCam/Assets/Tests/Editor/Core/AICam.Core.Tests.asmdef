@@ -3,9 +3,9 @@
     "rootNamespace": "AICam.Core.Tests",
     "references": [
         "GUID:f51ebe6a0ceec4240a699833d6309b23",
-        "AICam.Core",
-        "UniGLTF",
-        "AICam.VRMLoader"
+        "GUID:5562a255ac1ac491e9ff816ed0993867",
+        "GUID:23aa364a5d8a544869ff5723c1dbd777",
+        "GUID:2665a8d13d1b3f18800f46e256720795"
     ],
     "includePlatforms": [
         "Editor"
