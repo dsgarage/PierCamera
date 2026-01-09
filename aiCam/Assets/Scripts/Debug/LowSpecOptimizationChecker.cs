@@ -8,7 +8,7 @@ using AICam.Core.IO;
 using AICam.Core.Texture;
 using Debug = UnityEngine.Debug;
 
-namespace AICam.Debug
+namespace AICam.Diagnostics
 {
     /// <summary>
     /// 低スペック端末最適化の実機テスト用チェッカー
