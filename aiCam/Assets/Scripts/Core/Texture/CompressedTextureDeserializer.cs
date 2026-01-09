@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UniGLTF;
 #if RUNTIME_TEXTURE_COMPRESSOR
-using DSGarage.RuntimeTextureCompressor;
+using dsgarage.RuntimeTextureCompressor;
 #endif
 
 namespace AICam.Core.Texture
@@ -133,7 +133,7 @@ namespace AICam.Core.Texture
                     return await LoadDefaultAsync(textureInfo, awaitCaller);
                 }
 
-                var texture = result.texture;
+                var texture = result.Texture;
 
                 // テクスチャ設定を適用
                 ApplyTextureSettings(texture, textureInfo);
@@ -245,7 +245,7 @@ namespace AICam.Core.Texture
 #if RUNTIME_TEXTURE_COMPRESSOR
             try
             {
-                _loader?.ClearCache();
+                _loader?.ClearAllCaches();
                 Debug.Log("[CompressedTextureDeserializer] Cache cleared");
             }
             catch (Exception e)
