@@ -4,7 +4,7 @@ using UniGLTF;
 using System.Threading.Tasks;
 using System.Linq;
 using Cysharp.Threading.Tasks;
-using AICam.FBXLoader.IO;
+using AICam.Core.IO;
 
 public class VRMFilePickerLoader : MonoBehaviour
 {

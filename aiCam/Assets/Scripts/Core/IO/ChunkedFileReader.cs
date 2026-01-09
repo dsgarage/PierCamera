@@ -4,7 +4,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 
-namespace AICam.FBXLoader.IO
+namespace AICam.Core.IO
 {
     /// <summary>
     /// Issue #440: チャンク単位での非同期ファイル読み込み

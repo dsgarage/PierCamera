@@ -3,7 +3,7 @@ using VRM;
 using UniGLTF;
 using Cysharp.Threading.Tasks;
 using System;
-using AICam.FBXLoader.IO;
+using AICam.Core.IO;
 
 namespace AICam.VRM
 {

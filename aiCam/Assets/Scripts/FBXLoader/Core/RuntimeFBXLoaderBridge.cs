@@ -3,7 +3,7 @@ using System;
 using System.Text;
 using Cysharp.Threading.Tasks;
 using AICam.AvatarBuilder;
-using AICam.FBXLoader.IO;
+using AICam.Core.IO;
 using UniGLTF;
 using VRM;
 using UniVRM10;

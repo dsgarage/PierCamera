@@ -4,7 +4,7 @@ using System.IO;
 using System.Threading;
 using UnityEngine;
 using Cysharp.Threading.Tasks;
-using AICam.FBXLoader.IO;
+using AICam.Core.IO;
 
 namespace AICam.FBXLoader
 {

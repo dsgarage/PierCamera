@@ -11,7 +11,8 @@
         "GUID:66b817af690804ccabeb8277e09ae346",
         "GUID:05dd262a0c0a2f841b8252c8c3815582",
         "AICam.Expression",
-        "DSGarage.BlendShape"
+        "DSGarage.BlendShape",
+        "AICam.Core"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
