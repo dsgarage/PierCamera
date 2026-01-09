@@ -3,6 +3,7 @@ using VRM;
 using UniGLTF;
 using Cysharp.Threading.Tasks;
 using System;
+using AICam.FBXLoader.IO;
 
 namespace AICam.VRM
 {
@@ -155,8 +156,8 @@ namespace AICam.VRM
                     return null;
                 }
 
-                // ファイル読み込み
-                byte[] bytes = await System.IO.File.ReadAllBytesAsync(filePath);
+                // Issue #440: チャンク化ファイル読み込み
+                byte[] bytes = await ChunkedFileReader.ReadAllBytesAsync(filePath);
                 Debug.Log($"[RuntimeAvatarLoader] Read {bytes.Length} bytes from file");
 
                 // VRMをパース

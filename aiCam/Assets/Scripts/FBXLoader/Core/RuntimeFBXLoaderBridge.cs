@@ -3,6 +3,7 @@ using System;
 using System.Text;
 using Cysharp.Threading.Tasks;
 using AICam.AvatarBuilder;
+using AICam.FBXLoader.IO;
 using UniGLTF;
 using VRM;
 using UniVRM10;
@@ -326,10 +327,12 @@ namespace AICam.FBXLoader
             {
                 Debug.Log($"[RuntimeFBXLoaderBridge] Starting VRM load: {browser.SelectedPath}");
 
-                onProgress?.Invoke(20f);
-
-                // ファイル読み込み
-                byte[] bytes = await System.IO.File.ReadAllBytesAsync(browser.SelectedPath);
+                // Issue #440: チャンク化ファイル読み込み（0-40%をファイル読み込みに割り当て）
+                byte[] bytes = await ChunkedFileReader.ReadAllBytesAsync(
+                    browser.SelectedPath,
+                    onProgress,
+                    progressStart: 0f,
+                    progressEnd: 40f);
                 Debug.Log($"[RuntimeFBXLoaderBridge] Read {bytes.Length} bytes from file");
 
                 onProgress?.Invoke(40f);
@@ -462,9 +465,12 @@ namespace AICam.FBXLoader
             {
                 Debug.Log($"[RuntimeFBXLoaderBridge] Starting VRM load from path: {filePath}");
 
-                onProgress?.Invoke(20f);
-
-                byte[] bytes = await System.IO.File.ReadAllBytesAsync(filePath);
+                // Issue #440: チャンク化ファイル読み込み（0-40%をファイル読み込みに割り当て）
+                byte[] bytes = await ChunkedFileReader.ReadAllBytesAsync(
+                    filePath,
+                    onProgress,
+                    progressStart: 0f,
+                    progressEnd: 40f);
                 Debug.Log($"[RuntimeFBXLoaderBridge] Read {bytes.Length} bytes from file");
 
                 onProgress?.Invoke(40f);
@@ -1617,17 +1623,16 @@ namespace AICam.FBXLoader
             string fileName = System.IO.Path.GetFileNameWithoutExtension(filePath);
 
             Debug.Log($"[RuntimeFBXLoaderBridge] LoadVrmAsync: {filePath}");
-            onProgress?.Invoke(10f);
 
-            // Issue #426: ファイル読み込みをバックグラウンドスレッドで実行してUIフリーズを軽減
-            await UniTask.SwitchToThreadPool();
-            byte[] bytes = await System.IO.File.ReadAllBytesAsync(filePath);
-            await UniTask.SwitchToMainThread();
+            // Issue #440: チャンク化ファイル読み込み（10-30%をファイル読み込みに割り当て）
+            // ChunkedFileReaderは内部でYieldするのでSwitchToThreadPoolは不要
+            byte[] bytes = await ChunkedFileReader.ReadAllBytesAsync(
+                filePath,
+                onProgress,
+                progressStart: 10f,
+                progressEnd: 30f);
 
             onProgress?.Invoke(30f);
-
-            // ファイル読み込み後にYield（UIの更新機会を与える）
-            await UniTask.Yield();
 
             var version = DetectVrmVersion(bytes);
             GameObject avatar = null;

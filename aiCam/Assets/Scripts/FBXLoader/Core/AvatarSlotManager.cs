@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading;
 using UnityEngine;
 using Cysharp.Threading.Tasks;
+using AICam.FBXLoader.IO;
 
 namespace AICam.FBXLoader
 {
@@ -722,7 +723,8 @@ namespace AICam.FBXLoader
         {
             try
             {
-                byte[] bytes = await File.ReadAllBytesAsync(vrmFilePath);
+                // Issue #440: チャンク化ファイル読み込み
+                byte[] bytes = await ChunkedFileReader.ReadAllBytesAsync(vrmFilePath);
 
                 if (bytes.Length < 20) return "Unknown";
 

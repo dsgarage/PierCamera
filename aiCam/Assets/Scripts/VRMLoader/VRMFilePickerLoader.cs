@@ -3,6 +3,8 @@ using VRM;
 using UniGLTF;
 using System.Threading.Tasks;
 using System.Linq;
+using Cysharp.Threading.Tasks;
+using AICam.FBXLoader.IO;
 
 public class VRMFilePickerLoader : MonoBehaviour
 {
@@ -153,8 +155,8 @@ public class VRMFilePickerLoader : MonoBehaviour
                 return;
             }
 
-            // Issue #426: 非同期でファイル読み込みしてUIフリーズを軽減
-            byte[] bytes = await System.IO.File.ReadAllBytesAsync(path);
+            // Issue #426/#440: チャンク化ファイル読み込みでUIフリーズを軽減
+            byte[] bytes = await ChunkedFileReader.ReadAllBytesAsync(path);
             Debug.Log($"[VRMFilePicker] Read {bytes.Length} bytes");
 
             // VrmUtility を使って読み込み
