@@ -52,10 +52,27 @@ namespace AICam.Core.Texture
     public class CompressedTextureDeserializer : ITextureDeserializer
     {
 #if RUNTIME_TEXTURE_COMPRESSOR
-        private readonly TextureLoader _loader;
+        private TextureLoader _loader;
+        private bool _loaderInitialized;
 #endif
         private readonly bool _enableCompression;
-        private readonly string _cacheDirectory;
+        private readonly string _cacheDirectoryOverride;
+        private string _cacheDirectory;
+
+        /// <summary>
+        /// キャッシュディレクトリ（遅延評価）
+        /// </summary>
+        private string CacheDirectory
+        {
+            get
+            {
+                if (_cacheDirectory == null)
+                {
+                    _cacheDirectory = _cacheDirectoryOverride ?? Path.Combine(Application.persistentDataPath, "TextureCache");
+                }
+                return _cacheDirectory;
+            }
+        }
 
         /// <summary>
         /// 圧縮テクスチャデシリアライザを作成
@@ -65,9 +82,20 @@ namespace AICam.Core.Texture
         public CompressedTextureDeserializer(bool enableCompression = true, string cacheDirectory = null)
         {
             _enableCompression = enableCompression;
-            _cacheDirectory = cacheDirectory ?? Path.Combine(Application.persistentDataPath, "TextureCache");
+            _cacheDirectoryOverride = cacheDirectory;
+            // Note: Application.persistentDataPath はコンストラクタで呼び出せないため、
+            // CacheDirectory プロパティで遅延評価する
+        }
 
 #if RUNTIME_TEXTURE_COMPRESSOR
+        /// <summary>
+        /// TextureLoaderを遅延初期化
+        /// </summary>
+        private void EnsureLoaderInitialized()
+        {
+            if (_loaderInitialized) return;
+            _loaderInitialized = true;
+
             if (_enableCompression)
             {
                 try
@@ -85,14 +113,8 @@ namespace AICam.Core.Texture
                     _loader = null;
                 }
             }
-#else
-            if (_enableCompression)
-            {
-                Debug.LogWarning("[CompressedTextureDeserializer] RUNTIME_TEXTURE_COMPRESSOR is not defined. " +
-                    "Add the package and define symbol to enable compression.");
-            }
-#endif
         }
+#endif
 
         /// <summary>
         /// 圧縮が利用可能かどうか
@@ -102,6 +124,7 @@ namespace AICam.Core.Texture
             get
             {
 #if RUNTIME_TEXTURE_COMPRESSOR
+                EnsureLoaderInitialized();
                 return _enableCompression && _loader != null;
 #else
                 return false;
@@ -121,6 +144,7 @@ namespace AICam.Core.Texture
             }
 
 #if RUNTIME_TEXTURE_COMPRESSOR
+            EnsureLoaderInitialized();
             // 圧縮が有効でローダーが初期化されている場合
             if (_enableCompression && _loader != null)
             {
