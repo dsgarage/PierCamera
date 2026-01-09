@@ -149,6 +149,9 @@ namespace AICam.Core.Tests
 
             Assert.AreEqual(6, _cache.CachedCount);
 
+            // EditModeではDestroy呼び出し時にエラーログが出るので期待値として設定
+            LogAssert.Expect(LogType.Error, "Destroy may not be called from edit mode! Use DestroyImmediate instead.\nDestroying an object in edit mode destroys it permanently.");
+
             // Act - 7番目のアバターを追加
             var newAvatar = CreateTestAvatar("Avatar6");
             _cache.CacheAvatar(6, "/path/to/model6.vrm", newAvatar, keepActive: true);
@@ -258,6 +261,9 @@ namespace AICam.Core.Tests
             var avatar = CreateTestAvatar("TestAvatar");
             _cache.CacheAvatar(0, "/path/to/model.vrm", avatar, keepActive: true);
 
+            // EditModeではDestroy呼び出し時にエラーログが出るので期待値として設定
+            LogAssert.Expect(LogType.Error, "Destroy may not be called from edit mode! Use DestroyImmediate instead.\nDestroying an object in edit mode destroys it permanently.");
+
             // Act
             _cache.RemoveFromCache(0);
 
@@ -277,6 +283,11 @@ namespace AICam.Core.Tests
             }
 
             Assert.AreEqual(3, _cache.CachedCount);
+
+            // EditModeではDestroy呼び出し時にエラーログが出るので期待値として設定（3回分）
+            LogAssert.Expect(LogType.Error, "Destroy may not be called from edit mode! Use DestroyImmediate instead.\nDestroying an object in edit mode destroys it permanently.");
+            LogAssert.Expect(LogType.Error, "Destroy may not be called from edit mode! Use DestroyImmediate instead.\nDestroying an object in edit mode destroys it permanently.");
+            LogAssert.Expect(LogType.Error, "Destroy may not be called from edit mode! Use DestroyImmediate instead.\nDestroying an object in edit mode destroys it permanently.");
 
             // Act
             _cache.ClearAll();
@@ -339,6 +350,9 @@ namespace AICam.Core.Tests
             int slotIndex = 0;
 
             _cache.CacheAvatar(slotIndex, "/path/to/model1.vrm", avatar1, keepActive: true);
+
+            // EditModeではDestroy呼び出し時にエラーログが出るので期待値として設定
+            LogAssert.Expect(LogType.Error, "Destroy may not be called from edit mode! Use DestroyImmediate instead.\nDestroying an object in edit mode destroys it permanently.");
 
             // Act
             _cache.CacheAvatar(slotIndex, "/path/to/model2.vrm", avatar2, keepActive: true);
@@ -468,6 +482,9 @@ namespace AICam.Core.Tests
             {
                 eventSlotIndex = slot;
             };
+
+            // EditModeではDestroy呼び出し時にエラーログが出るので期待値として設定
+            LogAssert.Expect(LogType.Error, "Destroy may not be called from edit mode! Use DestroyImmediate instead.\nDestroying an object in edit mode destroys it permanently.");
 
             // Act
             _cache.RemoveFromCache(0);

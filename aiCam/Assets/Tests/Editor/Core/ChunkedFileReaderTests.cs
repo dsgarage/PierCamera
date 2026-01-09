@@ -158,7 +158,7 @@ namespace AICam.Core.Tests
             cts.Cancel(); // 事前にキャンセル
 
             // Act & Assert
-            Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            Assert.ThrowsAsync<TaskCanceledException>(async () =>
             {
                 await ChunkedFileReader.ReadAllBytesAsync(_largeFilePath, null, cts.Token);
             });
@@ -182,20 +182,20 @@ namespace AICam.Core.Tests
         }
 
         [Test]
-        public void ReadAllBytesAsync_NullPath_ThrowsArgumentException()
+        public void ReadAllBytesAsync_NullPath_ThrowsArgumentNullException()
         {
             // Act & Assert
-            Assert.ThrowsAsync<ArgumentException>(async () =>
+            Assert.ThrowsAsync<ArgumentNullException>(async () =>
             {
                 await ChunkedFileReader.ReadAllBytesAsync(null);
             });
         }
 
         [Test]
-        public void ReadAllBytesAsync_EmptyPath_ThrowsArgumentException()
+        public void ReadAllBytesAsync_EmptyPath_ThrowsArgumentNullException()
         {
             // Act & Assert
-            Assert.ThrowsAsync<ArgumentException>(async () =>
+            Assert.ThrowsAsync<ArgumentNullException>(async () =>
             {
                 await ChunkedFileReader.ReadAllBytesAsync("");
             });
