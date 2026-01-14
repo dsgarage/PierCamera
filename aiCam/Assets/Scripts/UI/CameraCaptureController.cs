@@ -217,7 +217,9 @@ namespace AICam.UI
                     lightingPanelController.Initialize();
                     lightingPanelController.OnWarning += (code, message) => ShowWarning(code, message);
                     lightingPanelController.OnError += (code, message) => ShowError(code, message);
-                    Debug.Log("💡 LightingPanelController initialized lazily");
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                    Debug.Log("[Init] LightingPanelController initialized (lazy)");
+#endif
                 }
             }
             return lightingPanelController;
@@ -2532,10 +2534,15 @@ namespace AICam.UI
         /// <summary>
         /// Issue #442: ライティング・シャドウ設定を再適用
         /// アバターロード後に呼び出して、新しいマテリアルに設定を適用する
+        ///
+        /// 修正: FindFirstObjectByType ではなく GetLightingPanelController() を使用
+        /// LightingPanelController は遅延初期化されるため、直接検索すると null になる
+        ///
+        /// public: RuntimeFBXLoaderBridge からも呼び出せるように公開
         /// </summary>
-        void ReapplyLightingSettings()
+        public void ReapplyLightingSettings()
         {
-            var lightingPanel = FindFirstObjectByType<AICam.UI.LightingPanelController>();
+            var lightingPanel = GetLightingPanelController();
             if (lightingPanel != null)
             {
                 lightingPanel.ReapplyAllSettings();
@@ -2543,7 +2550,7 @@ namespace AICam.UI
             }
             else
             {
-                Debug.LogWarning("⚠️ LightingPanelController not found");
+                Debug.LogWarning("⚠️ LightingPanelController could not be initialized");
             }
         }
 
