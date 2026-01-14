@@ -1,13 +1,18 @@
 using UnityEngine;
 using System;
 using System.Text;
+using System.Diagnostics;
 using Cysharp.Threading.Tasks;
 using AICam.AvatarBuilder;
+using AICam.Core;
 using AICam.Core.IO;
 using AICam.Core.Texture;
+using AICam.Analytics;
+using AICam.Analytics.DTOs;
 using UniGLTF;
 using VRM;
 using UniVRM10;
+using Debug = UnityEngine.Debug;
 
 namespace AICam.FBXLoader
 {
@@ -51,6 +56,11 @@ namespace AICam.FBXLoader
         private int currentSlotIndex = -1;
         private bool shouldCaptureIcon = false;
         private string pendingIconPath = null;
+
+        // テレメトリ用
+        private Stopwatch _loadStopwatch;
+        private string _currentFilePath;
+        private long _currentFileSize;
 
         /// <summary>
         /// 現在読み込まれているモデルを取得
@@ -339,6 +349,9 @@ namespace AICam.FBXLoader
                     progressEnd: 40f);
                 Debug.Log($"[RuntimeFBXLoaderBridge] Read {bytes.Length} bytes from file");
 
+                // テレメトリ計測開始
+                StartTelemetryMeasurement(browser.SelectedPath, bytes.Length);
+
                 onProgress?.Invoke(40f);
 
                 // VRMバージョンを検出
@@ -479,6 +492,9 @@ namespace AICam.FBXLoader
                     progressEnd: 40f);
                 Debug.Log($"[RuntimeFBXLoaderBridge] Read {bytes.Length} bytes from file");
 
+                // テレメトリ計測開始
+                StartTelemetryMeasurement(filePath, bytes.Length);
+
                 onProgress?.Invoke(40f);
 
                 loadedVrmVersion = DetectVrmVersion(bytes);
@@ -563,6 +579,12 @@ namespace AICam.FBXLoader
                 // アイコン撮影
                 await CaptureIconIfNeeded();
 
+                // テレメトリ送信
+                if (loadedVrmVersion == VrmVersion.VRM_1_0)
+                    SendVrm10SuccessTelemetry();
+                else
+                    SendVrm0xSuccessTelemetry();
+
                 onProgress?.Invoke(100f);
                 onComplete?.Invoke(true);
             }
@@ -571,6 +593,12 @@ namespace AICam.FBXLoader
                 Debug.LogError($"[RuntimeFBXLoaderBridge] VRM load failed: {e.Message}");
                 AlertBarController.ErrorVrmLoadFailed(e.Message);
                 FBXImportLogger.StopCaptureAndSave(takeScreenshot: false);
+
+                // テレメトリ送信（失敗）
+                SendFailureTelemetry(
+                    loadedVrmVersion == VrmVersion.VRM_1_0 ? "VRM_1_0" : "VRM_0_x",
+                    e.Message);
+
                 ResetSlotState();
                 onComplete?.Invoke(false);
             }
@@ -586,6 +614,11 @@ namespace AICam.FBXLoader
                 FBXImportLogger.StartCapture();
 
                 Debug.Log($"[RuntimeFBXLoaderBridge] Starting FBX load from path: {filePath}");
+
+                // テレメトリ計測開始
+                long fileSize = 0;
+                try { fileSize = new System.IO.FileInfo(filePath).Length; } catch { }
+                StartTelemetryMeasurement(filePath, fileSize);
 
                 onProgress?.Invoke(20f);
 
@@ -678,10 +711,17 @@ namespace AICam.FBXLoader
                 {
                     FBXImportLogger.CaptureMultiAngleScreenshot(currentModel);
                     FBXImportLogger.StopCaptureAndSave(takeScreenshot: true);
+
+                    // テレメトリ送信（成功）
+                    SendFbxSuccessTelemetry();
                 }
                 else
                 {
                     FBXImportLogger.StopCaptureAndSave(takeScreenshot: false);
+
+                    // テレメトリ送信（失敗）
+                    SendFailureTelemetry("FBX", "Avatar creation failed");
+
                     ResetSlotState();
                 }
 
@@ -692,6 +732,10 @@ namespace AICam.FBXLoader
                 Debug.LogError($"[RuntimeFBXLoaderBridge] FBX load failed: {e.Message}");
                 AlertBarController.ErrorFbxLoadFailed(e.Message);
                 FBXImportLogger.StopCaptureAndSave(takeScreenshot: false);
+
+                // テレメトリ送信（失敗）
+                SendFailureTelemetry("FBX", e.Message);
+
                 ResetSlotState();
                 onComplete?.Invoke(false);
             }
@@ -708,6 +752,10 @@ namespace AICam.FBXLoader
                 FBXImportLogger.StartCapture();
 
                 Debug.Log($"[RuntimeFBXLoaderBridge] Starting Assimp FBX load: {browser.SelectedPath}");
+
+                // テレメトリ計測開始
+                var fileInfo = new System.IO.FileInfo(browser.SelectedPath);
+                StartTelemetryMeasurement(browser.SelectedPath, fileInfo.Length);
 
                 onProgress?.Invoke(20f);
 
@@ -938,14 +986,22 @@ namespace AICam.FBXLoader
         /// <summary>
         /// Issue #433/#442: LightingPanelControllerのライティング・シャドウ設定を再適用
         /// 新しいアバターがロードされた時に呼び出す
+        ///
+        /// 修正: FindFirstObjectByType<LightingPanelController> ではなく
+        /// CameraCaptureController.ReapplyLightingSettings() を使用
+        /// LightingPanelController は遅延初期化されるため、直接検索すると null になる
         /// </summary>
         private void ReapplyLightingSettings()
         {
-            var lightingPanel = FindFirstObjectByType<AICam.UI.LightingPanelController>();
-            if (lightingPanel != null)
+            var cameraController = FindFirstObjectByType<AICam.UI.CameraCaptureController>();
+            if (cameraController != null)
             {
-                lightingPanel.ReapplyAllSettings();
-                Debug.Log("[RuntimeFBXLoaderBridge] Issue #442: Reapplied lighting and shadow settings");
+                cameraController.ReapplyLightingSettings();
+                Debug.Log("[RuntimeFBXLoaderBridge] Issue #442: Delegated to CameraCaptureController.ReapplyLightingSettings()");
+            }
+            else
+            {
+                Debug.LogWarning("[RuntimeFBXLoaderBridge] CameraCaptureController not found");
             }
         }
 
@@ -1821,6 +1877,145 @@ namespace AICam.FBXLoader
             Debug.Log($"[RuntimeFBXLoaderBridge] FBX loaded successfully: {avatar.name}");
             return AvatarLoadResult.Succeeded(avatar, "FBX");
         }
+
+        #region Telemetry
+
+        /// <summary>
+        /// テレメトリ計測を開始
+        /// </summary>
+        private void StartTelemetryMeasurement(string filePath, long fileSize)
+        {
+            _currentFilePath = filePath;
+            _currentFileSize = fileSize;
+            _loadStopwatch = Stopwatch.StartNew();
+        }
+
+        /// <summary>
+        /// VRM 0.x ロード成功時のテレメトリを送信
+        /// </summary>
+        private void SendVrm0xSuccessTelemetry()
+        {
+            if (_loadStopwatch == null) return;
+            _loadStopwatch.Stop();
+
+            var dto = AvatarTelemetryCollector.CollectFromVrm0x(
+                currentModel,
+                _currentFilePath,
+                _currentFileSize,
+                (float)_loadStopwatch.Elapsed.TotalSeconds,
+                success: true,
+                slotIndex: currentSlotIndex
+            );
+
+            SendTelemetry(dto);
+        }
+
+        /// <summary>
+        /// VRM 1.0 ロード成功時のテレメトリを送信
+        /// </summary>
+        private void SendVrm10SuccessTelemetry()
+        {
+            if (_loadStopwatch == null) return;
+            _loadStopwatch.Stop();
+
+            var dto = AvatarTelemetryCollector.CollectFromVrm10(
+                currentModel,
+                _currentFilePath,
+                _currentFileSize,
+                (float)_loadStopwatch.Elapsed.TotalSeconds,
+                success: true,
+                slotIndex: currentSlotIndex
+            );
+
+            SendTelemetry(dto);
+        }
+
+        /// <summary>
+        /// FBX ロード成功時のテレメトリを送信
+        /// </summary>
+        private void SendFbxSuccessTelemetry()
+        {
+            if (_loadStopwatch == null) return;
+            _loadStopwatch.Stop();
+
+            var dto = AvatarTelemetryCollector.CollectFromFBX(
+                currentModel,
+                _currentFilePath,
+                _currentFileSize,
+                (float)_loadStopwatch.Elapsed.TotalSeconds,
+                success: true,
+                slotIndex: currentSlotIndex
+            );
+
+            SendTelemetry(dto);
+        }
+
+        /// <summary>
+        /// ロード失敗時のテレメトリを送信
+        /// </summary>
+        private void SendFailureTelemetry(string vrmVersion, string errorMessage)
+        {
+            if (_loadStopwatch == null) return;
+            _loadStopwatch.Stop();
+
+            AvatarLoadTelemetryDTO dto;
+
+            switch (vrmVersion)
+            {
+                case "VRM_0_x":
+                    dto = AvatarTelemetryCollector.CollectFromVrm0x(
+                        null, _currentFilePath, _currentFileSize,
+                        (float)_loadStopwatch.Elapsed.TotalSeconds,
+                        success: false, errorMessage: errorMessage, slotIndex: currentSlotIndex);
+                    break;
+                case "VRM_1_0":
+                    dto = AvatarTelemetryCollector.CollectFromVrm10(
+                        null, _currentFilePath, _currentFileSize,
+                        (float)_loadStopwatch.Elapsed.TotalSeconds,
+                        success: false, errorMessage: errorMessage, slotIndex: currentSlotIndex);
+                    break;
+                default:
+                    dto = AvatarTelemetryCollector.CollectFromFBX(
+                        null, _currentFilePath, _currentFileSize,
+                        (float)_loadStopwatch.Elapsed.TotalSeconds,
+                        success: false, errorMessage: errorMessage, slotIndex: currentSlotIndex);
+                    break;
+            }
+
+            SendTelemetry(dto);
+        }
+
+        /// <summary>
+        /// テレメトリをサーバーに送信
+        /// </summary>
+        private void SendTelemetry(AvatarLoadTelemetryDTO dto)
+        {
+            Debug.Log($"[Telemetry Debug] SendTelemetry called, dto={dto != null}");
+
+            if (dto == null)
+            {
+                Debug.LogWarning("[Telemetry Debug] dto is null, skipping");
+                return;
+            }
+
+            var client = TelemetryClient.Instance;
+            Debug.Log($"[Telemetry Debug] TelemetryClient.Instance={client != null}, IsEnabled={client?.IsEnabled}");
+            if (client != null && client.IsEnabled)
+            {
+                client.SendAvatarLoadTelemetry(dto, success =>
+                {
+                    AICamLogger.Log(AICamLogger.Category.Telemetry,
+                        $"Avatar telemetry sent: {dto.fileName}, success={dto.success}, sent={success}");
+                });
+            }
+            else
+            {
+                AICamLogger.Log(AICamLogger.Category.Telemetry,
+                    $"TelemetryClient not available, skipping: {dto.fileName}");
+            }
+        }
+
+        #endregion
 
         /// <summary>
         /// アバターを破棄（IAvatarLoader実装）

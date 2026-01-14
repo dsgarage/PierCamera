@@ -1132,6 +1132,13 @@ MonoBehaviour:
   swipeRotationSensitivity: 0.3
   minDistance: 0.5
   maxDistance: 5
+  enablePinchScale: 1
+  minScale: 0.1
+  maxScale: 3
+  pinchScaleSensitivity: 1
+  enableLongPressDrag: 1
+  longPressThreshold: 0.3
+  dragPositionSensitivity: 0.003
 --- !u!114 &207520398
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1273,6 +1280,57 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 4490294330335606849, guid: 0f97cbe36468f42249e5a4056a122bf6, type: 3}
   m_PrefabInstance: {fileID: 225350090}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &232303193
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 232303195}
+  - component: {fileID: 232303194}
+  m_Layer: 0
+  m_Name: TelemetryManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &232303194
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 232303193}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3cc931a239ad94d7d8d343f37fd7a1f1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AICam.Analytics.TelemetryClient
+  serverBaseUrl: http://153.126.176.139:8001
+  apiKey: telemetry_4f34658b6cd53ec35cc1e410887d70ce
+  enableTelemetry: 1
+  timeoutSeconds: 30
+  maxRetries: 3
+  retryDelaySeconds: 5
+  enableDebugLog: 1
+--- !u!4 &232303195
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 232303193}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &236828913
 GameObject:
   m_ObjectHideFlags: 0
@@ -9268,6 +9326,7 @@ MonoBehaviour:
   - {fileID: 22100000, guid: cf6983795aedf48fba664172d3de0d9a, type: 2}
   poseSlotController: {fileID: 0}
   expressionSetup: {fileID: 1479651383}
+  enableDebugLogging: 0
 --- !u!4 &1479651380
 Transform:
   m_ObjectHideFlags: 0
@@ -15393,3 +15452,4 @@ SceneRoots:
   - {fileID: 1662580360}
   - {fileID: 1804010631}
   - {fileID: 91216808}
+  - {fileID: 232303195}
