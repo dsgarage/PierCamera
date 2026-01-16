@@ -10,7 +10,7 @@ UIテストシーンは、UXML/USSの変更が正しく設定されているか�
 ```
 Assets/UI/UITK_Pier/
 ├── Editor/
-│   └── UITestSceneCreator.cs    # Editorメニュー・ウィンドウ
+│   └── UITestSceneCreator.cs    # シーン作成ユーティリティ
 ├── Scripts/
 │   └── Debug/
 │       ├── UIDebugChecker.cs    # UI要素検証
@@ -19,23 +19,39 @@ Assets/UI/UITK_Pier/
     └── UITestScene.unity        # テストシーン（自動生成）
 ```
 
-## セットアップ
+## 使用方法
 
-### テストシーンの作成
+### スクリプトからの呼び出し
 
-Unity Editorのメニューから:
+```csharp
+using UITK_Pier.Editor;
 
+// テストシーンを作成
+UITestSceneCreator.CreateUITestScene();
+
+// テストシーンを開く
+UITestSceneCreator.OpenUITestScene();
+
+// バリデーション実行
+var result = UITestSceneCreator.RunUIValidation();
+if (!result.IsValid)
+{
+    Debug.LogError($"Validation failed: {result.MissingElements} missing");
+}
 ```
-UITK_Pier > UI Test > Create UI Test Scene
-```
 
-これにより `Assets/UI/UITK_Pier/Scenes/UITestScene.unity` が作成されます。
+### Inspectorからの操作
 
-### テストシーンを開く
+テストシーンを開いた後、`UIDocument_Test` オブジェクトを選択:
 
-```
-UITK_Pier > UI Test > Open UI Test Scene
-```
+**UIDebugChecker コンポーネント:**
+- Context Menu → `Run All Checks` でバリデーション実行
+
+**UITestSceneSetup コンポーネント:**
+- Context Menu → `Reset to Default` - 初期状態に戻す
+- Context Menu → `Show All Panels` - 全パネル表示
+- Context Menu → `Simulate Recording` - 録画状態シミュレート
+- Context Menu → `Cycle Aspect Ratio` - アスペクト比切替
 
 ## コンポーネント
 
@@ -57,9 +73,6 @@ UI要素の存在確認と型チェックを行うコンポーネント。
 | Log To Console | Consoleにログ出力 |
 | Show Overlay Panel | デバッグパネル表示 |
 
-**Context Menu:**
-- `Run All Checks` - 全チェックを実行
-
 ### UITestSceneSetup
 
 UI状態のシミュレーションを行うコンポーネント。
@@ -77,43 +90,18 @@ UI状態のシミュレーションを行うコンポーネント。
 | ShadowAdjustment | シャドウパネル表示 |
 | Alert | アラートバー表示 |
 
-**パネル表示切替:**
-- Show Lighting Panel
-- Show Shadow Panel
-- Show Viewer Overlay
-- Show Icon Preview
-- Show Alert Bar
+**Inspector設定:**
 
-**録画状態:**
-- Is Recording - 録画中フラグ
-- Recording Progress - 進捗（0-1）
-
-**アスペクト比:**
-- Full
-- 16:9
-- 3:2
-- 1:1
-
-**Context Menu:**
-- `Reset to Default` - 初期状態に戻す
-- `Show All Panels` - 全パネル表示
-- `Simulate Recording` - 録画シミュレート
-- `Cycle Aspect Ratio` - アスペクト比切替
-- `Run Debug Check` - デバッグチェック実行
-
-## テストウィンドウ
-
-```
-UITK_Pier > UI Test > Open Test Window
-```
-
-GUIベースのテストツールウィンドウを開きます。
-
-**機能:**
-- シーン作成/オープン
-- バリデーション実行
-- 結果表示
-- 状態シミュレーション
+| 項目 | 説明 |
+|------|------|
+| Show Lighting Panel | ライティングパネル表示 |
+| Show Shadow Panel | シャドウパネル表示 |
+| Show Viewer Overlay | ビューワーオーバーレイ表示 |
+| Show Icon Preview | アイコンプレビュー表示 |
+| Show Alert Bar | アラートバー表示 |
+| Is Recording | 録画中フラグ |
+| Recording Progress | 録画進捗（0-1） |
+| Aspect Ratio | Full / 16:9 / 3:2 / 1:1 |
 
 ## チェック項目
 
@@ -159,31 +147,6 @@ Overlays:
 - 参照解像度: 1920x1080（推奨）または 1200x800（レガシー）
 - スケールモード: ScaleWithScreenSize
 - スクリーンマッチモード: MatchWidthOrHeight
-
-## 使用例
-
-### 新UIの検証ワークフロー
-
-1. UITK_Pier内でUXML/USSを編集
-2. テストシーンを開く
-3. `Run All Checks`を実行
-4. 欠落要素/型エラーを確認
-5. 各状態をシミュレートして表示確認
-
-### CI/CD連携
-
-`UIDebugChecker.GetValidationResult()` を使用してプログラムから検証結果を取得可能。
-
-```csharp
-var checker = FindFirstObjectByType<UIDebugChecker>();
-checker.RunAllChecks();
-var result = checker.GetValidationResult();
-
-if (!result.IsValid)
-{
-    Debug.LogError($"UI Validation Failed: {result.MissingElements} missing elements");
-}
-```
 
 ## トラブルシューティング
 
