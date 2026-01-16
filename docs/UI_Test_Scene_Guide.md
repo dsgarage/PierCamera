@@ -5,6 +5,20 @@
 UIテストシーンは、UXML/USSの変更が正しく設定されているかを検証するための専用シーンです。
 再現性のある環境で、デバッグログによる自動チェックを実行できます。
 
+## ファイル構成
+
+```
+Assets/UI/UITK_Pier/
+├── Editor/
+│   └── UITestSceneCreator.cs    # Editorメニュー・ウィンドウ
+├── Scripts/
+│   └── Debug/
+│       ├── UIDebugChecker.cs    # UI要素検証
+│       └── UITestSceneSetup.cs  # 状態シミュレーション
+└── Scenes/
+    └── UITestScene.unity        # テストシーン（自動生成）
+```
+
 ## セットアップ
 
 ### テストシーンの作成
@@ -12,15 +26,15 @@ UIテストシーンは、UXML/USSの変更が正しく設定されているか�
 Unity Editorのメニューから:
 
 ```
-ARCamera > UI Test > Create UI Test Scene
+UITK_Pier > UI Test > Create UI Test Scene
 ```
 
-これにより `Assets/Scenes/UITestScene.unity` が作成されます。
+これにより `Assets/UI/UITK_Pier/Scenes/UITestScene.unity` が作成されます。
 
 ### テストシーンを開く
 
 ```
-ARCamera > UI Test > Open UI Test Scene
+UITK_Pier > UI Test > Open UI Test Scene
 ```
 
 ## コンポーネント
@@ -90,7 +104,7 @@ UI状態のシミュレーションを行うコンポーネント。
 ## テストウィンドウ
 
 ```
-ARCamera > UI Test > Open Test Window
+UITK_Pier > UI Test > Open Test Window
 ```
 
 GUIベースのテストツールウィンドウを開きます。
