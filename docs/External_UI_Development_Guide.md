@@ -143,14 +143,124 @@ ARカメラアプリ「PierCamera」のメインUI（撮影画面）をUIToolkit
 | `leftMask` | VisualElement | 左マスク |
 | `rightMask` | VisualElement | 右マスク |
 
-**設定パネル:**
+**設定パネル（オーバーレイ）:**
 | 要素ID | 型 | 用途 |
 |--------|-----|------|
 | `settingsPanelBackdrop` | VisualElement | 設定パネル背景 |
-| `lightingPanelOverlay` | VisualElement | ライティングパネル |
-| `lightingPanelClose` | Button | ライティングパネル閉じる |
-| `shadowPanelOverlay` | VisualElement | シャドウパネル |
-| `shadowPanelClose` | Button | シャドウパネル閉じる |
+| `lightingPanelOverlay` | VisualElement | ライティングパネルオーバーレイ |
+| `shadowPanelOverlay` | VisualElement | シャドウパネルオーバーレイ |
+
+**ライティングパネル内部:**
+| 要素ID | 型 | 用途 |
+|--------|-----|------|
+| `lightingPanel` | VisualElement | パネル本体 |
+| `lightingPanelClose` | Button | 閉じるボタン |
+| `arSyncToggle` | Toggle | AR光推定同期 |
+| `presetAuto` | Button | Autoプリセット |
+| `presetSunny` | Button | Sunnyプリセット |
+| `presetCloudy` | Button | Cloudyプリセット |
+| `presetIndoor` | Button | Indoorプリセット |
+| `presetWarm` | Button | Warmプリセット |
+| `presetSunset` | Button | Sunsetプリセット |
+| `colorTempSlider` | Slider | 色温度（2000-10000K） |
+| `colorTempValue` | Label | 色温度値表示 |
+| `brightnessSlider` | Slider | 明るさ（0.1-2.0） |
+| `brightnessValue` | Label | 明るさ値表示 |
+| `lightDirectionBackground` | VisualElement | 方向コントロール背景 |
+| `lightDirectionKnob` | VisualElement | 方向ノブ |
+| `elevationSlider` | Slider | 仰角（10-90°） |
+| `elevationValue` | Label | 仰角値表示 |
+
+**シャドウパネル内部:**
+| 要素ID | 型 | 用途 |
+|--------|-----|------|
+| `shadowPanel` | VisualElement | パネル本体 |
+| `shadowPanelClose` | Button | 閉じるボタン |
+| `shadowToggle` | Toggle | シャドウON/OFF |
+| `shadowIntensitySlider` | Slider | 強度（0-1） |
+| `shadowIntensityValue` | Label | 強度値表示 |
+| `softHard` | Button | Hardボタン |
+| `softMedium` | Button | Mediumボタン |
+| `softSoft` | Button | Softボタン |
+
+### UXML階層構造
+
+以下の親子関係を維持してください：
+
+```
+root (.root)
+├── topMask, bottomMask, leftMask, rightMask (.aspect-mask)
+├── alertBar (.alert-bar)
+│   ├── alertMessage (Label)
+│   └── alertClose (Button)
+├── topPanel (.top-panel)
+│   └── topButton1〜5 (Button)
+├── sidePanel (.side-panel)
+│   └── sideButton1〜3, sideButtonBugReport (Button)
+├── galleryThumbnail (.gallery-thumbnail)
+├── AvaterSlot (.bottom-panel)
+│   └── bottomScrollView (ScrollView)
+│       └── bottomButtonContainer
+│           └── bottomButton1〜N, bottomButtonAdd (Button)
+├── captureButton (.capture-button)
+│   ├── outerRing (.outer-ring)
+│   ├── innerCircle (.inner-circle)
+│   └── progressRing (.progress-ring)
+│       ├── progressRingBg (.progress-ring-bg)
+│       └── progressArc (.progress-arc)
+├── flashOverlay (.flash-overlay)
+├── viewerOverlay (.viewer-overlay)
+│   └── viewerImage (Image)
+├── iconPreviewPanel (.icon-preview-panel)
+│   ├── iconPreviewImage
+│   └── [button-container]
+│       ├── iconPreviewRetake (Button)
+│       └── iconPreviewConfirm (Button)
+├── lightingPanelOverlay (.lighting-panel-overlay)
+│   └── lightingPanel (.lighting-panel)
+│       ├── [header] → lightingPanelClose
+│       ├── arSyncToggle
+│       ├── presetContainer → presetAuto〜Sunset
+│       ├── colorTempSlider, colorTempValue
+│       ├── brightnessSlider, brightnessValue
+│       └── lightDirectionControl
+│           ├── lightDirectionBackground → lightDirectionKnob
+│           └── elevationSlider, elevationValue
+└── shadowPanelOverlay (.shadow-panel-overlay)
+    └── shadowPanel (.shadow-panel)
+        ├── [header] → shadowPanelClose
+        ├── shadowToggle
+        ├── shadowIntensitySlider, shadowIntensityValue
+        └── softHard, softMedium, softSoft
+```
+
+### 主要CSSクラス
+
+スタイリングに使用される主要クラス名：
+
+| クラス | 用途 |
+|--------|------|
+| `.root` | ルート要素 |
+| `.aspect-mask` | アスペクト比マスク |
+| `.alert-bar` | アラートバー |
+| `.top-panel` | 上部パネル |
+| `.top-panel-button` | 上部ボタン |
+| `.side-panel` | サイドパネル |
+| `.side-panel-button` | サイドボタン |
+| `.bottom-panel` | 下部パネル（アバタースロット） |
+| `.bottom-panel-button` | スロットボタン |
+| `.capture-button` | 撮影ボタン |
+| `.inner-circle` | 撮影ボタン内円 |
+| `.outer-ring` | 撮影ボタン外枠 |
+| `.progress-ring` | プログレスリング |
+| `.flash-overlay` | フラッシュ演出 |
+| `.viewer-overlay` | プレビューオーバーレイ |
+| `.lighting-panel-overlay` | ライティングパネル |
+| `.shadow-panel-overlay` | シャドウパネル |
+| `.preset-button` | プリセットボタン |
+| `.preset-selected` | 選択中プリセット |
+| `.softness-button` | ソフトネスボタン |
+| `.softness-selected` | 選択中ソフトネス |
 
 ---
 
@@ -338,3 +448,4 @@ Assets/UITK_Pier/Scenes/UITK_Pier_Test.unity
 | 2026-01-16 | 1.0 | 初版作成 |
 | 2026-01-16 | 1.1 | 作業内容セクション追加 |
 | 2026-01-16 | 1.2 | 要素ID互換性要件追加 |
+| 2026-01-16 | 1.3 | パネル内部ID、階層構造、CSSクラス追加 |
