@@ -217,52 +217,7 @@ ARカメラアプリ「PierCamera」のメインUI（撮影画面）をUIToolkit
 
 以下の親子関係を維持してください：
 
-```
-root (.root)
-├── topMask, bottomMask, leftMask, rightMask (.aspect-mask)
-├── alertBar (.alert-bar)
-│   ├── alertMessage (Label)
-│   └── alertClose (Button)
-├── topPanel (.top-panel)
-│   └── topButton1〜5 (Button)
-├── sidePanel (.side-panel)
-│   └── sideButton1〜3, sideButtonBugReport (Button)
-├── galleryThumbnail (.gallery-thumbnail)
-├── AvaterSlot (.bottom-panel)
-│   └── bottomScrollView (ScrollView)
-│       └── bottomButtonContainer
-│           └── bottomButton1〜N, bottomButtonAdd (Button)
-├── captureButton (.capture-button)
-│   ├── outerRing (.outer-ring)
-│   ├── innerCircle (.inner-circle)
-│   └── progressRing (.progress-ring)
-│       ├── progressRingBg (.progress-ring-bg)
-│       └── progressArc (.progress-arc)
-├── flashOverlay (.flash-overlay)
-├── viewerOverlay (.viewer-overlay)
-│   └── viewerImage (Image)
-├── iconPreviewPanel (.icon-preview-panel)
-│   ├── iconPreviewImage
-│   └── [button-container]
-│       ├── iconPreviewRetake (Button)
-│       └── iconPreviewConfirm (Button)
-├── lightingPanelOverlay (.lighting-panel-overlay)
-│   └── lightingPanel (.lighting-panel)
-│       ├── [header] → lightingPanelClose
-│       ├── arSyncToggle
-│       ├── presetContainer → presetAuto〜Sunset
-│       ├── colorTempSlider, colorTempValue
-│       ├── brightnessSlider, brightnessValue
-│       └── lightDirectionControl
-│           ├── lightDirectionBackground → lightDirectionKnob
-│           └── elevationSlider, elevationValue
-└── shadowPanelOverlay (.shadow-panel-overlay)
-    └── shadowPanel (.shadow-panel)
-        ├── [header] → shadowPanelClose
-        ├── shadowToggle
-        ├── shadowIntensitySlider, shadowIntensityValue
-        └── softHard, softMedium, softSoft
-```
+![UXML Hierarchy](diagrams/uxml_hierarchy.png)
 
 ### 主要CSSクラス
 

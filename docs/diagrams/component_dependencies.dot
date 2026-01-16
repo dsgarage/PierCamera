@@ -1,0 +1,76 @@
+digraph ComponentDependencies {
+    // Graph settings
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11];
+    edge [fontname="Helvetica", fontsize=9];
+
+    // Color scheme
+    node [fillcolor="#E8F4FD"];
+
+    // Scene
+    subgraph cluster_scene {
+        label="Unity Scene";
+        style=dashed;
+        color="#999999";
+        ARCamera [label="ARCamera_origin.unity", fillcolor="#FFE4B5"];
+    }
+
+    // Main Controller
+    subgraph cluster_main {
+        label="Main Controller";
+        style=filled;
+        color="#E0E0E0";
+        CameraCaptureController [label="CameraCaptureController\n(3,367 lines)", fillcolor="#98FB98"];
+    }
+
+    // UI Components
+    subgraph cluster_ui {
+        label="UI Components";
+        style=filled;
+        color="#F0F0F0";
+        UIDocument [label="UIDocument"];
+        UIToolkitInputBlocker [label="UIToolkitInputBlocker"];
+        LightingPanelController [label="LightingPanelController", fillcolor="#DDA0DD"];
+    }
+
+    // Feature Controllers
+    subgraph cluster_features {
+        label="Feature Controllers";
+        style=filled;
+        color="#F5F5F5";
+        ARPhotoController [label="ARPhotoController\n(Photo/Video)", fillcolor="#87CEEB"];
+        RuntimeAvatarLoader [label="RuntimeAvatarLoader\n(VRM)", fillcolor="#87CEEB"];
+        RuntimeFBXLoaderBridge [label="RuntimeFBXLoaderBridge\n(FBX)", fillcolor="#87CEEB"];
+        PoseSlotController [label="PoseSlotController\n(Pose)", fillcolor="#87CEEB"];
+        VrmExpressionSetup [label="VrmExpressionSetup\n(Expression)", fillcolor="#87CEEB"];
+    }
+
+    // AR Controllers
+    subgraph cluster_ar {
+        label="AR Controllers";
+        style=filled;
+        color="#FFF0F5";
+        ARLightEstimation [label="ARLightEstimationController"];
+        MainLight [label="Light (MainLight)"];
+        ARPlaneShadowReceiver [label="ARPlaneShadowReceiver"];
+        ARPlaneVisibility [label="ARPlaneVisibilityController"];
+    }
+
+    // Edges
+    ARCamera -> CameraCaptureController;
+
+    CameraCaptureController -> UIDocument [style=dashed, label="Requires"];
+    CameraCaptureController -> UIToolkitInputBlocker [style=dashed, label="Requires"];
+
+    CameraCaptureController -> ARPhotoController [label="SerializeField"];
+    CameraCaptureController -> RuntimeAvatarLoader [label="SerializeField"];
+    CameraCaptureController -> RuntimeFBXLoaderBridge [label="SerializeField"];
+    CameraCaptureController -> PoseSlotController [label="SerializeField"];
+    CameraCaptureController -> VrmExpressionSetup [label="SerializeField"];
+    CameraCaptureController -> LightingPanelController;
+    CameraCaptureController -> ARPlaneVisibility [label="topButton5"];
+
+    LightingPanelController -> ARLightEstimation [label="FindFirst"];
+    LightingPanelController -> MainLight [label="FindFirst"];
+    LightingPanelController -> ARPlaneShadowReceiver [label="FindFirst"];
+}

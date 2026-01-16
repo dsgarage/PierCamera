@@ -1,0 +1,56 @@
+digraph UILayout {
+    // Graph settings
+    rankdir=TB;
+    node [shape=box, style="filled", fontname="Helvetica", fontsize=10];
+    splines=ortho;
+
+    // Screen container
+    subgraph cluster_screen {
+        label="Screen (1920x1080 Reference)";
+        labelloc=t;
+        style=filled;
+        color="#1a1a2e";
+        fontcolor=white;
+
+        // Safe Area Top
+        safeTop [label="Safe Area Top", fillcolor="#333355", fontcolor=white, width=6];
+
+        // Alert Bar
+        alertBar [label="alertBar\ntop:76px | left/right:12px | height:48px+", fillcolor="#FFC107", width=6];
+
+        // Top Panel
+        topPanel [label="topPanel\ntop:60px | left/right:16px | height:64px\n[Light] [Shadow] [Expression] [Pose] [Plane]", fillcolor="#4CAF50", fontcolor=white, width=6];
+
+        // Main Area
+        subgraph cluster_main {
+            label="";
+            style=invis;
+
+            // Side Panel (left)
+            sidePanel [label="sidePanel\nleft:16px\ntop:50%\nwidth:72px\n\n[Settings]\n[Aspect]\n[Flash]\n[BugReport]", fillcolor="#2196F3", fontcolor=white, width=1.2, height=2];
+
+            // Camera View
+            cameraView [label="AR Camera View\n\n\n\n", fillcolor="#263238", fontcolor=white, width=4, height=2.5];
+
+            // Gallery Thumbnail
+            gallery [label="gallery\nbottom:90px\nleft:24px\n80x80px", fillcolor="#607D8B", fontcolor=white, width=1];
+        }
+
+        // Bottom Panel
+        bottomPanel [label="bottomPanel (Avatar Slots)\nbottom:220px | left/right:16px | height:64px\n[Slot1] [Slot2] [Slot3] ... [+]", fillcolor="#9C27B0", fontcolor=white, width=6];
+
+        // Capture Button
+        captureButton [label="captureButton\ncenter bottom\n120x120px", fillcolor="#F44336", fontcolor=white, width=2];
+
+        // Safe Area Bottom
+        safeBottom [label="Safe Area Bottom\nmargin-bottom:80px", fillcolor="#333355", fontcolor=white, width=6];
+    }
+
+    // Layout order (invisible edges for positioning)
+    safeTop -> alertBar [style=invis];
+    alertBar -> topPanel [style=invis];
+    topPanel -> sidePanel [style=invis];
+    sidePanel -> bottomPanel [style=invis];
+    bottomPanel -> captureButton [style=invis];
+    captureButton -> safeBottom [style=invis];
+}
