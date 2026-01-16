@@ -70,6 +70,87 @@ ARカメラアプリ「PierCamera」のメインUI（撮影画面）をUIToolkit
 2. UIToolkitのベストプラクティスに従っていること
 3. レスポンシブ対応（セーフエリア考慮）
 4. `Assets/UITK_Pier/` 以外のファイルを変更していないこと
+5. **既存の要素IDを完全に維持していること**（下記参照）
+
+### 重要: 要素ID互換性要件
+
+**移管時にUXML/USS/PanelSettingsのファイル差し替えのみで完結させるため、既存の要素IDを必ず維持してください。**
+
+コントローラー（CameraCaptureController.cs）は以下の要素IDでUIを操作します。
+これらのIDが存在しない場合、アプリケーションは正常に動作しません。
+
+#### 必須要素ID一覧
+
+**撮影ボタン関連:**
+| 要素ID | 型 | 用途 |
+|--------|-----|------|
+| `captureButton` | VisualElement | 撮影ボタン（タップ/長押し検出） |
+| `innerCircle` | VisualElement | 内側円（録画時に色変更） |
+| `progressRing` | VisualElement | プログレスリング親要素 |
+| `progressArc` | VisualElement | 録画進捗の円弧 |
+| `flashOverlay` | VisualElement | 撮影フラッシュ演出 |
+
+**ギャラリー/プレビュー:**
+| 要素ID | 型 | 用途 |
+|--------|-----|------|
+| `galleryThumbnail` | VisualElement | 最後の撮影サムネイル |
+| `viewerOverlay` | VisualElement | 全画面プレビューオーバーレイ |
+| `viewerImage` | Image | プレビュー画像 |
+| `iconPreviewPanel` | VisualElement | アイコン確認パネル |
+| `iconPreviewImage` | VisualElement | アイコンプレビュー画像 |
+| `iconPreviewRetake` | Button | 「撮り直す」ボタン |
+| `iconPreviewConfirm` | Button | 「確定」ボタン |
+
+**アラート:**
+| 要素ID | 型 | 用途 |
+|--------|-----|------|
+| `alertBar` | VisualElement | 警告/エラーバー |
+| `alertMessage` | Label | アラートメッセージ |
+| `alertClose` | Button | アラート閉じるボタン |
+
+**上部パネル:**
+| 要素ID | 型 | 用途 |
+|--------|-----|------|
+| `topPanel` | VisualElement | 上部パネルコンテナ |
+| `topButton1` | Button | ライティング |
+| `topButton2` | Button | シャドウ |
+| `topButton3` | Button | 表情 |
+| `topButton4` | Button | ポーズ |
+| `topButton5` | Button | 平面表示ON/OFF |
+
+**サイドパネル:**
+| 要素ID | 型 | 用途 |
+|--------|-----|------|
+| `sidePanel` | VisualElement | サイドパネルコンテナ |
+| `sideButton1` | Button | 設定 |
+| `sideButton2` | Button | アスペクト比 |
+| `sideButton3` | Button | フラッシュ |
+| `sideButtonBugReport` | Button | バグレポート |
+
+**アバタースロット:**
+| 要素ID | 型 | 用途 |
+|--------|-----|------|
+| `bottomPanel` | VisualElement | 下部パネルコンテナ |
+| `bottomScrollView` | ScrollView | スロットスクロールビュー |
+| `bottomButtonContainer` | VisualElement | スロットボタンコンテナ |
+| `bottomButtonAdd` | Button | スロット追加（+）ボタン |
+
+**アスペクト比マスク:**
+| 要素ID | 型 | 用途 |
+|--------|-----|------|
+| `topMask` | VisualElement | 上マスク |
+| `bottomMask` | VisualElement | 下マスク |
+| `leftMask` | VisualElement | 左マスク |
+| `rightMask` | VisualElement | 右マスク |
+
+**設定パネル:**
+| 要素ID | 型 | 用途 |
+|--------|-----|------|
+| `settingsPanelBackdrop` | VisualElement | 設定パネル背景 |
+| `lightingPanelOverlay` | VisualElement | ライティングパネル |
+| `lightingPanelClose` | Button | ライティングパネル閉じる |
+| `shadowPanelOverlay` | VisualElement | シャドウパネル |
+| `shadowPanelClose` | Button | シャドウパネル閉じる |
 
 ---
 
@@ -256,3 +337,4 @@ Assets/UITK_Pier/Scenes/UITK_Pier_Test.unity
 |------|-----------|----------|
 | 2026-01-16 | 1.0 | 初版作成 |
 | 2026-01-16 | 1.1 | 作業内容セクション追加 |
+| 2026-01-16 | 1.2 | 要素ID互換性要件追加 |
