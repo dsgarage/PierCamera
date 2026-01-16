@@ -1,0 +1,26 @@
+digraph AspectMasks {
+    rankdir=LR;
+    node [shape=box, style="filled,rounded", fontname="Helvetica", fontsize=10];
+
+    label="Aspect Ratio Masks (sideButton2 cycle)";
+    labelloc=t;
+    fontsize=14;
+
+    // Full mode
+    full [label="Full\n\n[  Camera  ]\n[ Full View ]\n\nNo masks", fillcolor="#90CAF9", width=1.8, height=2];
+
+    // 16:9 mode
+    r16_9 [label="16:9\n\n[topMask]\n[  16:9   ]\n[  View   ]\n[bottomMask]", fillcolor="#81C784", width=1.8, height=2];
+
+    // 3:2 mode
+    r3_2 [label="3:2\n\n[topMask]\n[  3:2   ]\n[  View  ]\n[bottomMask]", fillcolor="#FFB74D", width=1.8, height=2];
+
+    // 1:1 mode
+    r1_1 [label="1:1\n\n[left|1:1|right]\n[Mask|   |Mask]", fillcolor="#F48FB1", width=1.8, height=2];
+
+    // Cycle arrows
+    full -> r16_9 [label="tap"];
+    r16_9 -> r3_2 [label="tap"];
+    r3_2 -> r1_1 [label="tap"];
+    r1_1 -> full [label="tap", constraint=false];
+}
