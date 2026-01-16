@@ -1,0 +1,760 @@
+@import url("../Styles/tokens.uss");
+
+/* ------------ Main UI ------------- */
+.controls-root {
+  width: 100%;
+  height: 100%;
+  flex-grow: 1;
+  flex-direction: column;
+
+  position: relative;
+  /* 重要：画面全体は入力を取らない */
+  pointer-events: none;
+
+  /*background-color: rgba(255, 0, 0, 0.06); /* デバッグ用：見える化 */
+}
+
+/* 操作したい領域だけ入力を取る */
+.controls-interactive {
+  pointer-events: auto;
+}
+
+/* 汎用btn系 */
+.icon-btn-s {
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  justify-content: center;
+  align-items: center;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 36px 36px;
+
+  /* background-colorは個別に定めたい */
+  /* background-color: rgba(255,255,255,0.20); */
+}
+.icon-text-btn {
+  width: 64px;
+  height: 60px;
+  border-radius: 0px;
+  /* background-colorは個別に定めたい */
+  /* background-color: rgba(255,255,255,0.20); */
+}
+
+
+/* --- TopNavBar：上に固定 --- */
+.controls-top-nav {
+  position: absolute;
+  top: 60px;
+  left: 0;
+  right: 0;
+
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+
+  padding-left: 16px;
+  padding-right: 16px;
+  height: 36px;
+}
+/* TopNavBar内のコンテナ */
+.top-container{
+  flex-direction: row;
+  align-items: center;
+
+  padding-right: 8px;
+  padding-left: 8px;
+  background-color: rgba(59,59,59,0.80);
+  
+  border-radius: 18px;
+
+}
+/* TopNavBar内のbtn */
+#closeBtn{ background-color: rgba(32,31,31,0.50); border-radius: 9999px; background-image: url("../Icons/GoBack.png"); }
+#flashBtn{ background-image: url("../Icons/flash_OFF.png"); margin-right: 4px; }
+#flashBtn.is-on{ background-image: url("../Icons/flash_ON.png"); margin-right: 4px; }
+#flatVisualBtn{ background-image: url("../Icons/FlatVisual_OFF.png"); }
+#flatVisualBtn.is-on{ background-image: url("../Icons/FlatVisual_ON.png"); }
+
+
+/* --- SideMenu：右中に縦並び（仮） --- */
+.controls-side-menu {
+  position: absolute;
+  right: 8px;
+  top: 40%;
+
+  /* backgroundで代用可能な気がする */
+  /* translate: 0 -50%; */
+
+  flex-direction: column;
+  gap: 4px; /* gapが効かない場合は後でmarginに置換 */
+
+  padding-top: 4px;
+  padding-bottom: 4px;
+
+  background-color: rgba(32,31,31,0.32);
+  border-radius: 8px;
+}
+/* sideMenu内のボタン */
+#bugRepoBtn{ background-image: url("../Icons/bugRepo.png"); }
+/* Image Aspectボタン　状態 */
+#aspectBtn.aspect-4x3{ background-image: url("../Icons/Aspect_4_3.png"); }
+#aspectBtn.aspect-1x1{ background-image: url("../Icons/Aspect_1_1.png"); }
+#aspectBtn.aspect-16x9{ background-image: url("../Icons/Aspect_16_9.png"); }
+
+
+/* BottomNavField：下に固定 */
+.controls-bottom {
+  height: 278px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  flex-direction: column;
+  gap: 0px;
+
+  padding-bottom: 0px;
+  padding-left: 0px;
+  padding-right: 0px;
+
+  /* 背景は必要なら */
+  /* background-color: rgba(0,0,0,0.0); */
+}
+
+/* --- アバタースロット --- */
+.avatar-slot-bar {
+  height: 68px;
+  flex-direction: row;
+  justify-content: left;
+  align-items: center;
+  padding-right: 16px;
+  padding-left: 16px;
+  padding-top: 0px;
+  padding-bottom: 8px;
+}
+.avatar-slot-bar .unity-scroll-view__horizontal-scroller,
+.avatar-slot-bar .unity-scroll-view__vertical-scroller {
+  display: none; /* スクロール用のUIを非表示にする */
+}
+.avatar-slot-row{
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+.avatar-slot-container {
+  width: 64px;
+  height: 60px;
+  justify-content: center;
+  align-items: center;
+  /* background-colorは個別に定めたい */
+  /* background-color: rgba(255,255,255,0.20); */
+}
+.slot-icon{ width: 44px; height: 44px; border-radius: 9999px; background-color: rgba(124,122,123,0.80); background-image: url("../Icons/avatarSlot.png"); }
+.add-icon{ width: 44px; height: 44px; border-radius: 9999px; background-color: rgba(124,122,123,0.80); background-image: url("../Icons/slotAdd.png"); }
+
+/* Slot Delete Overlay */
+.slot-delete-overlay{
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  
+  /* overlayの背景は透明（外タップ検出用） */
+  /* background-color: rgba(0,0,0,0); */
+  /* debug 用 color */
+  /* background-color: rgba(255,0,0,0.1); */
+
+  /* overlay自体はクリック取る */
+  /* USSにpointer-eventsは無いので、C#側でPickingModeを設定する */
+}
+.slot-delete-btn{
+  position: absolute;
+  width: 64px;
+  height: 33px;
+  background-color: rgba(211, 211, 211, 0.70);
+  border-radius: 8px;
+  border-width: 1px;
+  border-color: rgba(52, 49, 49, 1);
+  justify-content: center;
+  align-items: center;
+}
+.slot-delete-label{
+  color: rgba(238,27,27,1);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* --- 撮影設定系 --- */
+.capture-setting-bar {
+  height: 92px;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding-right: 16px;
+  padding-left: 16px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+.icon-text-btn{
+  width: 64px;
+  height: 60px;
+  flex-direction: column;
+  flex-shrink: 0;
+
+  align-items: center;        /* 横方向の中央揃え */
+  justify-content: center;    /* 縦方向の中央寄せ */
+}
+.icon-m{
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 9999px;
+
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 44px 44px;
+  background-color: rgba(32,31,31,0.50);
+}
+.label{
+  -unity-text-align: middle-center;
+  font-size: 11px;
+  line-height: 12px;
+  margin-top: -2px;
+  color: rgba(241,241,241,1);
+}
+.icon-shadow{ background-image: url("../Icons/Shadow.png"); }
+.icon-lighting{ background-image: url("../Icons/Lighting.png"); }
+.icon-posings{ background-image: url("../Icons/Posing.png"); }
+.icon-expressions{ background-image: url("../Icons/Expressions.png"); }
+/* mode-icon 状態 */
+#captureModeIcon.mode-ground{ background-image: url("../Icons/groundFix.png"); }
+#captureModeIcon.mode-screen{ background-image: url("../Icons/screenFix.png"); }
+#captureModeIcon.mode-follow{ background-image: url("../Icons/Follow.png"); }
+
+/* --- 撮影ボタンエリア --- */
+.shooting-button-bar {
+  height: 118px;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;   /* 上寄せ */
+  padding-top: 8px;          /* 上から8px */
+}
+.shooting-btn{
+  width: 80px;
+  height: 80px;
+  border-style: solid;
+  border-width: 4px; 
+  border-color: rgba(255,255,255,1);
+  border-radius: 9999px;
+  justify-content: center;
+  align-items: center;
+}
+.shooting-btn-ellipse{
+  width: 66px;
+  height: 66px;
+  border-radius: 9999px;
+  background-color: rgba(255,255,255,1);
+}
+
+/* 作業用の確認色 */
+/* .controls-top-nav,
+.avatar-slot-bar,
+.capture-setting-bar,
+.shooting-button-bar,
+.avatar-slot-container,
+.icon-text-btn, {
+  background-color: rgba(255,255,255,0.08);
+  border-radius: 0px;
+} */
+
+/* For Debug */
+/* .controls-root { background-color: rgba(255,0,0,0.10); } */
+
+
+/* ---------- Lighting Panel --------- */
+.is-hidden{ display: none; }
+
+.tab-content{ display: none; }
+.tab-content.is-active{ display: flex; }
+
+.lighting-panel{
+  position: absolute;
+  left: 0px;
+  right: 0px;
+  bottom: 4px;
+
+  height: 330px;
+  flex-direction: column;
+  flex-shrink: 0;
+  padding-top: 8px;
+
+  border-radius: 16px;
+  background-color: rgba(32,31,31,.95);
+}
+
+.toggle-btn{
+  height: 16px;
+  width: 32px;
+  margin-right: 4px;
+  border-radius: 8px;
+  background-color: rgba(180,180,180,1);
+}
+.toggle-btn.is-active{
+  background-color: rgba(1,168,212,1);
+}
+
+.divider{
+  height: 1px;
+  background-color: rgba(124,122,123,1);
+}
+
+/* --- lighting panel header --- */
+.panel-header{
+  padding-left: 16px;
+  padding-right: 8px;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  height: 44px;
+  flex-shrink: 0;
+}
+.panel-title{
+  font-size: 20px;
+  font-weight: 600;
+  /* line-height: 22px; */
+  margin-top: 0px;
+  margin-bottom: 0px;
+  padding-top: 0px;
+  padding-bottom: 0px;
+  line-height: 20px;
+  color: rgba(255,255,255,1);
+}
+.panel-close-btn{ 
+  height: 44px;
+  width: 44px;
+}
+.panel-close-icon{
+  background-color: rgba(32,31,31,.50);
+  border-radius: 9999px;
+  background-image: url("../Icons/Close.png"); 
+}
+
+/* --- Auto sync bar --- */
+.auto-sync-bar{
+  flex-direction: row;
+  flex-shrink: 0;
+  justify-content: left;
+  align-items: center;
+  padding-right: 16px;
+  padding-left: 16px;
+  height: 40px;
+}
+.auto-sync-text{
+  font-size: 12px;
+  font-weight: 600;
+  margin-right: 40px;
+  color: rgba(255,255,255,1);
+}
+.auto-sync-btn{
+  flex-direction: row;
+  flex-shrink: 0;
+  justify-content: left;
+  align-items: center;
+}
+.auto-sync-status{
+  font-size: 12px;
+  margin-top: 0px;
+  margin-bottom: 0px;
+  padding-top: 0px;
+  padding-bottom: 0px;
+  line-height: 12px;
+  color: rgba(255,255,255,1);
+}
+#autoSyncDivider{
+  margin-left: 16px;
+  margin-right: 16px;
+}
+
+/* --- tab selection bar --- */
+.tab-bar{
+  padding-top: 12px;
+  padding-bottom: 8px;
+  padding-left: 16px;
+  padding-right: 16px;
+  flex-direction: row;
+  flex-shrink: 0;
+  justify-content: left;
+}
+.tab-container{
+  flex-direction: row;
+  justify-content: left;
+  align-items: center; 
+  height: 25px; /* 後でhugに調整 */
+
+  border-radius: 12.5px;
+  background-color: rgba(51,50,50,1);
+}
+.tab{
+  flex-direction: row;
+  flex-shrink: 0;
+  flex-grow: 0;
+  justify-content: center;
+  align-items: center; 
+  height: 100%;
+
+  padding-left: 12px;
+  padding-right: 12px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+
+  border-radius: 16px;
+}
+.tab-label{
+  font-size: 14px;
+  margin-top: 0px;
+  margin-bottom: 0px;
+  padding-top: 0px;
+  padding-bottom: 0px;
+  line-height: 14px;
+  color: rgba(255,255,255,1);
+}
+.tab.is-selected{
+  background-color: rgba(1,168,212,1);
+}
+
+/* --- tab content --- */
+.tab-content{
+  flex-direction: column;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+.section-title{
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 0px;
+  margin-bottom: 4px;
+  padding-top: 0px;
+  padding-bottom: 0px;
+  line-height: 12px;
+  color: rgba(255,255,255,1);
+}
+
+/* ------ Mood Tab Content ------ */
+/* --- preset container --- */
+.preset-container{
+  flex-direction: column;
+  flex-shrink: 0;
+  height: 50px;
+  margin-bottom: 8px;
+}
+.preset-selections{
+  flex-direction: row;
+  flex-shrink: 0;
+  justify-content: left;
+  align-items: center; 
+  height: 31px;
+}
+.preset-selections .unity-scroll-view__horizontal-scroller,
+.preset-selections .unity-scroll-view__vertical-scroller {
+  display: none; /* スクロール用のUIを非表示にする */
+}
+.preset-row{
+  flex-direction: row;
+  align-items: center;
+  width: auto;
+}
+.preset-btn{
+  flex-direction: row;
+  flex-shrink: 0;
+  flex-grow: 0;
+  justify-content: center;
+  align-items: center; 
+  height: 100%;
+
+  padding-left: 8px;
+  padding-right: 8px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  margin-right: 4px;
+
+  border-radius: 16px;
+  background-color: rgba(51,50,50,1);
+}
+.preset-label{
+  font-size: 12px;
+  margin-top: 0px;
+  margin-bottom: 0px;
+  padding-top: 0px;
+  padding-bottom: 0px;
+  line-height: 12px;
+  color: rgba(255,255,255,1);
+}
+.preset-btn.is-selected{
+  background-color: rgba(1,168,212,1);
+}
+
+/* --- Slider 共通 --- */
+.slider-block{
+  flex-direction: column;
+  flex-shrink: 0;
+  height: 43px;
+  margin-bottom: 8px;
+}
+.slider-title-bar{
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+  height: 15px;
+}
+.slider-value{
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 0px;
+  margin-bottom: 4px;
+  padding-top: 0px;
+  padding-bottom: 0px;
+  line-height: 12px;
+  color: rgba(211,211,211,1);
+}
+
+/* Slider 構造 */
+.slider{
+  position: relative;
+  height: 24px;          /* つまみが収まる高さ */
+  align-items: stretch;
+  justify-content: center;
+}
+.slider-track{
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+  width: 100%;
+}
+/* つまみ（ノブ） */
+.slider-thumb-btn{
+  position: absolute;
+  width: 24px;
+  height: 24px;
+
+  /* ussでは中央（C#で動かす） */
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+}
+.slider-thumb-sdw{
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-style: solid;
+  border-width: 5px; 
+  border-color: rgba(0,0,0,.6);
+  border-radius: 9999px;
+  justify-content: center;
+  align-items: center;
+}
+.slider-thumb{
+  position: absolute;
+  width: 23px;
+  height: 23px;
+  border-style: solid;
+  border-width: 4px; 
+  border-color: rgba(255,255,255,1);
+  border-radius: 9999px;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Color Temperature（PNG） */
+.slider-temp{
+  height: 20px;
+  border-radius: 10px;
+  background-image: url("../Icons/slider_temp_gradient.png");
+}
+
+/* Brightness */
+.slider-bright{
+  height: 20px;
+  border-radius: 10px;
+  background-image: url("../Icons/slider_brightness_gradient.png");
+}
+
+/* ------ Direction Tab Content ------ */
+.direction-root{
+  flex-direction: row;
+  justify-content: left;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  height: 176px;
+}
+/* --- Direction Block --- */
+.direction-block{
+  flex-direction: column;
+  justify-content: top;
+  align-items: center;
+  margin-right:24px;
+}
+.dir-pad{
+  width: 136px;
+  height: 136px;
+  border-radius: 9999px;
+  background-color: rgba(180,180,180,1);
+  position: relative;       /* ノブのabsolute基準 */
+}
+.dir-knob{
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  background-color: rgba(251,228,25,1);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(255,255,255,1);
+
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+}
+.dir-label{
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 0px;
+  margin-bottom: 0px;
+  padding-top: 0px;
+  padding-bottom: 0px;
+  line-height: 12px;
+  color: rgba(0,0,0,1);
+}
+.dir-n{ position:absolute; left:50%; top:4px; translate:-50% 0; }
+.dir-s{ position:absolute; left:50%; bottom:4px; translate:-50% 0; }
+.dir-w{ position:absolute; left:4px; top:50%; translate:0 -50%; }
+.dir-e{ position:absolute; right:4px; top:50%; translate:0 -50%; }
+
+/* --- Elevation Block --- */
+.elev-block{
+  flex-direction: column;
+  justify-content: top;
+  align-items: center;
+}
+.elev-title-bar{
+  flex-direction: row;
+  justify-content: center;
+}
+.elev-value{
+  font-size: 12px;
+  margin-top: 0px;
+  margin-bottom: 0px;
+  padding-top: 0px;
+  padding-bottom: 0px;
+  line-height: 12px;
+  color: rgba(250,250,250,1);
+}
+.elev-slider{
+  width: 64px;
+  height: 220px;
+  position: relative;      /* ノブのabsolute基準 */
+  justify-content: center;
+  align-items: center;
+}
+.elev-track{
+  width: 8px;
+  height: 124px;
+  border-radius: 4px;
+  background-color: rgba(175,170,172,1);
+}
+.elev-knob{
+  position: absolute;
+  width: 24px;
+  height: 8px;
+  border-radius: 4px;
+  background-color: rgba(255,255,255,1);
+
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+}
+
+
+/* Lighting panel 作業用 */
+/* .auto-sync-bar,
+.preset-container{
+  background-color: rgba(151, 54, 54, 0.22);
+}
+
+.tab-bar{
+  background-color: rgba(192, 192, 55, 0.22);
+}
+
+#lightingCloseBtn,
+.tab-content,
+.slider-block{
+  background-color: rgba(255,255,255,0.22);
+} */
+
+/* #lightingPanelMood { display: none; }
+.lighting-panel.debug-show,
+.tab-content.debug-show{
+  display: flex;
+} */
+
+/* ---------- Shadow Panel --------- */
+/* note: Lighting panelのコンポーネントを活用しているので、uss短め */
+#shadowPanel{
+  height: 286px;
+}
+#enableShadowDivider{
+  margin-left: 16px;
+  margin-right: 16px;
+}
+#shadowSetContainer{
+  flex-direction: column;
+  padding-left: 16px;
+  padding-right: 16px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+.slider-track-common{
+  height: 8px;
+  width: 100%;
+  border-radius: 4px;
+  background-color: rgba(115,115,115,1);
+}
+.common-slider-thumb{
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+
+  /* “中心が抜けない”見た目 */
+  background-color: rgba(255,255,255,1);
+
+  /* 影っぽさ（輪郭） */
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(175,170,172,1);
+
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+}
+#shadowSoftnessSelections{
+  justify-content: space-between;
+}
+
+/* Softnessのボタン均等配置だけ定義 */
+#softnessSoft,
+#softnessMedium,
+#softnessHard{
+  flex-grow: 1;
+  justify-content: center;
+}
+
+/* 余白（gapが効かないので） */
+#softnessSoft{ margin-right: 12px; }
+#softnessMedium{ margin-right: 12px; }
+
+/* #shadowPanel.debug-show{
+  display: flex;
+}  */
