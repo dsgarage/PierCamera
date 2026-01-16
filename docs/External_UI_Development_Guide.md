@@ -72,116 +72,146 @@ ARカメラアプリ「PierCamera」のメインUI（撮影画面）をUIToolkit
 4. `Assets/UITK_Pier/` 以外のファイルを変更していないこと
 5. **既存の要素IDを完全に維持していること**（下記参照）
 
-### 重要: 要素ID互換性要件
+### 重要: スクリプト互換性要件
 
-**移管時にUXML/USS/PanelSettingsのファイル差し替えのみで完結させるため、既存の要素IDを必ず維持してください。**
+**移管時にUXML/USS/PanelSettingsのファイル差し替えのみで完結させるため、以下の3点を維持してください。**
 
-コントローラー（CameraCaptureController.cs）は以下の要素IDでUIを操作します。
-これらのIDが存在しない場合、アプリケーションは正常に動作しません。
+1. **要素ID** - コントローラーが `Q<T>("id")` で取得
+2. **要素の型** - `Q<Button>()` と `Q<VisualElement>()` は異なる（型が一致しないとnull）
+3. **状態管理用CSSクラス** - スクリプトが動的に追加/削除
+
+#### 必須の状態管理CSSクラス
+
+スクリプトは以下のクラスを動的に操作します。USSで必ず定義してください：
+
+| クラス名 | 対象要素 | 用途 |
+|---------|---------|------|
+| visible | alertBar, iconPreviewPanel, lightingPanelOverlay, shadowPanelOverlay, settingsPanelBackdrop | 表示/非表示切替 |
+| recording | innerCircle | 録画中の赤色表示 |
+| active | progressRing | プログレスリング表示 |
+| selected | bottom-panel-button | スロット選択状態 |
+| has-icon | bottom-panel-button | サムネイル設定済み |
+| plane-visible | topButton5 | 平面表示ON |
+| plane-hidden | topButton5 | 平面表示OFF |
+| warning | alertBar | 警告表示（黄色） |
+| error | alertBar | エラー表示（赤色） |
+| info | alertBar | 情報表示（青色） |
+| preset-selected | preset-button | 選択中プリセット |
+| softness-selected | softness-button | 選択中ソフトネス |
 
 #### 必須要素ID一覧
 
 **撮影ボタン関連:**
+
 | 要素ID | 型 | 用途 |
 |--------|-----|------|
-| `captureButton` | VisualElement | 撮影ボタン（タップ/長押し検出） |
-| `innerCircle` | VisualElement | 内側円（録画時に色変更） |
-| `progressRing` | VisualElement | プログレスリング親要素 |
-| `progressArc` | VisualElement | 録画進捗の円弧 |
-| `flashOverlay` | VisualElement | 撮影フラッシュ演出 |
+| captureButton | VisualElement | 撮影ボタン |
+| innerCircle | VisualElement | 内側円 |
+| progressRing | VisualElement | プログレスリング親 |
+| progressArc | VisualElement | 録画進捗円弧 |
+| flashOverlay | VisualElement | フラッシュ演出 |
 
 **ギャラリー/プレビュー:**
+
 | 要素ID | 型 | 用途 |
 |--------|-----|------|
-| `galleryThumbnail` | VisualElement | 最後の撮影サムネイル |
-| `viewerOverlay` | VisualElement | 全画面プレビューオーバーレイ |
-| `viewerImage` | Image | プレビュー画像 |
-| `iconPreviewPanel` | VisualElement | アイコン確認パネル |
-| `iconPreviewImage` | VisualElement | アイコンプレビュー画像 |
-| `iconPreviewRetake` | Button | 「撮り直す」ボタン |
-| `iconPreviewConfirm` | Button | 「確定」ボタン |
+| galleryThumbnail | VisualElement | 撮影サムネイル |
+| viewerOverlay | VisualElement | 全画面プレビュー |
+| viewerImage | Image | プレビュー画像 |
+| iconPreviewPanel | VisualElement | アイコン確認パネル |
+| iconPreviewImage | VisualElement | アイコン画像 |
+| iconPreviewRetake | Button | 撮り直すボタン |
+| iconPreviewConfirm | Button | 確定ボタン |
 
 **アラート:**
+
 | 要素ID | 型 | 用途 |
 |--------|-----|------|
-| `alertBar` | VisualElement | 警告/エラーバー |
-| `alertMessage` | Label | アラートメッセージ |
-| `alertClose` | Button | アラート閉じるボタン |
+| alertBar | VisualElement | 警告/エラーバー |
+| alertMessage | Label | メッセージ |
+| alertClose | Button | 閉じるボタン |
 
 **上部パネル:**
+
 | 要素ID | 型 | 用途 |
 |--------|-----|------|
-| `topPanel` | VisualElement | 上部パネルコンテナ |
-| `topButton1` | Button | ライティング |
-| `topButton2` | Button | シャドウ |
-| `topButton3` | Button | 表情 |
-| `topButton4` | Button | ポーズ |
-| `topButton5` | Button | 平面表示ON/OFF |
+| topPanel | VisualElement | コンテナ |
+| topButton1 | Button | ライティング |
+| topButton2 | Button | シャドウ |
+| topButton3 | Button | 表情 |
+| topButton4 | Button | ポーズ |
+| topButton5 | Button | 平面表示 |
 
 **サイドパネル:**
+
 | 要素ID | 型 | 用途 |
 |--------|-----|------|
-| `sidePanel` | VisualElement | サイドパネルコンテナ |
-| `sideButton1` | Button | 設定 |
-| `sideButton2` | Button | アスペクト比 |
-| `sideButton3` | Button | フラッシュ |
-| `sideButtonBugReport` | Button | バグレポート |
+| sidePanel | VisualElement | コンテナ |
+| sideButton1 | Button | 設定 |
+| sideButton2 | Button | アスペクト比 |
+| sideButton3 | Button | フラッシュ |
+| sideButtonBugReport | Button | バグレポート |
 
 **アバタースロット:**
+
 | 要素ID | 型 | 用途 |
 |--------|-----|------|
-| `bottomPanel` | VisualElement | 下部パネルコンテナ |
-| `bottomScrollView` | ScrollView | スロットスクロールビュー |
-| `bottomButtonContainer` | VisualElement | スロットボタンコンテナ |
-| `bottomButtonAdd` | Button | スロット追加（+）ボタン |
+| bottomPanel | VisualElement | コンテナ |
+| bottomScrollView | ScrollView | スクロール |
+| bottomButtonContainer | VisualElement | ボタンコンテナ |
+| bottomButtonAdd | Button | 追加ボタン |
 
 **アスペクト比マスク:**
+
 | 要素ID | 型 | 用途 |
 |--------|-----|------|
-| `topMask` | VisualElement | 上マスク |
-| `bottomMask` | VisualElement | 下マスク |
-| `leftMask` | VisualElement | 左マスク |
-| `rightMask` | VisualElement | 右マスク |
+| topMask | VisualElement | 上マスク |
+| bottomMask | VisualElement | 下マスク |
+| leftMask | VisualElement | 左マスク |
+| rightMask | VisualElement | 右マスク |
 
 **設定パネル（オーバーレイ）:**
+
 | 要素ID | 型 | 用途 |
 |--------|-----|------|
-| `settingsPanelBackdrop` | VisualElement | 設定パネル背景 |
-| `lightingPanelOverlay` | VisualElement | ライティングパネルオーバーレイ |
-| `shadowPanelOverlay` | VisualElement | シャドウパネルオーバーレイ |
+| settingsPanelBackdrop | VisualElement | 背景 |
+| lightingPanelOverlay | VisualElement | ライティング |
+| shadowPanelOverlay | VisualElement | シャドウ |
 
 **ライティングパネル内部:**
+
 | 要素ID | 型 | 用途 |
 |--------|-----|------|
-| `lightingPanel` | VisualElement | パネル本体 |
-| `lightingPanelClose` | Button | 閉じるボタン |
-| `arSyncToggle` | Toggle | AR光推定同期 |
-| `presetAuto` | Button | Autoプリセット |
-| `presetSunny` | Button | Sunnyプリセット |
-| `presetCloudy` | Button | Cloudyプリセット |
-| `presetIndoor` | Button | Indoorプリセット |
-| `presetWarm` | Button | Warmプリセット |
-| `presetSunset` | Button | Sunsetプリセット |
-| `colorTempSlider` | Slider | 色温度（2000-10000K） |
-| `colorTempValue` | Label | 色温度値表示 |
-| `brightnessSlider` | Slider | 明るさ（0.1-2.0） |
-| `brightnessValue` | Label | 明るさ値表示 |
-| `lightDirectionBackground` | VisualElement | 方向コントロール背景 |
-| `lightDirectionKnob` | VisualElement | 方向ノブ |
-| `elevationSlider` | Slider | 仰角（10-90°） |
-| `elevationValue` | Label | 仰角値表示 |
+| lightingPanel | VisualElement | パネル本体 |
+| lightingPanelClose | Button | 閉じる |
+| arSyncToggle | Toggle | AR光推定 |
+| presetAuto | Button | Auto |
+| presetSunny | Button | Sunny |
+| presetCloudy | Button | Cloudy |
+| presetIndoor | Button | Indoor |
+| presetWarm | Button | Warm |
+| presetSunset | Button | Sunset |
+| colorTempSlider | Slider | 色温度 |
+| colorTempValue | Label | 色温度値 |
+| brightnessSlider | Slider | 明るさ |
+| brightnessValue | Label | 明るさ値 |
+| lightDirectionBackground | VisualElement | 方向背景 |
+| lightDirectionKnob | VisualElement | 方向ノブ |
+| elevationSlider | Slider | 仰角 |
+| elevationValue | Label | 仰角値 |
 
 **シャドウパネル内部:**
+
 | 要素ID | 型 | 用途 |
 |--------|-----|------|
-| `shadowPanel` | VisualElement | パネル本体 |
-| `shadowPanelClose` | Button | 閉じるボタン |
-| `shadowToggle` | Toggle | シャドウON/OFF |
-| `shadowIntensitySlider` | Slider | 強度（0-1） |
-| `shadowIntensityValue` | Label | 強度値表示 |
-| `softHard` | Button | Hardボタン |
-| `softMedium` | Button | Mediumボタン |
-| `softSoft` | Button | Softボタン |
+| shadowPanel | VisualElement | パネル本体 |
+| shadowPanelClose | Button | 閉じる |
+| shadowToggle | Toggle | ON/OFF |
+| shadowIntensitySlider | Slider | 強度 |
+| shadowIntensityValue | Label | 強度値 |
+| softHard | Button | Hard |
+| softMedium | Button | Medium |
+| softSoft | Button | Soft |
 
 ### UXML階層構造
 
@@ -538,3 +568,4 @@ Assets/UITK_Pier/Scenes/UITK_Pier_Test.unity
 | 2026-01-16 | 1.2 | 要素ID互換性要件追加 |
 | 2026-01-16 | 1.3 | パネル内部ID、階層構造、CSSクラス追加 |
 | 2026-01-16 | 1.4 | レイアウト仕様（PanelSettings、配置、Flexbox、サイズ、色）追加 |
+| 2026-01-16 | 1.5 | スクリプト互換性要件（型、状態管理CSSクラス）追加、表形式修正 |
