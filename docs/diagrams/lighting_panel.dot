@@ -1,0 +1,45 @@
+digraph LightingPanel {
+    rankdir=TB;
+    node [shape=box, style="filled,rounded", fontname="Helvetica", fontsize=10];
+    splines=ortho;
+
+    subgraph cluster_overlay {
+        label="lightingPanelOverlay\n(top:50%, bottom:8px, left/right:8px)";
+        labelloc=t;
+        style=filled;
+        color="#1a1a2e";
+        fontcolor=white;
+
+        subgraph cluster_panel {
+            label="lightingPanel\n(background: rgba(20,20,20,0.95))";
+            style=filled;
+            color="#2d2d44";
+            fontcolor=white;
+
+            // Header
+            header [label="Header\n[Lighting] [lightingPanelClose x]", fillcolor="#3d3d5c", fontcolor=white, width=5];
+
+            // AR Sync
+            arSync [label="AR Light Sync\narSyncToggle [Toggle]\n\"Automatically match scene lighting\"", fillcolor="#4a4a6a", fontcolor=white, width=5];
+
+            // Presets
+            presets [label="Preset\n[presetAuto] [presetSunny] [presetCloudy]\n[presetIndoor] [presetWarm] [presetSunset]", fillcolor="#4a4a6a", fontcolor=white, width=5];
+
+            // Color Temperature
+            colorTemp [label="Color Temperature          5500K\ncolorTempSlider [Slider] 2000K-10000K\n[gradient: orange -> white -> blue]", fillcolor="#FF9800", width=5];
+
+            // Brightness
+            brightness [label="Brightness                    1.0\nbrightnessSlider [Slider] 0.1-2.0", fillcolor="#FFC107", width=5];
+
+            // Light Direction
+            direction [label="Light Direction\n\n     [N]              Elevation\n  [W] o [E]           elevationSlider\n     [S]              [Slider] 10-90\n                          50deg\n\nlightDirectionBackground\nlightDirectionKnob", fillcolor="#4CAF50", fontcolor=white, width=5];
+        }
+    }
+
+    // Layout order
+    header -> arSync [style=invis];
+    arSync -> presets [style=invis];
+    presets -> colorTemp [style=invis];
+    colorTemp -> brightness [style=invis];
+    brightness -> direction [style=invis];
+}

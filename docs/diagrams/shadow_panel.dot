@@ -1,0 +1,37 @@
+digraph ShadowPanel {
+    rankdir=TB;
+    node [shape=box, style="filled,rounded", fontname="Helvetica", fontsize=10];
+    splines=ortho;
+
+    subgraph cluster_overlay {
+        label="shadowPanelOverlay\n(bottom:80px, left/right:8px)";
+        labelloc=t;
+        style=filled;
+        color="#1a1a2e";
+        fontcolor=white;
+
+        subgraph cluster_panel {
+            label="shadowPanel\n(background: rgba(20,20,20,0.95))";
+            style=filled;
+            color="#2d2d44";
+            fontcolor=white;
+
+            // Header
+            header [label="Header\n[Shadow] [shadowPanelClose x]", fillcolor="#3d3d5c", fontcolor=white, width=4.5];
+
+            // Enable Shadow
+            enable [label="Enable Shadow\nshadowToggle [Toggle] ON/OFF", fillcolor="#4a4a6a", fontcolor=white, width=4.5];
+
+            // Intensity
+            intensity [label="Intensity                    0.6\nshadowIntensitySlider [Slider] 0-1", fillcolor="#78909C", fontcolor=white, width=4.5];
+
+            // Softness
+            softness [label="Softness\n[softHard] [softMedium] [softSoft]\n   Hard      Medium      Soft", fillcolor="#607D8B", fontcolor=white, width=4.5];
+        }
+    }
+
+    // Layout order
+    header -> enable [style=invis];
+    enable -> intensity [style=invis];
+    intensity -> softness [style=invis];
+}
