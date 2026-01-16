@@ -3,21 +3,21 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEditor;
 using UnityEditor.SceneManagement;
-using ARCamera.UI.Debug;
+using UITK_Pier.Debug;
 
-namespace ARCamera.Editor
+namespace UITK_Pier.Editor
 {
     /// <summary>
     /// UIテストシーンを作成・管理するEditorスクリプト
     /// </summary>
     public static class UITestSceneCreator
     {
-        private const string TestScenePath = "Assets/Scenes/UITestScene.unity";
+        private const string TestScenePath = "Assets/UI/UITK_Pier/Scenes/UITestScene.unity";
         private const string UxmlPath = "Assets/UI/CameraCapture/CameraCaptureUI.uxml";
         private const string LightingUxmlPath = "Assets/UI/CameraCapture/LightingPanel.uxml";
         private const string PanelSettingsPath = "Assets/UI/CameraCapturePanelSetting.asset";
 
-        [MenuItem("ARCamera/UI Test/Create UI Test Scene", false, 100)]
+        [MenuItem("UITK_Pier/UI Test/Create UI Test Scene", false, 100)]
         public static void CreateUITestScene()
         {
             // 新しいシーンを作成
@@ -79,7 +79,7 @@ namespace ARCamera.Editor
             Selection.activeGameObject = uiDocumentGO;
         }
 
-        [MenuItem("ARCamera/UI Test/Open UI Test Scene", false, 101)]
+        [MenuItem("UITK_Pier/UI Test/Open UI Test Scene", false, 101)]
         public static void OpenUITestScene()
         {
             if (System.IO.File.Exists(TestScenePath))
@@ -96,7 +96,7 @@ namespace ARCamera.Editor
             }
         }
 
-        [MenuItem("ARCamera/UI Test/Run UI Validation", false, 200)]
+        [MenuItem("UITK_Pier/UI Test/Run UI Validation", false, 200)]
         public static void RunUIValidation()
         {
             var debugChecker = Object.FindFirstObjectByType<UIDebugChecker>();
@@ -141,7 +141,7 @@ namespace ARCamera.Editor
         private Vector2 scrollPosition;
         private ValidationResult lastResult;
 
-        [MenuItem("ARCamera/UI Test/Open Test Window", false, 102)]
+        [MenuItem("UITK_Pier/UI Test/Open Test Window", false, 102)]
         public static void ShowWindow()
         {
             var window = GetWindow<UITestWindow>("UI Test");

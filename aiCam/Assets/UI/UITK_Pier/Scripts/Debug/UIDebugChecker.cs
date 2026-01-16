@@ -4,7 +4,7 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace ARCamera.UI.Debug
+namespace UITK_Pier.Debug
 {
     /// <summary>
     /// UIToolkit要素の検証とデバッグログ出力を行うクラス

@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace ARCamera.UI.Debug
+namespace UITK_Pier.Debug
 {
     /// <summary>
     /// UIテストシーンのセットアップと状態再現を行うクラス
