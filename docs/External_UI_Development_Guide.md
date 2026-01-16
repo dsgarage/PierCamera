@@ -262,6 +262,94 @@ root (.root)
 | `.softness-button` | ソフトネスボタン |
 | `.softness-selected` | 選択中ソフトネス |
 
+### PanelSettings設定
+
+| 項目 | 値 |
+|------|-----|
+| Reference Resolution | 1920 x 1080 |
+| Scale Mode | Scale With Screen Size |
+| Screen Match Mode | Match Width Or Height |
+| Match | 0 (Width優先) |
+| Sorting Order | 100 |
+
+### レイアウト仕様
+
+#### 配置方式
+
+| 要素 | position | 配置方法 |
+|------|----------|---------|
+| `.root` | absolute | top:0, left:0, 100%x100% |
+| `.top-panel` | absolute | top:60px, left/right:16px |
+| `.side-panel` | absolute | top:50%, left:16px, translate:0 -50% |
+| `.bottom-panel` | absolute | bottom:220px, left/right:16px |
+| `.capture-button` | (default) | margin-bottom:80px |
+| `.gallery-thumbnail` | absolute | bottom:90px, left:24px |
+| `.lighting-panel-overlay` | absolute | top:50%, bottom:8px, left/right:8px |
+| `.shadow-panel-overlay` | absolute | bottom:80px, left/right:8px |
+| オーバーレイ系 | absolute | top:0, left:0, 100%x100% |
+
+#### Flexboxレイアウト
+
+| 要素 | flex-direction | justify-content | align-items |
+|------|---------------|-----------------|-------------|
+| `.root` | column | flex-end | center |
+| `.top-panel` | row | space-around | center |
+| `.side-panel` | column | flex-start | center |
+| `.bottom-panel` | row | center | center |
+| `.bottom-button-container` | row | - | center |
+| `.lighting-panel` | column | - | - |
+| `.preset-container` | row (wrap) | - | - |
+| `.viewer-overlay` | column | center | center |
+| `.icon-preview-panel` | column | center | center |
+
+#### 主要サイズ
+
+| 要素 | サイズ |
+|------|-------|
+| `.capture-button` | 120x120px |
+| `.inner-circle` | 90x90px |
+| `.top-panel` | height:64px |
+| `.top-panel-button` | 64x64px (タッチ領域) |
+| `.side-panel` | width:72px |
+| `.side-panel-button` | 58x58px |
+| `.bottom-panel` | height:64px |
+| `.bottom-panel-button` | 52x52px (円形) |
+| `.gallery-thumbnail` | 80x80px |
+| `.preset-button` | 48x22px |
+| `.lighting-panel-close` | 22x22px |
+
+#### トランジション
+
+| 対象 | property | duration |
+|------|----------|----------|
+| `.inner-circle` | background-color | 0.3s |
+| `.progress-ring` | opacity | 0.3s |
+| `.flash-overlay` | opacity | 0.3s |
+| `.alert-bar` | opacity | 0.3s |
+| `.icon-preview-panel` | opacity | 0.3s |
+
+#### 角丸 (border-radius)
+
+| 要素 | 値 |
+|------|-----|
+| パネル系 | 8-10px |
+| ボタン（角丸） | 4-8px |
+| ボタン（円形） | 50% |
+| スライダーノブ | 50% |
+
+#### 色定義
+
+| 用途 | 色 |
+|------|-----|
+| パネル背景 | rgba(128, 128, 128, 0.5) |
+| 暗いパネル背景 | rgba(20, 20, 20, 0.95) |
+| アクセントカラー | rgba(76, 175, 255, 1) |
+| 選択状態 | rgba(76, 175, 255, 0.4) |
+| エラー | rgba(220, 60, 60, 0.95) |
+| 警告 | rgba(255, 200, 0, 0.95) |
+| 情報 | rgba(80, 180, 220, 0.95) |
+| 確認ボタン | rgba(80, 180, 80, 0.95) |
+
 ---
 
 ## 1. プロジェクト構成
@@ -449,3 +537,4 @@ Assets/UITK_Pier/Scenes/UITK_Pier_Test.unity
 | 2026-01-16 | 1.1 | 作業内容セクション追加 |
 | 2026-01-16 | 1.2 | 要素ID互換性要件追加 |
 | 2026-01-16 | 1.3 | パネル内部ID、階層構造、CSSクラス追加 |
+| 2026-01-16 | 1.4 | レイアウト仕様（PanelSettings、配置、Flexbox、サイズ、色）追加 |
