@@ -1,290 +1,160 @@
-<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
-    <Style src="project://database/Assets/UI/ARCameraScreen/CaptureControls.uss?fileID=7433441132597879392&amp;guid=78c45720fca43424480f939c0fb740d0&amp;type=3#CaptureControls" />
-    <!-- ===== Main UI ===== -->
-    <ui:VisualElement name="root" class="controls-root">
-
-        <!-- Top Nav Bar -->
-        <ui:VisualElement name="topNavBar" class="controls-top-nav controls-interactive">
-            <ui:VisualElement name="closeBtn" class="icon-btn-s" />
-            <ui:VisualElement name="rightTopContainer" class="top-container">
-                <ui:VisualElement name="flashBtn" class="icon-btn-s toggle-2" />
-                <ui:VisualElement name="flatVisualBtn" class="icon-btn-s toggle-2" />
-            </ui:VisualElement>
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UITK_Pier/UI/ARCameraScreen/CaptureControls.uss?fileID=7433441132597879392&amp;guid=78c45720fca43424480f939c0fb740d0&amp;type=3#CaptureControls" />
+    <Style src="project://database/Assets/UI/CameraCapture/LightingPanel.uss?fileID=7433441132597879392&amp;guid=8d2cffb1058eb4a5bb468997e7ac7937&amp;type=3#LightingPanel" />
+    <ui:VisualElement picking-mode="Ignore" class="root">
+        <ui:VisualElement name="topMask" picking-mode="Ignore" class="aspect-mask" />
+        <ui:VisualElement name="bottomMask" picking-mode="Ignore" class="aspect-mask" />
+        <ui:VisualElement name="leftMask" picking-mode="Ignore" class="aspect-mask" />
+        <ui:VisualElement name="rightMask" picking-mode="Ignore" class="aspect-mask" />
+        <ui:VisualElement name="alertBar" class="alert-bar">
+            <ui:Label name="alertMessage" text="[W001] sample Warning" class="alert-bar-message" />
+            <ui:Button name="alertClose" text="×" class="alert-bar-close" />
         </ui:VisualElement>
-
-        <!-- Side Menu -->
-        <ui:VisualElement name="sideMenu" class="controls-interactive controls-side-menu">
-            <ui:VisualElement name="aspectBtn" class="icon-btn-s cycle-3" />
-            <ui:VisualElement name="bugRepoBtn" class="icon-btn-s" />
+        <ui:VisualElement name="topPanel" picking-mode="Ignore" class="top-panel">
+            <ui:Button name="topButton5" class="top-panel-button plane-button" />
         </ui:VisualElement>
-
-        <!-- Bottom Nav Field -->
+        <ui:VisualElement name="sidePanel" picking-mode="Ignore" class="side-panel">
+            <ui:Button name="sideButton1" class="side-panel-button" />
+            <ui:Button name="sideButton2" class="side-panel-button" />
+            <ui:Button name="sideButton3" class="side-panel-button" />
+            <ui:Button name="sideButtonBugReport" class="side-panel-button bug-report-button" />
+        </ui:VisualElement>
+        <ui:VisualElement name="galleryThumbnail" class="gallery-thumbnail" />
         <ui:VisualElement name="bottomNavField" class="controls-interactive controls-bottom">
-            
-            <!-- Avatar Slot Bar -->
-            <ui:ScrollView name="avatarSlotBar" class="avatar-slot-bar" mode="Horizontal" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden">
-                <ui:VisualElement name="avatarSlotRow" class="avatar-slot-row">
-                    <ui:VisualElement name="avatarSlotBtn" class="avatar-slot-container">
-                        <ui:VisualElement name="avatarSlotIcon" class="slot-icon" />
+            <ui:VisualElement name="AvaterSlot" class="bottom-panel">
+                <ui:ScrollView name="bottomScrollView" mode="Horizontal" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden" class="bottom-scroll-view">
+                    <ui:VisualElement name="bottomButtonContainer" class="bottom-button-container">
+                        <ui:Button name="bottomButton1" class="bottom-panel-button" />
+                        <ui:Button name="bottomButtonAdd" text="+" class="bottom-panel-button bottom-panel-button-add" />
                     </ui:VisualElement>
-                    <ui:VisualElement name="slotAddBtn" class="avatar-slot-container">
-                        <ui:VisualElement name="slotAddIcon" class="add-icon" />
-                    </ui:VisualElement>
-                </ui:VisualElement>
-            </ui:ScrollView>
-
-           <!-- Capture Setting Bar -->
+                </ui:ScrollView>
+            </ui:VisualElement>
             <ui:VisualElement name="captureSettingBar" class="capture-setting-bar">
-                <ui:VisualElement name="shadowBtn" class="icon-text-btn">
+                <ui:VisualElement name="topButton2" class="icon-text-btn">
                     <ui:VisualElement name="shadowIcon" class="icon-m icon-shadow" />
                     <ui:Label text="Shadow" class="label" />
                 </ui:VisualElement>
-                <ui:VisualElement name="lightingBtn" class="icon-text-btn">
+                <ui:VisualElement name="topButton1" class="icon-text-btn">
                     <ui:VisualElement name="lightingIcon" class="icon-m icon-lighting" />
                     <ui:Label text="Lighting" class="label" />
                 </ui:VisualElement>
-                <ui:VisualElement name="captureModeBtn" class="icon-text-btn cycle-3">
-                    <ui:VisualElement name="captureModeIcon" class="icon-m" />
-                    <ui:Label name="captureModeLabel" text="Ground Fix" class="label" />
-                </ui:VisualElement>
-                <ui:VisualElement name="posingBtn" class="icon-text-btn">
+                <ui:VisualElement name="topButton4" class="icon-text-btn">
                     <ui:VisualElement name="posingIcon" class="icon-m icon-posings" />
                     <ui:Label text="Posing" class="label" />
                 </ui:VisualElement>
-                <ui:VisualElement name="expressionBtn" class="icon-text-btn">
+                <ui:VisualElement name="topButton3" class="icon-text-btn">
                     <ui:VisualElement name="expressionIcon" class="icon-m icon-expressions" />
                     <ui:Label text="Expressions" class="label" />
                 </ui:VisualElement>
             </ui:VisualElement>
-
-            <!-- Shooting Button Bar -->
-            <ui:VisualElement name="shootingButtonBar" class="shooting-button-bar">
-                <ui:VisualElement name="shootingBtn" class="shooting-btn">
-                    <ui:VisualElement name="ellipse" class="shooting-btn-ellipse" />
-                </ui:VisualElement>
-            </ui:VisualElement>
-        
-        </ui:VisualElement>
-
-        <!-- Slot delete overlay (hidden by default) -->
-        <ui:VisualElement name="slotDeleteOverlay" class="slot-delete-overlay is-hidden">
-            <ui:VisualElement name="slotDeleteBtn" class="slot-delete-btn">
-                <ui:Label text="Delete" class="slot-delete-label" />
-            </ui:VisualElement>
-        </ui:VisualElement>
-    
-    </ui:VisualElement>
-
-    <!-- ====== Lighting Panel ===== -->
-    <ui:VisualElement name="lightingPanel" class="lighting-panel is-hidden controls-interactive debug-show">
-
-        <!-- Header -->
-        <ui:VisualElement name="header" class="panel-header">
-            <ui:Label text="Lighting" class="panel-title" />
-            <ui:VisualElement name="lightingCloseBtn" class="panel-close-btn">
-                <ui:VisualElement name="lightingCloseIcon" class="icon-btn-s panel-close-icon" />
-            </ui:VisualElement>
-        </ui:VisualElement>
-
-        <!-- Auto Sync -->
-        <ui:VisualElement name="autoSyncBar" class="auto-sync-bar">
-            <ui:Label text="Auto lighting sync" class="auto-sync-text" />
-            <ui:VisualElement name="autoSyncBtn" class="auto-sync-btn">
-                <ui:VisualElement name="autoSyncToggle" class="toggle-btn is-active" />
-                <ui:Label name="autoSyncStatus" text="ON" class="auto-sync-status" />
-            </ui:VisualElement>
-        </ui:VisualElement>
-
-        <ui:VisualElement name="autoSyncDivider" class="divider" />
-
-        <!-- Tab Selection Bar -->
-        <ui:VisualElement name="tabBar" class="tab-bar">
-
-            <ui:VisualElement name="tabContainer" class="tab-container">
-                <ui:VisualElement name="tabMood" class="tab is-selected">
-                    <ui:Label text="Mood" class="tab-label" />
-                </ui:VisualElement>
-
-                <ui:VisualElement name="tabDirection" class="tab">
-                    <ui:Label text="Direction" class="tab-label" />
-                </ui:VisualElement>
-            </ui:VisualElement>
-
-        </ui:VisualElement>
-
-        <!-- Mood Container -->
-        <ui:VisualElement name="lightingPanelMood" class="tab-content is-active">
-            <ui:VisualElement name="lightingMoodContainer" class="mood-root">
-
-                <!-- Preset -->
-                <ui:VisualElement name="presetContainer" class="preset-container">
-                    <ui:Label text="Preset" class="section-title" />
-
-                    <ui:ScrollView name="presetSelections" class="preset-selections" mode="Horizontal" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden">
-                        
-                        <ui:VisualElement name="presetRow" class="preset-row">
-                            <ui:VisualElement name="presetBtnAuto" class="preset-btn is-selected">
-                                <ui:Label text="Auto" class="preset-label" />
-                            </ui:VisualElement>
-
-                            <ui:VisualElement name="presetBtnSunny" class="preset-btn">
-                                <ui:Label text="Sunny" class="preset-label" />
-                            </ui:VisualElement>
-
-                            <ui:VisualElement name="presetBtnCloudy" class="preset-btn">
-                                <ui:Label text="Cloudy" class="preset-label" />
-                            </ui:VisualElement>
-
-                            <ui:VisualElement name="presetBtnIndoor" class="preset-btn">
-                                <ui:Label text="Indoor" class="preset-label" />
-                            </ui:VisualElement>
-
-                            <ui:VisualElement name="presetBtnWarm" class="preset-btn">
-                                <ui:Label text="Warm" class="preset-label" />
-                            </ui:VisualElement>
-
-                            <ui:VisualElement name="presetBtnSunset" class="preset-btn">
-                                <ui:Label text="Sunset" class="preset-label" />
-                            </ui:VisualElement>
-                        </ui:VisualElement>
-
-                    </ui:ScrollView>
-
-                </ui:VisualElement>
-
-                <!-- Color Temperature -->
-                <ui:VisualElement name="colorTemperatureContainer" class="slider-block">
-                    
-                    <!-- Color Temparature Texts -->
-                    <ui:VisualElement name="colorTemperatureTitleBar" class="slider-title-bar">
-                        <ui:Label text="Color Temperature" class="section-title" />
-                        <ui:Label name="colorTemperatureValue" text="5500K" class="slider-value" />
+            <ui:VisualElement name="captureButtonBar" class="capture-button-bar">
+                <ui:VisualElement name="captureButton" class="capture-button">
+                    <ui:VisualElement name="outerRing" picking-mode="Ignore" class="outer-ring" />
+                    <ui:VisualElement name="innerCircle" picking-mode="Ignore" class="inner-circle" />
+                    <ui:VisualElement name="progressRing" picking-mode="Ignore" class="progress-ring">
+                        <ui:VisualElement name="progressRingBg" picking-mode="Ignore" class="progress-ring-bg" />
+                        <ui:VisualElement name="progressArc" picking-mode="Ignore" class="progress-arc" />
                     </ui:VisualElement>
-
-                    <!-- Color Temparature Slider -->
-                    <ui:VisualElement name="colorTemperatureSlider" class="slider">
-                        <ui:VisualElement name="colorTemperatureTrack" class="slider-track slider-temp" />
-                        <ui:VisualElement name="colorTemperatureThumbBtn" class="slider-thumb-btn">
-                            <ui:VisualElement name="colorTemperatureThumbSdw" class="slider-thumb-sdw" />
-                            <ui:VisualElement name="colorTemperatureThumb" class="slider-thumb" />
-                        </ui:VisualElement>
-                    </ui:VisualElement>
-
                 </ui:VisualElement>
-
-                <!-- Brightness -->
-                <ui:VisualElement name="brightnessContainer" class="slider-block">
-
-                    <!-- Brightness Texts -->
-                    <ui:VisualElement name="brightnessTitleBar" class="slider-title-bar">
-                        <ui:Label text="Brightness" class="section-title" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="flashOverlay" picking-mode="Ignore" class="flash-overlay" />
+        <ui:VisualElement name="viewerOverlay" class="viewer-overlay">
+            <ui:Image name="viewerImage" picking-mode="Ignore" class="viewer-image" />
+        </ui:VisualElement>
+        <ui:VisualElement name="iconPreviewPanel" class="icon-preview-panel">
+            <ui:VisualElement name="iconPreviewImage" class="icon-preview-image" />
+            <ui:VisualElement class="icon-preview-button-container">
+                <ui:Button name="iconPreviewRetake" text="撮り直す" class="icon-preview-button retake" />
+                <ui:Button name="iconPreviewConfirm" text="確定" class="icon-preview-button confirm" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="lightingPanelOverlay" class="lighting-panel-overlay">
+            <ui:VisualElement name="lightingPanel" class="lighting-panel">
+                <ui:VisualElement class="lighting-panel-header">
+                    <ui:Label text="Lighting" class="lighting-panel-title" />
+                    <ui:Button name="lightingPanelClose" text="×" class="lighting-panel-close" />
+                </ui:VisualElement>
+                <ui:VisualElement class="lighting-section ar-sync-section-top">
+                    <ui:VisualElement class="toggle-row-compact">
+                        <ui:Label text="AR Light Sync" class="toggle-label" />
+                        <ui:Toggle name="arSyncToggle" value="true" class="ar-sync-toggle" />
+                    </ui:VisualElement>
+                    <ui:Label text="Automatically match scene lighting" class="ar-sync-description" />
+                </ui:VisualElement>
+                <ui:VisualElement class="lighting-section">
+                    <ui:Label text="Preset" class="section-label" />
+                    <ui:VisualElement name="presetContainer" class="preset-container">
+                        <ui:Button name="presetAuto" text="Auto" class="preset-button preset-selected" />
+                        <ui:Button name="presetSunny" text="Sunny" class="preset-button" />
+                        <ui:Button name="presetCloudy" text="Cloudy" class="preset-button" />
+                        <ui:Button name="presetIndoor" text="Indoor" class="preset-button" />
+                        <ui:Button name="presetWarm" text="Warm" class="preset-button" />
+                        <ui:Button name="presetSunset" text="Sunset" class="preset-button" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement class="lighting-section">
+                    <ui:VisualElement class="slider-header">
+                        <ui:Label text="Color Temperature" class="section-label" />
+                        <ui:Label name="colorTempValue" text="5500K" class="slider-value" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="color-temp-gradient" />
+                    <ui:Slider name="colorTempSlider" low-value="2000" high-value="10000" value="5500" class="lighting-slider" />
+                </ui:VisualElement>
+                <ui:VisualElement class="lighting-section">
+                    <ui:VisualElement class="slider-header">
+                        <ui:Label text="Brightness" class="section-label" />
                         <ui:Label name="brightnessValue" text="1.0" class="slider-value" />
                     </ui:VisualElement>
-
-                    <!-- Brightness Slider -->
-                    <ui:VisualElement name="brightnessSlider" class="slider">
-                        <ui:VisualElement name="brightnessTrack" class="slider-track slider-bright" />
-                        <ui:VisualElement name="brightnessThumbBtn" class="slider-thumb-btn">
-                            <ui:VisualElement name="brightnessThumbSdw" class="slider-thumb-sdw" />
-                            <ui:VisualElement name="brightnessThumb" class="slider-thumb" />
+                    <ui:Slider name="brightnessSlider" low-value="0.1" high-value="2.0" value="1.0" class="lighting-slider" />
+                </ui:VisualElement>
+                <ui:VisualElement class="lighting-section">
+                    <ui:Label text="Light Direction" class="section-label" />
+                    <ui:VisualElement name="lightDirectionControl" class="light-direction-control">
+                        <ui:VisualElement name="lightDirectionBackground" class="light-direction-background">
+                            <ui:Label text="N" class="direction-label direction-n" />
+                            <ui:Label text="S" class="direction-label direction-s" />
+                            <ui:Label text="E" class="direction-label direction-e" />
+                            <ui:Label text="W" class="direction-label direction-w" />
+                            <ui:VisualElement name="lightDirectionKnob" class="light-direction-knob" />
+                        </ui:VisualElement>
+                        <ui:VisualElement class="elevation-control">
+                            <ui:Label text="Elevation" class="elevation-label" />
+                            <ui:Slider name="elevationSlider" low-value="10" high-value="90" value="50" direction="Vertical" class="elevation-slider" />
+                            <ui:Label name="elevationValue" text="50°" class="elevation-value" />
                         </ui:VisualElement>
                     </ui:VisualElement>
-                
                 </ui:VisualElement>
-
             </ui:VisualElement>
-
         </ui:VisualElement>
-
-        <!-- Direction Content -->
-        <ui:VisualElement name="lightingPanelDirection" class="tab-content debug-show">
-
-            <ui:VisualElement name="lightingDirectionContainer" class="direction-root">
-
-                <ui:VisualElement name="directionBlock" class="direction-block">
-                    <ui:Label text="Direction" class="section-title" />
-
-                    <ui:VisualElement name="directionPad" class="dir-pad">
-                        <ui:Label text="N" class="dir-n dir-label" />
-                        <ui:Label text="E" class="dir-e dir-label" />
-                        <ui:Label text="S" class="dir-s dir-label" />
-                        <ui:Label text="W" class="dir-w dir-label" />
-                        <ui:VisualElement name="dirKnob" class="dir-knob" />
+        <ui:VisualElement name="shadowPanelOverlay" class="shadow-panel-overlay">
+            <ui:VisualElement name="shadowPanel" class="shadow-panel">
+                <ui:VisualElement class="shadow-panel-header">
+                    <ui:Label text="Shadow" class="shadow-panel-title" />
+                    <ui:Button name="shadowPanelClose" text="×" class="shadow-panel-close" />
+                </ui:VisualElement>
+                <ui:VisualElement class="shadow-section">
+                    <ui:VisualElement class="toggle-row">
+                        <ui:Label text="Enable Shadow" class="toggle-label" />
+                        <ui:Toggle name="shadowToggle" value="true" class="shadow-toggle" />
                     </ui:VisualElement>
                 </ui:VisualElement>
-
-                <ui:VisualElement name="elevationBlock" class="elev-block">
-                    <ui:VisualElement class="elev-title-bar">
-                        <ui:Label text="Elevation:" class="section-title" />
-                        <ui:Label name="elevationValue" text="50°" class="elev-value" />
+                <ui:VisualElement class="shadow-section">
+                    <ui:VisualElement class="slider-header">
+                        <ui:Label text="Intensity" class="section-label" />
+                        <ui:Label name="shadowIntensityValue" text="0.6" class="slider-value" />
                     </ui:VisualElement>
-
-                    <ui:VisualElement name="elevSlider" class="elev-slider">
-                        <ui:VisualElement name="elevTrack" class="elev-track" />
-                        <ui:VisualElement name="elevKnob" class="elev-knob" />
+                    <ui:Slider name="shadowIntensitySlider" low-value="0" high-value="1" value="0.6" class="shadow-slider" />
+                </ui:VisualElement>
+                <ui:VisualElement class="shadow-section">
+                    <ui:Label text="Softness" class="section-label" />
+                    <ui:VisualElement class="softness-buttons">
+                        <ui:Button name="softHard" text="Hard" class="softness-button" />
+                        <ui:Button name="softMedium" text="Medium" class="softness-button softness-selected" />
+                        <ui:Button name="softSoft" text="Soft" class="softness-button" />
                     </ui:VisualElement>
                 </ui:VisualElement>
-
             </ui:VisualElement>
-
         </ui:VisualElement>
-
     </ui:VisualElement>
-
-    <!-- ====== Shadow Panel ===== -->
-    <ui:VisualElement name="shadowPanel" class="lighting-panel is-hidden controls-interactive debug-show">
-
-        <!-- Header -->
-        <ui:VisualElement name="shadowHeader" class="panel-header">
-            <ui:Label text="Shadow" class="panel-title" />
-            <ui:VisualElement name="shadowCloseBtn" class="panel-close-btn">
-                <ui:VisualElement name="shadowCloseIcon" class="icon-btn-s panel-close-icon" />
-            </ui:VisualElement>
-        </ui:VisualElement>
-
-        <!-- Enable Shadow *Auto syncと同構造。同じコンポーネントを使っている -->
-        <ui:VisualElement name="enableShadowBar" class="auto-sync-bar">
-            <ui:Label text="Enable Shadow" class="auto-sync-text" />
-            <ui:VisualElement name="enableShadowBtn" class="auto-sync-btn">
-                <ui:VisualElement name="enableShadowToggle" class="toggle-btn is-active" />
-                <ui:Label name="enableShadowStatus" text="ON" class="auto-sync-status" />
-            </ui:VisualElement>
-        </ui:VisualElement>
-
-        <ui:VisualElement name="enableShadowDivider" class="divider" />
-
-        <ui:VisualElement name="shadowSetContainer" >
-            <!-- Intensity -->
-            <ui:VisualElement name="shadowIntensityContainer" class="slider-block">
-                <ui:VisualElement class="slider-title-bar">
-                    <ui:Label text="Intensity" class="section-title" />
-                    <ui:Label name="shadowIntensityValue" text="0.5" class="slider-value" />
-                </ui:VisualElement>
-
-                <ui:VisualElement name="shadowIntensitySlider" class="slider">
-                    <ui:VisualElement class="slider-track slider-track-common" />
-                    <ui:VisualElement name="shadowIntensityThumbBtn" class="common-slider-thumb" />
-                </ui:VisualElement>
-            </ui:VisualElement>
-
-            <!-- Softness -->
-            <ui:VisualElement name="shadowSoftnessContainer" class="preset-container">
-                <ui:Label text="Softness" class="section-title" />
-
-                <ui:VisualElement name="shadowSoftnessSelections" class="preset-selections">
-                    <ui:VisualElement name="softnessSoft" class="preset-btn">
-                        <ui:Label text="Soft" class="preset-label" />
-                    </ui:VisualElement>
-                    <ui:VisualElement name="softnessMedium" class="preset-btn is-selected">
-                        <ui:Label text="Medium" class="preset-label" />
-                    </ui:VisualElement>
-                    <ui:VisualElement name="softnessHard" class="preset-btn">
-                        <ui:Label text="Hard" class="preset-label" />
-                    </ui:VisualElement>
-                </ui:VisualElement>
-            </ui:VisualElement>
-        </ui:VisualElement>    
-
-    </ui:VisualElement>
-
 </ui:UXML>
