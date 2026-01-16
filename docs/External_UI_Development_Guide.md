@@ -1,0 +1,190 @@
+# 外部UIデベロッパー向け開発ガイドライン
+
+## 概要
+
+本ドキュメントは、PierCameraプロジェクトのUI開発を担当する外部エンジニア向けのガイドラインです。
+
+---
+
+## 1. プロジェクト構成
+
+### 1.1 作業ディレクトリ
+
+**重要: 全てのUI作業は以下のディレクトリ内で行ってください。**
+
+```
+Assets/UITK_Pier/
+├── UI/
+│   ├── ARCameraScreen/     # メインUI (UXML/USS)
+│   ├── Icons/              # アイコン画像
+│   ├── Scripts/            # UIコントローラー
+│   └── Styles/             # 共通スタイル (tokens.uss)
+└── UIToolkit/
+    ├── PanelSettings.asset
+    └── UnityThemes/
+```
+
+### 1.2 既存UIとの関係
+
+| ディレクトリ | 用途 | 編集可否 |
+|-------------|------|----------|
+| `Assets/UITK_Pier/` | 新UI開発用 | ✅ 編集可 |
+| `Assets/UI/CameraCapture/` | 既存UI | ❌ 編集禁止 |
+| `Assets/UI Toolkit/` | 既存設定 | ❌ 編集禁止 |
+| `Assets/Scripts/` | 既存スクリプト | ❌ 編集禁止 |
+
+---
+
+## 2. 環境セットアップ
+
+### 2.1 既知の問題: SSHパッケージエラー
+
+プロジェクトを開くと、以下のパッケージでエラーが発生する場合があります：
+
+```
+- com.dsgarage.unisil
+- jp.dsgarage.cc2unimcp
+```
+
+**これらのエラーは無視して構いません。** UI開発には影響しません。
+
+### 2.2 必要な環境
+
+- Unity 6000.2.x (Unity 6)
+- UIToolkit (標準搭載)
+
+---
+
+## 3. 開発ルール
+
+### 3.1 絶対禁止事項
+
+1. **`Assets/UITK_Pier/` 以外のファイルを変更しない**
+2. **既存のUnityThemesを変更しない** (`Assets/UI Toolkit/UnityThemes/`)
+3. **URP設定を変更しない** (`Assets/URP/Settings/`)
+4. **シーンファイルを変更しない** (`Assets/Scenes/`)
+
+### 3.2 推奨事項
+
+1. 独自のPanelSettingsを使用する (`Assets/UITK_Pier/UIToolkit/PanelSettings.asset`)
+2. 独自のUnityThemesを使用する (`Assets/UITK_Pier/UIToolkit/UnityThemes/`)
+3. スタイル変数は `tokens.uss` で一元管理する
+4. アイコンは `Assets/UITK_Pier/UI/Icons/` に配置する
+
+---
+
+## 4. UIファイル構成
+
+### 4.1 UXML/USS ファイル
+
+```
+Assets/UITK_Pier/UI/ARCameraScreen/
+├── CaptureControls.uxml    # メインUI構造
+├── CaptureControls.uss     # メインUIスタイル
+├── CaptureGuide.uxml       # ガイドUI構造
+└── CaptureGuide.uss        # ガイドUIスタイル
+```
+
+### 4.2 スタイル変数 (tokens.uss)
+
+```css
+:root {
+    --primary-color: #007AFF;
+    --background-color: rgba(0, 0, 0, 0.5);
+    /* ... */
+}
+```
+
+### 4.3 コントローラー
+
+```
+Assets/UITK_Pier/UI/Scripts/
+├── CaptureControlsController.cs    # メインUI制御
+└── CaptureGuideController.cs       # ガイドUI制御
+```
+
+---
+
+## 5. Gitワークフロー
+
+### 5.1 ブランチ
+
+```
+feature/ui-overhaul-documentation  ← このブランチで作業
+```
+
+### 5.2 コミットルール
+
+- `Assets/UITK_Pier/` 内のファイルのみをコミット
+- 他のファイルが変更されていないことを確認してからコミット
+
+```bash
+# コミット前の確認
+git status
+
+# UITK_Pier以外の変更がないことを確認
+git diff --name-only | grep -v "UITK_Pier"
+```
+
+### 5.3 Pull Request
+
+1. 変更は `Assets/UITK_Pier/` 内のみであることを確認
+2. PRタイトルに `[UI]` プレフィックスを付ける
+3. 変更内容のスクリーンショットを添付
+
+---
+
+## 6. 動作確認
+
+### 6.1 テスト用シーン
+
+UI動作確認用のシーンを作成する場合は、以下の命名規則に従ってください：
+
+```
+Assets/UITK_Pier/Scenes/UITK_Pier_Test.unity
+```
+
+### 6.2 ビルド確認
+
+変更後、以下を確認してください：
+
+1. コンソールにエラーがないこと (SSH関連エラーは除く)
+2. Play モードでUIが正しく表示されること
+
+---
+
+## 7. トラブルシューティング
+
+### 7.1 SSHパッケージエラー
+
+**症状:** `com.dsgarage.unisil` や `jp.dsgarage.cc2unimcp` の解決エラー
+
+**対処:** 無視して作業を続行。UI開発には影響なし。
+
+### 7.2 UIが表示されない
+
+**確認事項:**
+1. PanelSettingsがUIDocumentにアタッチされているか
+2. Source Assetに正しいUXMLが設定されているか
+
+### 7.3 スタイルが適用されない
+
+**確認事項:**
+1. UXMLにUSSがリンクされているか
+2. セレクタ名が正しいか
+
+---
+
+## 8. 連絡先
+
+質問や問題がある場合は、GitHub Issue #448 にコメントしてください。
+
+- Issue: https://github.com/dsgarage/PierCamera/issues/448
+
+---
+
+## 変更履歴
+
+| 日付 | バージョン | 変更内容 |
+|------|-----------|----------|
+| 2026-01-16 | 1.0 | 初版作成 |
