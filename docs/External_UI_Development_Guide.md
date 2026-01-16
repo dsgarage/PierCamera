@@ -6,6 +6,73 @@
 
 ---
 
+## 作業内容
+
+### 目的
+
+ARカメラアプリ「PierCamera」のメインUI（撮影画面）をUIToolkitで刷新する。
+
+### 対象画面
+
+**ARCamera_origin** - メイン撮影画面
+
+現在の機能：
+- 写真撮影（タップ）/ 動画撮影（長押し、最大5秒）
+- アバター管理（VRM/FBXモデルのスロット管理）
+- ライティング調整（AR光推定またはマニュアル）
+- シャドウ調整（有効/無効、強度、ソフトネス）
+- 表情/ポーズ切り替え
+- アスペクト比変更（Full / 16:9 / 3:2 / 1:1）
+
+### 既存UIの仕様書
+
+詳細な仕様は以下のドキュメントを参照してください：
+
+| ドキュメント | 内容 |
+|-------------|------|
+| `aiCam/Docs/UI/ARCamera_UI_Specification.md` | UI仕様書（全体構造、各コンポーネント詳細） |
+| `aiCam/Docs/UI/ARCamera_UI_Layout.md` | レイアウト詳細 |
+
+### UIコンポーネント一覧
+
+| コンポーネント | 説明 |
+|---------------|------|
+| captureButton | 撮影ボタン（120x120px、円形プログレス付き） |
+| topPanel | 上部機能ボタン（Light, Shadow, Expression, Pose, Plane） |
+| sidePanel | 左サイドバー（設定, アスペクト比, フラッシュ, バグレポート） |
+| AvaterSlot | アバター選択パネル（水平スクロール、動的スロット追加） |
+| lightingPanelOverlay | ライティング設定パネル |
+| shadowPanelOverlay | シャドウ設定パネル |
+| alertBar | 警告/エラー通知バー |
+| iconPreviewPanel | 撮影後プレビュー確認パネル |
+
+### 作業範囲
+
+**開発対象（UITK_Pier内）：**
+1. UXML/USS ファイルの作成・編集
+2. UIコントローラースクリプト（C#）の作成
+3. アイコン画像の配置
+
+**対象外（既存コードとの結合）：**
+- 既存のCameraCaptureController.csとの統合
+- AR機能との接続
+- アバターローダーとの連携
+
+### 成果物
+
+1. `Assets/UITK_Pier/UI/ARCameraScreen/` 内のUXML/USSファイル
+2. `Assets/UITK_Pier/UI/Scripts/` 内のコントローラースクリプト
+3. `Assets/UITK_Pier/UI/Icons/` 内のアイコン画像
+
+### 受け入れ基準
+
+1. 既存UIの機能を全て網羅していること
+2. UIToolkitのベストプラクティスに従っていること
+3. レスポンシブ対応（セーフエリア考慮）
+4. `Assets/UITK_Pier/` 以外のファイルを変更していないこと
+
+---
+
 ## 1. プロジェクト構成
 
 ### 1.1 作業ディレクトリ
@@ -188,3 +255,4 @@ Assets/UITK_Pier/Scenes/UITK_Pier_Test.unity
 | 日付 | バージョン | 変更内容 |
 |------|-----------|----------|
 | 2026-01-16 | 1.0 | 初版作成 |
+| 2026-01-16 | 1.1 | 作業内容セクション追加 |
