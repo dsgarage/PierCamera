@@ -8,7 +8,7 @@ UIテストシーンは、UXML/USSの変更が正しく設定されているか�
 ## ファイル構成
 
 ```
-Assets/UI/UITK_Pier/
+Assets/UITK_Pier/
 ├── Editor/
 │   └── UITestSceneCreator.cs    # シーン作成ユーティリティ
 ├── Scripts/
