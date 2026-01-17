@@ -107,7 +107,7 @@
 }
 
 /* ================================
-   上部パネル :⭕️uss調整対象
+   上部パネル
 ================================ */
 .top-panel {
     position: absolute;
@@ -156,14 +156,14 @@
 }
 
 /* ================================
-   サイドバーパネル（左側中央）:⭕️uss調整対象
+   サイドバーパネル（左側中央寄り)
 ================================ */
 .side-panel {
     position: absolute;
     top: 40%;
-    left: 8px;
+    left: 12px;
     translate: 0 -50%;
-    width: 56px;
+    width: 48px;
     background-color: rgba(128, 128, 128, 0.5);
     display: flex;
     flex-direction: column;
@@ -194,20 +194,20 @@
 
 /* サイドバーボタンのアイコン設定 */
 #sideButton1 {
-    background-image: resource('Sprite/PictIcon/SideBear/01_Prefarence');
-}
+    background-image: url("../Icons/Setting.png");
+} /* Setting */
 
 #sideButton2 {
-    background-image: resource('Sprite/PictIcon/SideBear/02_01_Full');
-}
+    background-image: url("../Icons/Aspect_Full.png");
+} /* Aspect */
 
 #sideButton3 {
-    background-image: resource('Sprite/PictIcon/SideBear/03_Flash');
-}
+    background-image: url("../Icons/flash_ON.png");
+} /* Flash */
 
 /* Issue #413: バグレポートボタン */
 #sideButtonBugReport {
-    background-image: resource('Sprite/PictIcon/SideBear/04_BugReport');
+    background-image: url("../Icons/bugRepo.png");
 }
 
 .bug-report-button {
@@ -233,7 +233,7 @@
 }
 
 /* ================================
-   アバタースロットパネル :⭕️uss調整対象
+   アバタースロットパネル 
 ================================ */
 .bottom-panel {
     height: 68px;
@@ -352,7 +352,7 @@
 }
 
 /* ================================
-   削除メニューポップアップ　:⭕️uss調整対象
+   削除メニューポップアップ
 ================================ */
 .delete-popup {
     position: absolute;
@@ -477,7 +477,7 @@
     border-top-right-radius: 50%;
     border-bottom-left-radius: 50%;
     border-bottom-right-radius: 50%;
-    background-image: resource('UI/Buttons/CaptureButtonInner');
+    background-image: url("../Icons/CaptureButtonInner.png");
     -unity-background-scale-mode: scale-to-fit;
     transition-property: background-color;
     transition-duration: 0.3s;
@@ -495,7 +495,7 @@
     position: absolute;
     width: 80px;
     height: 80px;
-    background-image: resource('UI/Buttons/CaptureButtonOuter');
+    background-image: url("../Icons/CaptureButtonOuter.png");
     -unity-background-scale-mode: scale-to-fit;
     display: flex;
     pointer-events: none;
