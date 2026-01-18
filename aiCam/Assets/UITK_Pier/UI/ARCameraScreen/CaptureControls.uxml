@@ -173,26 +173,33 @@
                 <!-- Direction Tab: タブを２つに分けたことで、タブをまとめるセクションを追加 : 🔴ussも持ってくる-->
                 <ui:VisualElement name="lightingPanelDirection" class="tab-content">
                     <ui:VisualElement name="lightingDirectionContainer" class="direction-root">
-                        <!-- LightDirectionのセクション -->
-                        <ui:VisualElement class="lighting-section">
-                            <ui:Label text="Light Direction" class="section-label" />
-                            <ui:VisualElement name="lightDirectionControl" class="light-direction-control">
-                                <!-- ライト方向コントロールパッド ：　🔴これは、できれば既存のussで見た目を調整する感じにしたい。-->
-                                <ui:VisualElement name="lightDirectionBackground" class="light-direction-background">
-                                    <ui:Label text="N" class="direction-label direction-n" />
-                                    <ui:Label text="S" class="direction-label direction-s" />
-                                    <ui:Label text="E" class="direction-label direction-e" />
-                                    <ui:Label text="W" class="direction-label direction-w" />
-                                    <ui:VisualElement name="lightDirectionKnob" class="light-direction-knob" />
-                                </ui:VisualElement>
-                                <!-- ライトの高さコントロールスライダー：🔴Ussで調整する -->
-                                <ui:VisualElement class="elevation-control">
-                                    <ui:Label text="Elevation" class="elevation-label" />
-                                    <ui:Slider name="elevationSlider" low-value="10" high-value="90" value="50" direction="Vertical" class="elevation-slider" />
-                                    <ui:Label name="elevationValue" text="50°" class="elevation-value" />
-                                </ui:VisualElement>
+                       
+                        <!-- <ui:Label text="Light Direction" class="section-label" /> -->
+                        
+                        <ui:VisualElement name="DirectionControl" class="direction-control">
+                            <ui:Label text="Direction" class="section-label" />
+                            <!-- ライト方向コントロールパッド ：　🔴これは、できれば既存のussで見た目を調整する感じにしたい。-->
+                            <ui:VisualElement name="lightDirectionBackground" class="light-direction-background">
+                                <ui:Label text="N" class="direction-label direction-n" />
+                                <ui:Label text="S" class="direction-label direction-s" />
+                                <ui:Label text="E" class="direction-label direction-e" />
+                                <ui:Label text="W" class="direction-label direction-w" />
+                                <ui:VisualElement name="lightDirectionKnob" class="light-direction-knob" />
                             </ui:VisualElement>
+
                         </ui:VisualElement>
+
+                        <!-- ライトの高さコントロールスライダー：🔴Ussで調整する -->
+                        <ui:VisualElement class="elevation-control">
+                            <ui:VisualElement class="elev-title-bar">
+                                <ui:Label text="Elevation" class="section-label" />
+                                <ui:Label name="elevationValue" text="50°" class="elevation-value" />
+                            </ui:VisualElement>
+                            
+                            <ui:Slider name="elevationSlider" low-value="10" high-value="90" value="50" direction="Vertical" class="elevation-slider" />
+                        </ui:VisualElement>
+                            
+                        
 
                     </ui:VisualElement>
                 </ui:VisualElement>
