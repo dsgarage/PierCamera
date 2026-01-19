@@ -85,10 +85,10 @@
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <!-- ========================================================= 
+        <!-- =========================================================
               ライティングパネル全体 ：　🔴uxmlはそのまま維持しているが、ussのファイルを分割したためもしかしたら元のC#に影響があるかもしれない。
              ========================================================= -->
-        <!-- <ui:VisualElement name="settingPanelBackdrop" class="lighting-panel-backdrop" /> --> <!-- バックドロップが効いてなかったため、追加 -->
+        <ui:VisualElement name="settingsPanelBackdrop" class="lighting-panel-backdrop" />
 
         <ui:VisualElement name="lightingPanelOverlay" class="lighting-panel-overlay">
             <ui:VisualElement name="lightingPanel" class="lighting-panel">

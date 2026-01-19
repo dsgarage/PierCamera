@@ -238,10 +238,45 @@ namespace AICam.UI
             root = uiDoc.rootVisualElement;
             if (root == null)
             {
-                Debug.LogError("❌ Root VisualElement is null!");
+                Debug.LogWarning("⏳ Root VisualElement is null - waiting for UIDocument to initialize...");
+                StartCoroutine(WaitForUIDocumentAndInitialize(uiDoc));
                 return;
             }
 
+            InitializeUIElements();
+        }
+
+        /// <summary>
+        /// UIDocumentのrootVisualElementが利用可能になるまで待機してから初期化
+        /// </summary>
+        private System.Collections.IEnumerator WaitForUIDocumentAndInitialize(UIDocument uiDoc)
+        {
+            int maxRetries = 10;
+            int retryCount = 0;
+
+            while (root == null && retryCount < maxRetries)
+            {
+                yield return null; // 1フレーム待機
+                root = uiDoc.rootVisualElement;
+                retryCount++;
+                Debug.Log($"⏳ Waiting for UIDocument... attempt {retryCount}/{maxRetries}");
+            }
+
+            if (root == null)
+            {
+                Debug.LogError("❌ Root VisualElement is still null after waiting!");
+                yield break;
+            }
+
+            Debug.Log($"✅ Root element found after {retryCount} frame(s): {root.name}");
+            InitializeUIElements();
+        }
+
+        /// <summary>
+        /// UI要素の初期化（OnEnableまたは遅延初期化から呼ばれる）
+        /// </summary>
+        private void InitializeUIElements()
+        {
             Debug.Log($"✅ Root element found: {root.name}");
 
             captureButton = root.Q<VisualElement>("captureButton");
