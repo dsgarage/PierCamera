@@ -432,6 +432,11 @@
 
   align-items: center;        /* 横方向の中央揃え */
   justify-content: center;    /* 縦方向の中央寄せ */
+
+  /* Button型のデフォルトのビジュアルへの打ち消し */
+  background-color: transparent;
+  background-image: none;
+  border-color: transparent;
 }
 .icon-m{
   width: 44px;
