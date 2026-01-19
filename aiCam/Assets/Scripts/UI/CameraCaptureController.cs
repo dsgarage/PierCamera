@@ -2650,6 +2650,8 @@ namespace AICam.UI
         void ShowLightingPanel()
         {
             Debug.Log($"📋 ShowLightingPanel called");
+            Debug.Log($"📋 settingsPanelBackdrop is null: {settingsPanelBackdrop == null}");
+            Debug.Log($"📋 lightingPanelOverlay is null: {lightingPanelOverlay == null}");
             HideAllPanels(); // 他のパネルを閉じる
 
             // パネル表示時にLightingPanelControllerを遅延初期化
@@ -2657,12 +2659,25 @@ namespace AICam.UI
 
             if (settingsPanelBackdrop != null)
             {
+                settingsPanelBackdrop.pickingMode = PickingMode.Position; // 表示時はクリック受付
                 settingsPanelBackdrop.AddToClassList("visible");
+                Debug.Log($"📋 settingsPanelBackdrop classes after: {string.Join(", ", settingsPanelBackdrop.GetClasses())}");
+                Debug.Log($"📋 settingsPanelBackdrop display: {settingsPanelBackdrop.resolvedStyle.display}");
+            }
+            else
+            {
+                Debug.LogWarning("⚠️ settingsPanelBackdrop is NULL - cannot show backdrop");
             }
             if (lightingPanelOverlay != null)
             {
                 lightingPanelOverlay.AddToClassList("visible");
+                Debug.Log($"📋 lightingPanelOverlay classes after: {string.Join(", ", lightingPanelOverlay.GetClasses())}");
+                Debug.Log($"📋 lightingPanelOverlay display: {lightingPanelOverlay.resolvedStyle.display}");
                 Debug.Log("💡 Lighting panel shown");
+            }
+            else
+            {
+                Debug.LogWarning("⚠️ lightingPanelOverlay is NULL - cannot show panel");
             }
         }
 
@@ -2672,6 +2687,8 @@ namespace AICam.UI
         void ShowShadowPanel()
         {
             Debug.Log($"📋 ShowShadowPanel called");
+            Debug.Log($"📋 settingsPanelBackdrop is null: {settingsPanelBackdrop == null}");
+            Debug.Log($"📋 shadowPanelOverlay is null: {shadowPanelOverlay == null}");
             HideAllPanels(); // 他のパネルを閉じる
 
             // パネル表示時にLightingPanelControllerを遅延初期化
@@ -2679,12 +2696,25 @@ namespace AICam.UI
 
             if (settingsPanelBackdrop != null)
             {
+                settingsPanelBackdrop.pickingMode = PickingMode.Position; // 表示時はクリック受付
                 settingsPanelBackdrop.AddToClassList("visible");
+                Debug.Log($"📋 settingsPanelBackdrop classes after: {string.Join(", ", settingsPanelBackdrop.GetClasses())}");
+                Debug.Log($"📋 settingsPanelBackdrop display: {settingsPanelBackdrop.resolvedStyle.display}");
+            }
+            else
+            {
+                Debug.LogWarning("⚠️ settingsPanelBackdrop is NULL - cannot show backdrop");
             }
             if (shadowPanelOverlay != null)
             {
                 shadowPanelOverlay.AddToClassList("visible");
+                Debug.Log($"📋 shadowPanelOverlay classes after: {string.Join(", ", shadowPanelOverlay.GetClasses())}");
+                Debug.Log($"📋 shadowPanelOverlay display: {shadowPanelOverlay.resolvedStyle.display}");
                 Debug.Log("🌑 Shadow panel shown");
+            }
+            else
+            {
+                Debug.LogWarning("⚠️ shadowPanelOverlay is NULL - cannot show panel");
             }
         }
 
@@ -2695,6 +2725,7 @@ namespace AICam.UI
         {
             if (settingsPanelBackdrop != null)
             {
+                settingsPanelBackdrop.pickingMode = PickingMode.Ignore; // 非表示時はクリック無視
                 settingsPanelBackdrop.RemoveFromClassList("visible");
             }
             if (lightingPanelOverlay != null)
