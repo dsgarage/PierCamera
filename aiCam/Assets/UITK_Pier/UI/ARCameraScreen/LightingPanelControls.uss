@@ -1,8 +1,9 @@
 @import url("../Styles/tokens.uss");
-
 /* ================================
-   ライティングパネルスタイル
+   ロジック
 ================================ */
+.tab-content{ display: none; }
+.tab-content.is-active{ display: flex; }
 
 /* ================================
    メインパネル
@@ -593,19 +594,19 @@
    DEV ONLY (最終コミット前に削除します)
 ================================ */
 /* rootに dev-force-show を付けたら強制表示 */
-.dev-force-show #lightingPanelOverlay {
+/* .dev-force-show #lightingPanelOverlay {
     display: flex;
 }
 .dev-force-show #lightingPanel {
     display: flex;
 }
-.dev-force-show #lightingPanelBackdrop { display: flex; }
+.dev-force-show #lightingPanelBackdrop { display: flex; } */
 
 /* DEV: Directionだけ見て作業したい */
-.dev-force-show #lightingPanelMood {
+/* .dev-force-show #lightingPanelMood {
     display: flex;
 }
 .dev-force-show #lightingPanelDirection {
     display: none;
-}
+} */
 

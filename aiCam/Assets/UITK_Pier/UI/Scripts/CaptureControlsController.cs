@@ -3,96 +3,98 @@ using UnityEngine.UIElements;
 using System.Collections;
 
 // Modeの型を定義→「選ぶのを文字列ではなく３つの型に限定」
-public enum PlacementMode { GroundFix, ScreenFix, Follow }
+/* public enum PlacementMode { GroundFix, ScreenFix, Follow } 🔴元々存在するコードとconflictする可能性が高い,PlaneVisibleは元々存在するので、制御を任せる*/
 
 // クラスの宣言(MonoBehavior: Unityの部品) → MonoBehaviorを継承すると、Awake()、Start()、Update()などの"イベント関数が呼ばれるようになる"
 public class CaptureControlsController : MonoBehaviour
 {
     // Inspectorで差し込みたい参照(privateだけど、Inspectorに露出させる)
     [SerializeField] private UIDocument doc;
-    [SerializeField] private CaptureGuideController captureGuide; // Layer3参照（Inspectorで入れる）
+    /* [SerializeField] private CaptureGuideController captureGuide; // Layer3参照（Inspectorで入れる） 🔴元々存在するコードとconflictする可能性が高い,Aspectの制御は元々存在するので、制御を任せる*/
 
     // state(このクラスが持つ現在の状態：UIは状態から動作をコードで作っていく)
-    [SerializeField] private PlacementMode placementMode = PlacementMode.GroundFix;
-    [SerializeField] private CaptureAspect aspect = CaptureAspect.FourThree;
-    [SerializeField] private bool flashOn = false;
-    [SerializeField] private bool flatVisible = true;
+    /* [SerializeField] private PlacementMode placementMode = PlacementMode.GroundFix; 🔴元々存在するコードとconflictする可能性が高い,PlaneVisibleは元々存在するので、制御を任せる*/
+    /* [SerializeField] private CaptureAspect aspect = CaptureAspect.FourThree;🔴元々存在するコードとconflictする可能性が高い,Aspectの制御は元々存在するので、制御を任せる */
+    /* [SerializeField] private bool flashOn = false; 🔴flashはまだ実装していないが、ARFoundationとの繋ぎ込みが必要なため、元々のC#コードの親和性が高いはず*/
+    /* [SerializeField] private bool flatVisible = true; 🔴元々存在するコードとconflictする可能性が高い,PlaneVisibleは元々存在するので、制御を任せる*/
 
     // UIの要素(VisualElement)を"掴む"ための変数 uxmlのnameと対応する
     VisualElement root;
-    VisualElement flashBtn;
-    VisualElement flatBtn;
-    VisualElement aspectBtn;
-    VisualElement captureModeBtn;
-    VisualElement captureModeIcon;
+    /* VisualElement flashBtn;
+    VisualElement flatBtn; 🔴flashはまだ実装していないが、ARFoundationとの繋ぎ込みが必要なため、元々のC#コードの親和性が高いはず*/
+    /* VisualElement aspectBtn; 🔴元々存在するコードとconflictする可能性が高い,Aspectの制御は元々存在するので、制御を任せる*/
+    /* VisualElement captureModeBtn;
+    VisualElement captureModeIcon; 🟡CaptureModeBtnは、今回の実装UI対象から外した。Nice to haveなので後ほど実装する可能性はある*/
     // Label内のTextを変更するために label.text(Labelが持っているtextを使う)を利用できるので、Labelとして型を定義
-    private Label captureModeLabel;
-    VisualElement avatarSlotBar;
+    /* private Label captureModeLabel;🟡CaptureModeBtnは、今回の実装UI対象から外した。Nice to haveなので後ほど実装する可能性はある */
+    /* VisualElement avatarSlotBar;
     VisualElement avatarSlotRow;
-    const int MaxSlots = 7;
+    const int MaxSlots = 7; 🔴元々存在するコードとconflictする可能性が高い*/
     // 最初のSlot と 2つ目以降のSlot
-    VisualElement initialAvatarSlotBtn;
-    VisualElement slotAddBtn;
+    /* VisualElement initialAvatarSlotBtn;
+    VisualElement slotAddBtn; 🔴元々存在するコードとconflictする可能性が高い*/
     // Slot Delete Overlay
-    VisualElement slotDeleteOverlay;
+    /* VisualElement slotDeleteOverlay;
     VisualElement slotDeleteBtn;
     VisualElement pendingDeleteSlot;
-    Coroutine longPressRoutine;
+    Coroutine longPressRoutine; 🔴元々存在するコードとconflictする可能性が高い*/
 
     // ------- Lighitng PanelのUI要素 -------
-    VisualElement lightingBtn;
-    VisualElement lightingPanel;
-    VisualElement lightingCloseBtn;
+    VisualElement topButton1; /* 🔴LightingBtn ※LighitngPanelのオープン/Closeを既存のC#コードに任せる場合に、ここは必要ない */
+    VisualElement lightingPanelOverlay; /* 🔴lightingPanel ※LighitngPanelのオープン/Closeを既存のC#コードに任せる場合に、ここは必要ない */
+    VisualElement lightingPanelClose; /* 🔴lightingCloseBtn ※LighitngPanelのオープン/Closeを既存のC#コードに任せる場合に、ここは必要ない */
+    // mood-tab/direction-tab
     VisualElement tabMood;
     VisualElement tabDirection;
-    VisualElement lightingPanelMood;
-    VisualElement lightingPanelDirection;
+    VisualElement lightingPanelMood; 
+    VisualElement lightingPanelDirection; 
 
     // Auto Sync
-    VisualElement autoSyncBtn;
+    /* VisualElement autoSyncBtn;
     VisualElement autoSyncToggle;
     Label autoSyncStatusLabel;
-    bool autoSyncOn = true;
+    bool autoSyncOn = true; */
     
     // Preset selections
-    ScrollView presetSelections;
-    VisualElement presetBtnAuto, presetBtnSunny, presetBtnCloudy, presetBtnIndoor, presetBtnWarm, presetBtnSunset;
+    /* ScrollView presetSelections;
+    VisualElement presetBtnAuto, presetBtnSunny, presetBtnCloudy, presetBtnIndoor, presetBtnWarm, presetBtnSunset; 🔴元々存在するコードとconflictする可能性が高い*/
     
     // Sliders
-    VisualElement colorTemperatureSlider;
+    /* VisualElement colorTemperatureSlider;
     VisualElement colorTemperatureThumbBtn;
     Label colorTemperatureValueLabel;
     VisualElement brightnessSlider;
     VisualElement brightnessThumbBtn;
-    Label brightnessValueLabel;
+    Label brightnessValueLabel; 🔴元々存在するコードとconflictする可能性が高い, Slider系のC#での構築は必要ない*/
 
     // Slider values
-    float colorTempK = 5500f;   // 2000-10000
+    /* float colorTempK = 5500f;   // 2000-10000
     float brightness = 1.0f;    // 0.1-2.0
     bool draggingTemp = false;
     bool draggingBright = false;
-    bool slidersInitialized = false;
+    bool slidersInitialized = false; 🔴元々存在するコードとconflictする可能性が高い, Slider系のC#での構築は必要ない */
 
     // ---- Direction tab ----
-    VisualElement directionPad;
-    VisualElement dirKnob;
+    /* VisualElement directionPad; 
+    VisualElement dirKnob; 🔴元々存在するコードとconflictする可能性が高い、DirectionPadの制御は、元々のC#に存在するはず*/
 
-    VisualElement elevSlider;
+    /* VisualElement elevSlider;
     VisualElement elevTrack;
     VisualElement elevKnob;
-    Label elevationValueLabel;
+    Label elevationValueLabel; 🔴元々存在するコードとconflictする可能性が高い、ElevationSliderの制御は、元々のC#に存在するはず*/
 
-    bool draggingDir = false;
+    /* bool draggingDir = false;
     bool draggingElev = false;
-    bool directionInitialized = false;
+    bool directionInitialized = false; 🔴元々存在するコードとconflictする可能性が高い、Direction/Elevationの制御は、元々のC#に存在するはず*/
 
     // values
-    float dirX01 = 0.5f;     // 0..1 (中心=0.5)
+    /* float dirX01 = 0.5f;     // 0..1 (中心=0.5)
     float dirY01 = 0.5f;     // 0..1
-    float elevation01 = 0.5f; // 0..1
+    float elevation01 = 0.5f; // 0..1 🔴元々存在するコードとconflictする可能性が高い、Direction/Elevationの制御は、元々のC#に存在するはず*/
 
     // ------- Shadow PanelのUI要素 -------
-    VisualElement shadowBtn;
+    /* 🔴元々存在するコードとconflictする可能性が高い, ShadowPanelは基本的に構造を保持しているため、元々のC#に任せるべき */
+    /* VisualElement shadowBtn;
     VisualElement shadowPanel;
     VisualElement shadowCloseBtn;
 
@@ -114,7 +116,7 @@ public class CaptureControlsController : MonoBehaviour
     VisualElement shadowSoftnessSelections;
     VisualElement softnessSoft;
     VisualElement softnessMedium;
-    VisualElement softnessHard;
+    VisualElement softnessHard; */
 
     // UXLMから要素を検索して、変数に入れる（１回だけ）※名前一致がとても大事
     void Awake()
@@ -122,7 +124,7 @@ public class CaptureControlsController : MonoBehaviour
         if (!doc) doc = GetComponent<UIDocument>();
         root = doc.rootVisualElement;
 
-        flashBtn = root.Q<VisualElement>("flashBtn");
+        /* flashBtn = root.Q<VisualElement>("flashBtn");
         flatBtn = root.Q<VisualElement>("flatVisualBtn");
         aspectBtn = root.Q<VisualElement>("aspectBtn");
 
@@ -139,20 +141,21 @@ public class CaptureControlsController : MonoBehaviour
         slotDeleteBtn = root.Q<VisualElement>("slotDeleteBtn");
         // overlayは入力を取る必要がある
         slotDeleteOverlay.pickingMode = PickingMode.Position;
-        slotDeleteBtn.pickingMode = PickingMode.Position;
+        slotDeleteBtn.pickingMode = PickingMode.Position; */
 
         // ---- Lighting Panel ----
-        lightingBtn = root.Q<VisualElement>("lightingBtn");
-        lightingPanel = root.Q<VisualElement>("lightingPanel");
-        lightingCloseBtn = root.Q<VisualElement>("lightingCloseBtn");
+        topButton1 = root.Q<VisualElement>("topButton1"); //  🔴後で削除予定、元のC#コードに制御があるはず
+        lightingPanelOverlay = root.Q<VisualElement>("lightingPanelOverlay"); // 🔴後で削除予定、元のC#コードに制御があるはず
+        lightingPanelClose = root.Q<VisualElement>("lightingPanelClose"); // 🔴後で削除予定、元のC#コードに制御があるはず
 
         tabMood = root.Q<VisualElement>("tabMood");
         tabDirection = root.Q<VisualElement>("tabDirection");
 
-        lightingPanelMood = root.Q<VisualElement>("lightingPanelMood");
-        lightingPanelDirection = root.Q<VisualElement>("lightingPanelDirection");
+        lightingPanelMood = root.Q<VisualElement>("lightingPanelMood"); 
+        lightingPanelDirection = root.Q<VisualElement>("lightingPanelDirection"); 
 
-        // auto sync
+        // 🔴その他のライティング機能は、元々のコードに制御が存在する
+        /* // auto sync
         autoSyncBtn = root.Q<VisualElement>("autoSyncBtn");
         autoSyncToggle = root.Q<VisualElement>("autoSyncToggle");
         autoSyncStatusLabel = root.Q<Label>("autoSyncStatus");
@@ -183,10 +186,10 @@ public class CaptureControlsController : MonoBehaviour
         elevSlider = root.Q<VisualElement>("elevSlider");
         elevTrack = root.Q<VisualElement>("elevTrack");
         elevKnob = root.Q<VisualElement>("elevKnob");
-        elevationValueLabel = root.Q<Label>("elevationValue");
+        elevationValueLabel = root.Q<Label>("elevationValue"); */
 
-        // ---- Shadow Panel ----
-        shadowBtn = root.Q<VisualElement>("shadowBtn");
+        // ---- Shadow Panel : 🔴元々のC#に制御が存在する----
+        /* shadowBtn = root.Q<VisualElement>("shadowBtn");
         shadowPanel = root.Q<VisualElement>("shadowPanel");
         shadowCloseBtn = root.Q<VisualElement>("shadowCloseBtn");
 
@@ -204,13 +207,14 @@ public class CaptureControlsController : MonoBehaviour
         shadowSoftnessSelections = root.Q<VisualElement>("shadowSoftnessSelections");
         softnessSoft = root.Q<VisualElement>("softnessSoft");
         softnessMedium = root.Q<VisualElement>("softnessMedium");
-        softnessHard = root.Q<VisualElement>("softnessHard");
+        softnessHard = root.Q<VisualElement>("softnessHard"); */
     }
 
     // 最初に画面が呼ばれる時の実行内容
     void Start()
     {
-        // クリックイベントを繋ぐ（VisualElementでもClickEvent取れる）
+        // 既存機能なので必要なし🔴
+        /* // クリックイベントを繋ぐ（VisualElementでもClickEvent取れる）
         flashBtn?.RegisterCallback<ClickEvent>(_ => ToggleFlash());
         flatBtn?.RegisterCallback<ClickEvent>(_ => ToggleFlat());
         aspectBtn?.RegisterCallback<ClickEvent>(_ => CycleAspect());
@@ -232,36 +236,36 @@ public class CaptureControlsController : MonoBehaviour
             HideSlotDeleteOverlay();
         });
         // １つ目のSlotBtnにも付与
-        AttachLongPressToSlot(initialAvatarSlotBtn);
+        AttachLongPressToSlot(initialAvatarSlotBtn); */
 
         // 起動直後に「状態→UIの見た目への反映」を行う
-        ApplyAllToUI();
-        // レイヤー4(このレイヤー)のAspectをレイヤー3のスクリプトへ伝える
-        ApplyAspectToGuide();
+        /* ApplyAllToUI(); 🔴この中身は、このC#で制御しないため必要なし*/
+        // レイヤー4(このレイヤー)のAspectをレイヤー3のスクリプトへ伝える 🔴Aspect制御が元々存在するので必要なし
+        /* ApplyAspectToGuide(); */
 
         // ---- Lighting Panelの制御 ----
         // Lighting Panel の open/close
-        lightingBtn?.RegisterCallback<ClickEvent>(_ => ShowLightingPanel());
-        lightingCloseBtn?.RegisterCallback<ClickEvent>(_ => HideLightingPanel());
+        topButton1?.RegisterCallback<ClickEvent>(_ => ShowLightingPanel());
+        lightingPanelClose?.RegisterCallback<ClickEvent>(_ => HideLightingPanel());
 
-        // Auto sync
-        autoSyncBtn?.RegisterCallback<ClickEvent>(_ => ToggleAutoSyncUI());
-        ApplyAutoSyncUI(); // 初期表示を状態に合わせる
+        // Auto sync　🔴制御が元のC#に存在するので必要なし
+        /* autoSyncBtn?.RegisterCallback<ClickEvent>(_ => ToggleAutoSyncUI());
+        ApplyAutoSyncUI(); // 初期表示を状態に合わせる */
 
-        // Lighting panel内のTabsの切り替え
+        // Lighting panel内のTabsの切り替え　
         tabMood?.RegisterCallback<ClickEvent>(_ => ShowLightingMood());
         tabDirection?.RegisterCallback<ClickEvent>(_ => ShowLightingDirection());
 
-        // Presetをクリックしたものに切り替え
-        presetBtnAuto?.RegisterCallback<ClickEvent>(_ => SelectPreset(presetBtnAuto));
+        // Presetをクリックしたものに切り替え　🔴制御が元のC#に存在するので必要なし
+        /* presetBtnAuto?.RegisterCallback<ClickEvent>(_ => SelectPreset(presetBtnAuto));
         presetBtnSunny?.RegisterCallback<ClickEvent>(_ => SelectPreset(presetBtnSunny));
         presetBtnCloudy?.RegisterCallback<ClickEvent>(_ => SelectPreset(presetBtnCloudy));
         presetBtnIndoor?.RegisterCallback<ClickEvent>(_ => SelectPreset(presetBtnIndoor));
         presetBtnWarm?.RegisterCallback<ClickEvent>(_ => SelectPreset(presetBtnWarm));
-        presetBtnSunset?.RegisterCallback<ClickEvent>(_ => SelectPreset(presetBtnSunset));
+        presetBtnSunset?.RegisterCallback<ClickEvent>(_ => SelectPreset(presetBtnSunset)); */
 
-        // ---- Shado Panelの制御 ----
-        // Shadow Panel open/close 
+        // ---- Shado Panelの制御 🔴制御が元のC#に存在するので必要なし----
+        /* // Shadow Panel open/close 
         shadowBtn?.RegisterCallback<ClickEvent>(_ => ShowShadowPanel());
         shadowCloseBtn?.RegisterCallback<ClickEvent>(_ => HideShadowPanel());
 
@@ -272,12 +276,13 @@ public class CaptureControlsController : MonoBehaviour
         // Shadow softness (UI only)
         softnessSoft?.RegisterCallback<ClickEvent>(_ => SelectShadowSoftness(softnessSoft));
         softnessMedium?.RegisterCallback<ClickEvent>(_ => SelectShadowSoftness(softnessMedium));
-        softnessHard?.RegisterCallback<ClickEvent>(_ => SelectShadowSoftness(softnessHard));
+        softnessHard?.RegisterCallback<ClickEvent>(_ => SelectShadowSoftness(softnessHard)); */
 
     }
 
     // ---------- 1) Flash ----------
-    public void ToggleFlash()
+    // 🔴flashはまだ実装していないが、ARFoundationとの繋ぎ込みが必要なため、元々のC#コードの親和性が高いはず
+    /* public void ToggleFlash()
     {
         // flashOnを反転(ONならOFFに、OFFならONに)
         flashOn = !flashOn;
@@ -286,23 +291,25 @@ public class CaptureControlsController : MonoBehaviour
 
         // TODO: AR Foundation torch切替に接続する必要あり
         // Debug.Log($"Flash: {(flashOn ? "ON" : "OFF")}");
-    }
+    } */
 
     // ---------- 2) Flat ----------
-    public void ToggleFlat()
+    // 🔴Plane VisibilityのON/OFFは、すでに元のC#にあるはずなので、こちらでは不要
+    /* public void ToggleFlat()
     {
         // bool(flatVisible)を反転(ONならOFFに、OFFならONに)
         flatVisible = !flatVisible;
-        // flatBtnが存在する場合、flashONがtrueなら"is-on"クラスをつける、falseなら外す
+        // flatBtnが存在する場合、flatONがtrueなら"is-on"クラスをつける、falseなら外す
         flatBtn?.EnableInClassList("is-on", flatVisible);
 
         // TODO: Layer2レンダリング（Flat面）切替に接続する必要あり
         //Debug.Log($"Flat: {(flatVisible ? "Visible" : "Hidden")}");
-    }
+    } */
 
     // ---------- 3) Aspect (4:3 -> 1:1 -> 16:9) ----------
+    // 🔴Aspectの制御は元々存在するので、元のC#に制御を任せる
     // 状態を計算 → クラス付け替え → Layer3に通知
-    public void CycleAspect()
+    /* public void CycleAspect()
     {
         aspect = NextAspect(aspect);
         ApplyAspectToUI();
@@ -342,10 +349,11 @@ public class CaptureControlsController : MonoBehaviour
     {
         if (captureGuide != null)
             captureGuide.SetAspect(aspect);
-    }
+    } */
 
     // ---------- 4) Placement Mode (GroundFix -> ScreenFix -> Follow) ----------
-    // enumをいったん int にして、+1して、3で割った余り（%3）にすると 0→1→2→0 と回る。
+    // 🔴撮影モードの変更は元々存在しているので、元のC#に制御を任せる、ここで制御する必要はない
+    /* // enumをいったん int にして、+1して、3で割った余り（%3）にすると 0→1→2→0 と回る。
     public void CyclePlacementMode()
     {
         placementMode = (PlacementMode)(((int)placementMode + 1) % 3);
@@ -356,7 +364,7 @@ public class CaptureControlsController : MonoBehaviour
     }
 
     // captureModeIconの古いclassを外す→"mode-ground"などのclassを付け替える→captureModeLabelのtextを変更する
-    void ApplyModeToUI()
+    void ApplyModeToUI()　🟠Modeボタンはあった方が良いNice to Haveだが、今は実装しない
     {
         if (captureModeIcon == null) return;
 
@@ -382,10 +390,11 @@ public class CaptureControlsController : MonoBehaviour
             };
         }
         
-    }
+    } */
 
     // ---------- 5) AvatarSlot ----------
-    int slotCount = 1; // 新規スロットの連番用（好きに）
+    // 🔴AvatarSlotのロジックも元々のコードに存在するので、元のC#に任せる
+    /* int slotCount = 1; // 新規スロットの連番用（好きに）
 
     void AddAvatarSlot()
     {
@@ -540,25 +549,27 @@ public class CaptureControlsController : MonoBehaviour
     {
         slotDeleteOverlay.AddToClassList("is-hidden");
         pendingDeleteSlot = null;
-    }
+    } */
 
     // ---------- 6) Lighting Panel ----------
     void ShowLightingPanel()
     {
-        if (lightingPanel == null) return;
-        lightingPanel.RemoveFromClassList("is-hidden");
+        if (lightingPanelOverlay == null) return; 
+        lightingPanelOverlay?.AddToClassList("visible");
         ShowLightingMood(); // デフォルトはMood
 
-        if (!slidersInitialized)
-            StartCoroutine(InitLightingSlidersWhenReady());
-    }
+        /* if (!slidersInitialized)
+            StartCoroutine(InitLightingSlidersWhenReady()); 🔴Sliderの制御はこのC#では必要ない*/
+        // Dev用
+        /* lightingPanelOverlay.style.display = DisplayStyle.Flex; */
+    }     
     // パネルのクローズ
     void HideLightingPanel()
     {
-        lightingPanel?.AddToClassList("is-hidden");
+        lightingPanelOverlay?.RemoveFromClassList("visible");
     }
-    // Auto sync
-    void ToggleAutoSyncUI()
+    // Auto sync 🔴元々存在するコードとconflictする可能性が高い
+    /* void ToggleAutoSyncUI()
     {
         autoSyncOn = !autoSyncOn;
         ApplyAutoSyncUI();
@@ -569,7 +580,8 @@ public class CaptureControlsController : MonoBehaviour
 
         if (autoSyncStatusLabel != null)
             autoSyncStatusLabel.text = autoSyncOn ? "ON" : "OFF";
-    }
+    } */
+
     // Mood/DirectionタブのActive切り替え
     void ShowLightingMood()
     {
@@ -587,11 +599,11 @@ public class CaptureControlsController : MonoBehaviour
         lightingPanelDirection?.AddToClassList("is-active");
         lightingPanelMood?.RemoveFromClassList("is-active");
 
-        if (!directionInitialized)
-        StartCoroutine(InitDirectionControlsWhenReady());
+        /* if (!directionInitialized)
+        StartCoroutine(InitDirectionControlsWhenReady()); 🔴DirectionPadの制御は元々存在するので必要なし*/
     }
-    // Presetの切り替え
-    void SelectPreset(VisualElement selected)
+    // Presetの切り替え　🔴元々存在するコードとconflictする可能性が高い
+    /* void SelectPreset(VisualElement selected)
     {
         if (presetSelections == null || selected == null) return;
 
@@ -605,9 +617,10 @@ public class CaptureControlsController : MonoBehaviour
         Debug.Log($"Preset selected: {selected.name}");
 
         // TODO: 温度/明るさをプリセット値に更新する繋ぎ込みが必要
-    }
-    // Mood Slider操作
-    bool SlidersReady()
+    } */
+
+    // Mood Slider操作 🔴元々存在するコードとconflictする可能性が高い
+    /* bool SlidersReady()
     {
         // 参照が取れているか
         if (colorTemperatureSlider == null || brightnessSlider == null) return false;
@@ -747,10 +760,10 @@ public class CaptureControlsController : MonoBehaviour
         float x = Mathf.Lerp(minX, maxX, Mathf.Clamp01(t01));
         thumb.style.left = x; // 中心位置
 
-    }
+    } */
 
-    // Direction Tab
-    IEnumerator InitDirectionControlsWhenReady()
+    // Direction Tab 🔴元々存在するコードとconflictする可能性が高い
+    /* IEnumerator InitDirectionControlsWhenReady()
     {
         // 最大30フレーム待つ（タブ表示後にレイアウト確定を待つ）
         for (int i = 0; i < 30; i++)
@@ -947,11 +960,11 @@ public class CaptureControlsController : MonoBehaviour
             float deg = Mathf.Lerp(0f, 90f, elevation01);
             elevationValueLabel.text = $"{Mathf.RoundToInt(deg)}°";
         }
-    }
+    } */
 
     // ---------- 7) Shadow Panel ----------
-    // Panelの開閉
-    void ShowShadowPanel()
+    // Panelの開閉 🔴元々存在するコードとconflictする可能性が高い, ShadowPanelは基本的に構造を保持しているため、元々のC#に任せるべき
+    /* void ShowShadowPanel()
     {
         if (shadowPanel == null) return;
 
@@ -1034,22 +1047,22 @@ public class CaptureControlsController : MonoBehaviour
         selected.AddToClassList("is-selected");
 
         Debug.Log($"Shadow softness selected: {selected.name}");
-    }
+    } */
 
 
-    // ---------- Init ----------
-    void ApplyAllToUI()
+    // ---------- Init 🔴ここの制御も全て元のC#に存在する----------
+    /* void ApplyAllToUI()
     {
         flashBtn?.EnableInClassList("is-on", flashOn);
         flatBtn?.EnableInClassList("is-on", flatVisible);
         ApplyAspectToUI();
-        ApplyModeToUI();
-    }
+        ApplyModeToUI(); // 🟠Modeボタンはあった方が良いNice to Haveだが、今は実装しない
+    } */
 
-    // ---------- External trigger ----------
+    // ---------- External trigger 🔴ここの制御も全て元のC#に存在する ----------
     // ダブルタップ側（Layer2のGestureController）からこれを呼べばOK
-    public void OnDoubleTap()
+    /* public void OnDoubleTap()
     {
         CyclePlacementMode();
-    }
+    } */
 }

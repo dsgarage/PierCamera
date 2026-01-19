@@ -1,6 +1,14 @@
 @import url("../Styles/tokens.uss");
 
 /* ================================
+   基本挙動の定義
+================================ */
+.controls-interactive {
+  pointer-events: auto;
+}
+
+
+/* ================================
    基本ルート設定
 ================================ */
 .root {
@@ -716,4 +724,10 @@
 
 .icon-preview-button.retake:hover {
     background-color: rgba(120, 120, 120, 1);
+}
+
+
+/* Debug */
+#topButton1:hover{
+    background-color: rgba(0, 0, 0, 0.3);
 }
