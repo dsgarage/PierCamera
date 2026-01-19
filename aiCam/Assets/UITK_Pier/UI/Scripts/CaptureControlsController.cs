@@ -40,7 +40,7 @@ public class CaptureControlsController : MonoBehaviour
     Coroutine longPressRoutine; 🔴元々存在するコードとconflictする可能性が高い*/
 
     // ------- Lighitng PanelのUI要素 -------
-    VisualElement topButton1; /* 🔴LightingBtn ※LighitngPanelのオープン/Closeを既存のC#コードに任せる場合に、ここは必要ない */
+    Button topButton1; /* 🔴LightingBtn ※LighitngPanelのオープン/Closeを既存のC#コードに任せる場合に、ここは必要ない */
     VisualElement lightingPanelOverlay; /* 🔴lightingPanel ※LighitngPanelのオープン/Closeを既存のC#コードに任せる場合に、ここは必要ない */
     VisualElement lightingPanelClose; /* 🔴lightingCloseBtn ※LighitngPanelのオープン/Closeを既存のC#コードに任せる場合に、ここは必要ない */
     // mood-tab/direction-tab
@@ -144,7 +144,7 @@ public class CaptureControlsController : MonoBehaviour
         slotDeleteBtn.pickingMode = PickingMode.Position; */
 
         // ---- Lighting Panel ----
-        topButton1 = root.Q<VisualElement>("topButton1"); //  🔴後で削除予定、元のC#コードに制御があるはず
+        topButton1 = root.Q<Button>("topButton1"); //  🔴後で削除予定、元のC#コードに制御があるはず
         lightingPanelOverlay = root.Q<VisualElement>("lightingPanelOverlay"); // 🔴後で削除予定、元のC#コードに制御があるはず
         lightingPanelClose = root.Q<VisualElement>("lightingPanelClose"); // 🔴後で削除予定、元のC#コードに制御があるはず
 

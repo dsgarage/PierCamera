@@ -42,22 +42,22 @@
             </ui:VisualElement>
             <!-- 撮影操作関連のボタンを束ねるバーを追加。もともとtopButtonに設定されていた４つのボタンを移植して、これまでのNameとclassが変わらないようにしている -->
             <ui:VisualElement name="captureSettingBar" class="capture-setting-bar">
-                <ui:VisualElement name="topButton2" class="icon-text-btn">
+                <ui:Button name="topButton2" class="icon-text-btn">
                     <ui:VisualElement name="shadowIcon" class="icon-m icon-shadow" />
                     <ui:Label text="Shadow" class="label" />
-                </ui:VisualElement>
-                <ui:VisualElement name="topButton1" class="icon-text-btn">
+                </ui:Button>
+                <ui:Button name="topButton1" class="icon-text-btn">
                     <ui:VisualElement name="lightingIcon" class="icon-m icon-lighting" />
                     <ui:Label text="Lighting" class="label" />
-                </ui:VisualElement>
-                <ui:VisualElement name="topButton4" class="icon-text-btn">
+                </ui:Button>
+                <ui:Button name="topButton4" class="icon-text-btn">
                     <ui:VisualElement name="posingIcon" class="icon-m icon-posings" />
                     <ui:Label text="Posing" class="label" />
-                </ui:VisualElement>
-                <ui:VisualElement name="topButton3" class="icon-text-btn">
+                </ui:Button>
+                <ui:Button name="topButton3" class="icon-text-btn">
                     <ui:VisualElement name="expressionIcon" class="icon-m icon-expressions" />
                     <ui:Label text="Expressions" class="label" />
-                </ui:VisualElement>
+                </ui:Button>
             </ui:VisualElement>
             <!-- キャプチャーボタン: 構造とプログレス管理などは既存の制御系のコードを考慮して、aiCamの構造を踏襲 -->
             <ui:VisualElement name="captureButtonBar" class="capture-button-bar">
