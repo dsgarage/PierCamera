@@ -22,13 +22,13 @@
         </ui:VisualElement>
         <!-- サイドパネル：混乱を避けるために元々の構造を継承して、uss側で少しだけスタイルを調整 -->
         <ui:VisualElement name="sidePanel" picking-mode="Ignore" class="side-panel">
-            <ui:Button name="sideButton1" class="side-panel-button" />
+            <!-- <ui:Button name="sideButton1" class="side-panel-button" /> -->
             <ui:Button name="sideButton2" class="side-panel-button" />
             <ui:Button name="sideButton3" class="side-panel-button" />
             <ui:Button name="sideButtonBugReport" class="side-panel-button bug-report-button" />
         </ui:VisualElement>
         <!-- ギャラリーサムネイル：aiCamのこれまでの構造を踏襲。変更なし(最新のバージョンでは非表示) -->
-        <ui:VisualElement name="galleryThumbnail" class="gallery-thumbnail" />
+        <!-- <ui:VisualElement name="galleryThumbnail" class="gallery-thumbnail" /> -->
         <!-- 画面下側の操作系を一括で束ねるUIフィールドを追加 -->
         <ui:VisualElement name="bottomNavField" class="controls-interactive controls-bottom">
             <!-- アバタースロット系はC#での操作が多いので、これまでの構造を踏襲。見た目だけussで少し変更 -->
@@ -88,7 +88,7 @@
         <!-- ========================================================= 
               ライティングパネル全体 ：　🔴uxmlはそのまま維持しているが、ussのファイルを分割したためもしかしたら元のC#に影響があるかもしれない。
              ========================================================= -->
-        <ui:VisualElement name="lightingPanelBackdrop" class="lighting-panel-backdrop" /> <!-- バックドロップが効いてなかったため、追加 -->
+        <!-- <ui:VisualElement name="settingPanelBackdrop" class="lighting-panel-backdrop" /> --> <!-- バックドロップが効いてなかったため、追加 -->
 
         <ui:VisualElement name="lightingPanelOverlay" class="lighting-panel-overlay">
             <ui:VisualElement name="lightingPanel" class="lighting-panel">
@@ -209,7 +209,7 @@
         <!-- ======================================
                シャドウパネル全体 🔴uxmlはそのまま維持しているが、ussのファイルを分割したためもしかしたら元のC#に影響があるかもしれない。
              ====================================== -->
-        <ui:VisualElement name="shadowPanelBackdrop" class="shadow-panel-backdrop" /> <!-- バックドロップが効いてなかったため、追加 -->
+        <!-- <ui:VisualElement name="shadowPanelBackdrop" class="shadow-panel-backdrop" /> --> <!-- バックドロップが効いてなかったため、追加 -->
 
         <ui:VisualElement name="shadowPanelOverlay" class="shadow-panel-overlay">
             <ui:VisualElement name="shadowPanel" class="shadow-panel">
