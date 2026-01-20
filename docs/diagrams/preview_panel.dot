@@ -1,0 +1,20 @@
+digraph PreviewPanel {
+    rankdir=TB;
+    node [shape=box, style="filled,rounded", fontname="Helvetica", fontsize=10];
+
+    subgraph cluster_overlay {
+        label="iconPreviewPanel (fullscreen)\nbackground: rgba(0,0,0,0.9)";
+        labelloc=t;
+        style=filled;
+        color="#1a1a1a";
+        fontcolor=white;
+
+        // Preview Image
+        image [label="iconPreviewImage\n\n[ Preview Image ]\n\nwidth: 80%\nheight: 60%\nscale-to-fit", fillcolor="#37474F", fontcolor=white, width=4, height=1.5];
+
+        // Button container
+        buttons [label="[iconPreviewRetake]    [iconPreviewConfirm]\n      Retake                 Confirm\n   150x52px               150x52px\n   gray                    green", fillcolor="#455A64", fontcolor=white, width=4];
+    }
+
+    image -> buttons [style=invis];
+}

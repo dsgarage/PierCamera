@@ -1,0 +1,105 @@
+name: PR Check
+
+on:
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  validate-ui-changes:
+    name: Validate UI Changes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check UI file locations
+        run: |
+          echo "Checking for forbidden UI file changes..."
+
+          # develop/mainとの差分を取得
+          BASE_BRANCH="${{ github.base_ref }}"
+          CHANGED_FILES=$(git diff --name-only origin/$BASE_BRANCH...HEAD)
+
+          # UITK_Pier以外のUIファイル変更を検出
+          FORBIDDEN=$(echo "$CHANGED_FILES" | grep -E '^aiCam/Assets/UI/' | grep -v 'UITK_Pier' || true)
+
+          if [ -n "$FORBIDDEN" ]; then
+            echo "::error::UITK_Pier以外のUIファイルを変更しています"
+            echo "以下のファイルは変更禁止です:"
+            echo "$FORBIDDEN"
+            exit 1
+          fi
+
+          echo "✅ UIファイルの変更は許可された範囲内です"
+
+      - name: Check for required element IDs
+        run: |
+          echo "Checking UXML files for required element IDs..."
+
+          # 変更されたUXMLファイルを取得
+          BASE_BRANCH="${{ github.base_ref }}"
+          UXML_FILES=$(git diff --name-only origin/$BASE_BRANCH...HEAD | grep '\.uxml$' || true)
+
+          if [ -z "$UXML_FILES" ]; then
+            echo "✅ UXMLファイルの変更なし"
+            exit 0
+          fi
+
+          echo "変更されたUXMLファイル:"
+          echo "$UXML_FILES"
+
+          # 必須IDのリスト（主要なもの）
+          REQUIRED_IDS=(
+            "topPanel"
+            "sidePanel"
+            "captureButton"
+            "galleryThumbnail"
+            "bottomPanel"
+          )
+
+          # 各UXMLファイルをチェック
+          for file in $UXML_FILES; do
+            if [ -f "$file" ]; then
+              echo "Checking: $file"
+              for id in "${REQUIRED_IDS[@]}"; do
+                if ! grep -q "name=\"$id\"" "$file"; then
+                  echo "::warning file=$file::ID '$id' が見つかりません（必要な場合は追加してください）"
+                fi
+              done
+            fi
+          done
+
+          echo "✅ ID チェック完了"
+
+      - name: Check USS naming conventions
+        run: |
+          echo "Checking USS files for naming conventions..."
+
+          BASE_BRANCH="${{ github.base_ref }}"
+          USS_FILES=$(git diff --name-only origin/$BASE_BRANCH...HEAD | grep '\.uss$' || true)
+
+          if [ -z "$USS_FILES" ]; then
+            echo "✅ USSファイルの変更なし"
+            exit 0
+          fi
+
+          ERRORS=0
+
+          for file in $USS_FILES; do
+            if [ -f "$file" ]; then
+              echo "Checking: $file"
+
+              # cursor: link の使用をチェック（ランタイムでは使用不可）
+              if grep -q "cursor:.*link" "$file"; then
+                echo "::error file=$file::cursor: link はランタイムで使用できません"
+                ERRORS=$((ERRORS + 1))
+              fi
+            fi
+          done
+
+          if [ $ERRORS -gt 0 ]; then
+            exit 1
+          fi
+
+          echo "✅ USS 命名規則チェック完了"

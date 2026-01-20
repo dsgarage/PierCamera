@@ -1,0 +1,739 @@
+@import url("../Styles/tokens.uss");
+
+/* ================================
+   基本挙動の定義
+================================ */
+.controls-interactive {
+  pointer-events: auto;
+}
+
+
+/* ================================
+   基本ルート設定
+================================ */
+.root {
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0);
+    align-items: center;
+    flex-direction: column;
+    flex-grow: 1;
+    display: flex;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding-bottom: 0;
+}
+
+/* ================================
+   アスペクト比マスクオーバーレイ
+================================ */
+.aspect-mask-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* display設定はC#側で制御 */
+    pointer-events: none;
+}
+
+.aspect-mask {
+    /* 全てC#側で制御するため、USSでは最低限のみ設定 */
+    pointer-events: none;
+}
+
+/* ================================
+   サムネイル領域
+================================ */
+.gallery-thumbnail {
+    position: absolute;
+    bottom: 40px;
+    left: 24px;
+    width: 64px;
+    height: 64px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    border-left-width: 3px;
+    border-right-width: 3px;
+    border-top-width: 3px;
+    border-bottom-width: 3px;
+    border-color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(34, 34, 34, 1);
+    -unity-background-scale-mode: scale-and-crop;
+    display: flex;
+}
+
+/* ================================
+   フラッシュオーバーレイ
+================================ */
+.flash-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: white;
+    opacity: 0;
+    transition-property: opacity;
+    transition-duration: 0.3s;
+    display: flex;
+    pointer-events: none;
+}
+
+/* ================================
+   ビューア（全画面プレビュー）
+================================ */
+.viewer-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.95);
+    justify-content: center;
+    align-items: center;
+    display: none;
+    flex-direction: column;
+}
+
+/* 画像ビューア */
+.viewer-image {
+    max-width: 90%;
+    max-height: 90%;
+    -unity-background-scale-mode: scale-to-fit;
+    display: flex;
+    pointer-events: none;
+}
+
+/* 動画ビューア */
+.viewer-video {
+    max-width: 90%;
+    max-height: 90%;
+}
+
+/* ================================
+   上部パネル
+================================ */
+.top-panel {
+    position: absolute;
+    top: 60px;
+    left: 0px;
+    right: 0px;
+    height: 40px;
+    flex-direction: row;
+    flex-grow: 1;
+    align-items: center;
+    justify-content: flex-end;
+    padding-left: 16px;
+    padding-right: 16px;
+}
+
+/* 上部パネルのボタン - タッチ領域 */
+.top-panel-button {
+}
+
+#topButton5{
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    flex-grow: 0;
+    flex-shrink: 0;
+    background-color: rgba(0, 0, 0, 0);
+}
+
+.top-panel-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Issue #345: 平面表示ボタン */
+#topButton5 {
+    background-image: url("../Icons/FlatVisual_ON.png");
+}
+
+/* Issue #345: 平面表示時 */
+#topButton5.plane-visible {
+    opacity: 1;
+}
+
+/* Issue #345: 平面非表示時（やや暗く表示） */
+#topButton5.plane-hidden {
+    opacity: 0.4;
+}
+
+/* ================================
+   サイドバーパネル（左側中央寄り)
+================================ */
+.side-panel {
+    position: absolute;
+    top: 40%;
+    left: 12px;
+    translate: 0 -50%;
+    width: 48px;
+    background-color: rgba(128, 128, 128, 0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    border-radius: 8px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+
+/* サイドバーのボタン */
+.side-panel-button {
+    width: 40px;
+    height: 40px;
+    background-color: transparent;
+    border-width: 0;
+    flex-grow: 0;
+    flex-shrink: 0;
+    -unity-background-scale-mode: scale-to-fit;
+    padding: 0;
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
+
+.side-panel-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* サイドバーボタンのアイコン設定 */
+#sideButton1 {
+    background-image: url("../Icons/Setting.png");
+} /* Setting */
+
+#sideButton2 {
+    background-image: url("../Icons/Aspect_Full.png");
+} /* Aspect */
+
+#sideButton3 {
+    background-image: url("../Icons/flash_ON.png");
+} /* Flash */
+
+/* Issue #413: バグレポートボタン */
+#sideButtonBugReport {
+    background-image: url("../Icons/bugRepo.png");
+}
+
+.bug-report-button {
+    background-color: transparent;
+}
+
+/* ================================
+   下のパネル類が収まるコンテナ
+================================ */
+.controls-bottom{
+  height: 278px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  flex-direction: column;
+  gap: 0px;
+
+  padding-bottom: 0px;
+  padding-left: 0px;
+  padding-right: 0px;
+}
+
+/* ================================
+   アバタースロットパネル 
+================================ */
+.bottom-panel {
+    height: 68px;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding-right: 16px;
+    padding-left: 16px;
+    padding-top: 0px;
+    padding-bottom: 8px;
+    overflow: hidden;
+}
+
+/* 下部パネルのスクロールビュー */
+.bottom-scroll-view {
+    width: 100%;
+    height: 100%;
+}
+
+.bottom-scroll-view > .unity-scroll-view__content-viewport {
+    width: 100%;
+    height: 100%;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.bottom-scroll-view > .unity-scroll-view__content-container {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    height: 100%;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+/* スクロールバーを非表示（実機用） */
+.bottom-scroll-view > #unity-horizontal-scroller {
+    display: none;
+}
+
+.bottom-scroll-view > #unity-vertical-scroller {
+    display: none;
+}
+
+/* 下部パネルのボタンコンテナ */
+.bottom-button-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    height: 100%;
+    flex-shrink: 0;
+}
+
+/* 下部パネルのボタン（アバタースロット） */
+.bottom-panel-button {
+    width: 44px;
+    height: 44px;
+    background-color: rgba(128, 128, 128, 0.6);
+    -unity-background-scale-mode: scale-to-fit;
+    border-width: 0;
+    border-top-left-radius: 50%;
+    border-top-right-radius: 50%;
+    border-bottom-left-radius: 50%;
+    border-bottom-right-radius: 50%;
+    flex-grow: 0;
+    flex-shrink: 0;
+    -unity-font-style: bold;
+    font-size: 12px;
+    color: rgba(60, 60, 60, 1);
+    margin-left: 8px;
+    margin-right: 8px;
+}
+
+.bottom-panel-button:hover {
+    background-color: rgba(255, 255, 255, 1);
+}
+
+/* 選択中のスロット */
+.bottom-panel-button.selected {
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-color: rgba(80, 180, 255, 1);
+}
+
+/* アイコン設定済みスロット */
+.bottom-panel-button.has-icon {
+    background-color: transparent;
+    -unity-background-scale-mode: scale-and-crop;
+    opacity: 0.4;
+}
+
+/* 選択中のアイコン付きスロット（通常の明るさ） */
+.bottom-panel-button.has-icon.selected {
+    opacity: 1;
+}
+
+/* +ボタン専用スタイル（アイコンなし、+テキストのみ） */
+.bottom-panel-button-add {
+    font-size: 14px;
+    background-color: rgba(200, 200, 200, 0.8);
+    background-image: none;
+}
+
+.bottom-panel-button-add:hover {
+    background-color: rgba(220, 220, 220, 1);
+}
+
+/* bottomButton1にアバターアイコンを表示 */
+#bottomButton1 {
+    background-color: rgba(200, 200, 200, 0.8);
+    background-image: url("../Icons/avatarSlot.png");
+}
+
+/* ================================
+   削除メニューポップアップ
+================================ */
+.delete-popup {
+    position: absolute;
+    width: 120px;
+    height: 80px;
+    background-color: rgba(40, 40, 40, 0.95);
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-color: rgba(255, 255, 255, 0.3);
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-around;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    display: none;
+}
+
+.delete-popup-button {
+    width: 100px;
+    height: 32px;
+    background-color: rgba(60, 60, 60, 1);
+    border-width: 0;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+    flex-grow: 0;
+    flex-shrink: 0;
+    -unity-font-style: bold;
+    font-size: 14px;
+    color: white;
+}
+
+.delete-popup-button.delete {
+    color: rgba(255, 60, 60, 1);
+}
+
+.delete-popup-button:hover {
+    background-color: rgba(80, 80, 80, 1);
+}
+
+/* ================================
+   撮影設定メニューバー
+================================ */
+
+.capture-setting-bar {
+  height: 92px;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding-right: 16px;
+  padding-left: 16px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+.icon-text-btn{
+  width: 64px;
+  height: 70px;
+  flex-direction: column;
+  flex-shrink: 0;
+
+  align-items: center;        /* 横方向の中央揃え */
+  justify-content: center;    /* 縦方向の中央寄せ */
+
+  /* Button型のデフォルトのビジュアルへの打ち消し */
+  background-color: transparent;
+  background-image: none;
+  border-color: transparent;
+  padding: 0px;
+}
+.icon-m{
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 9999px;
+
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 44px 44px;
+  background-color: rgba(32,31,31,0.50);
+}
+.label{
+  -unity-text-align: middle-center;
+  font-size: 11px;
+  line-height: 12px;
+  margin-top: -3px;
+  color: rgba(241,241,241,1);
+}
+.icon-shadow{ background-image: url("../Icons/Shadow.png"); }
+.icon-lighting{ background-image: url("../Icons/Lighting.png"); }
+.icon-posings{ background-image: url("../Icons/Posing.png"); }
+.icon-expressions{ background-image: url("../Icons/Expressions.png"); }
+
+/* ================================
+   撮影ボタンバー
+================================ */
+.capture-button-bar {
+  height: 118px;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;   /* 上寄せ */
+  padding-top: 8px;          /* 上から8px */
+}
+
+.capture-button {
+    width: 80px;
+    height: 80px;
+    justify-content: center;
+    align-items: center;
+    background-color: transparent;
+    border-width: 0;
+    display: flex;
+    /* margin-bottom: 80px;
+    margin-top: 24px; */
+}
+
+/* 内側の円（白→赤に変化） */
+.inner-circle {
+    width: 64px;
+    height: 64px;
+    border-top-left-radius: 50%;
+    border-top-right-radius: 50%;
+    border-bottom-left-radius: 50%;
+    border-bottom-right-radius: 50%;
+    background-image: url("../Icons/CaptureButtonInner.png");
+    -unity-background-scale-mode: scale-to-fit;
+    transition-property: background-color;
+    transition-duration: 0.3s;
+    display: flex;
+    pointer-events: none;
+}
+
+/* 録画中に赤く点灯 */
+.inner-circle.recording {
+    -unity-background-image-tint-color: rgba(255, 0, 0, 1);
+}
+
+/* 外枠リング画像 */
+.outer-ring {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    background-image: url("../Icons/CaptureButtonOuter.png");
+    -unity-background-scale-mode: scale-to-fit;
+    display: flex;
+    pointer-events: none;
+}
+
+/* プログレスリング（4つのセグメントを使用） */
+.progress-ring {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    opacity: 0;
+    transition-property: opacity;
+    transition-duration: 0.3s;
+    display: flex;
+    pointer-events: none;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 録画中のみ表示 */
+.progress-ring.active {
+    opacity: 1;
+}
+
+/* プログレスバーの背景リング（薄い赤） */
+.progress-ring-bg {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border-left-width: 5px;
+    border-right-width: 5px;
+    border-top-width: 5px;
+    border-bottom-width: 5px;
+    border-color: rgba(255, 0, 0, 0.2);
+    border-top-left-radius: 50%;
+    border-top-right-radius: 50%;
+    border-bottom-left-radius: 50%;
+    border-bottom-right-radius: 50%;
+    pointer-events: none;
+}
+
+/* プログレス表示用の円弧（時計回り） */
+.progress-arc {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border-left-width: 5px;
+    border-right-width: 5px;
+    border-top-width: 5px;
+    border-bottom-width: 5px;
+    border-color: rgba(0, 0, 0, 0);
+    border-top-left-radius: 50%;
+    border-top-right-radius: 50%;
+    border-bottom-left-radius: 50%;
+    border-bottom-right-radius: 50%;
+    pointer-events: none;
+    rotate: -90deg;
+}
+
+
+/* ================================
+   アラートバー（警告/エラー表示）:🟠uss調整あとから
+================================ */
+.alert-bar {
+    position: absolute;
+    top: 76px;
+    left: 12px;
+    right: 12px;
+    min-height: 48px;
+    background-color: rgba(255, 200, 0, 0.95);
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 16px;
+    padding-right: 12px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    opacity: 0;
+    display: none;
+    transition-property: opacity;
+    transition-duration: 0.3s;
+}
+
+.alert-bar.visible {
+    display: flex;
+    opacity: 1;
+}
+
+.alert-bar.warning {
+    background-color: rgba(255, 200, 0, 0.95);
+}
+
+.alert-bar.error {
+    background-color: rgba(220, 60, 60, 0.95);
+}
+
+.alert-bar.info {
+    background-color: rgba(80, 180, 220, 0.95);
+}
+
+.alert-bar-message {
+    flex-grow: 1;
+    flex-shrink: 1;
+    -unity-font-style: bold;
+    font-size: 16px;
+    color: rgba(40, 40, 40, 1);
+    white-space: normal;
+    -unity-text-align: middle-left;
+}
+
+.alert-bar.error .alert-bar-message {
+    color: white;
+}
+
+.alert-bar-close {
+    width: 36px;
+    height: 36px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-width: 0;
+    border-top-left-radius: 50%;
+    border-top-right-radius: 50%;
+    border-bottom-left-radius: 50%;
+    border-bottom-right-radius: 50%;
+    flex-grow: 0;
+    flex-shrink: 0;
+    -unity-font-style: bold;
+    font-size: 18px;
+    color: rgba(40, 40, 40, 1);
+    margin-left: 10px;
+    -unity-text-align: middle-center;
+}
+
+.alert-bar.error .alert-bar-close {
+    color: white;
+}
+
+.alert-bar-close:hover {
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* ================================
+   アイコンプレビューパネル
+================================ */
+.icon-preview-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    opacity: 0;
+    display: none;
+    transition-property: opacity;
+    transition-duration: 0.3s;
+}
+
+.icon-preview-panel.visible {
+    display: flex;
+    opacity: 1;
+}
+
+.icon-preview-image {
+    width: 80%;
+    height: 60%;
+    -unity-background-scale-mode: scale-to-fit;
+    margin-bottom: 40px;
+}
+
+.icon-preview-button-container {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-preview-button {
+    width: 150px;
+    height: 52px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-width: 0;
+    border-top-left-radius: 26px;
+    border-top-right-radius: 26px;
+    border-bottom-left-radius: 26px;
+    border-bottom-right-radius: 26px;
+    -unity-font-style: bold;
+    font-size: 18px;
+    color: rgba(40, 40, 40, 1);
+    margin-left: 16px;
+    margin-right: 16px;
+    -unity-text-align: middle-center;
+}
+
+.icon-preview-button:hover {
+    background-color: rgba(255, 255, 255, 1);
+}
+
+.icon-preview-button.confirm {
+    background-color: rgba(80, 180, 80, 0.95);
+    color: white;
+}
+
+.icon-preview-button.confirm:hover {
+    background-color: rgba(100, 200, 100, 1);
+}
+
+.icon-preview-button.retake {
+    background-color: rgba(100, 100, 100, 0.9);
+    color: white;
+}
+
+.icon-preview-button.retake:hover {
+    background-color: rgba(120, 120, 120, 1);
+}
+
+
+/* Debug */
+#topButton1:hover{
+    background-color: rgba(0, 0, 0, 0.3);
+}

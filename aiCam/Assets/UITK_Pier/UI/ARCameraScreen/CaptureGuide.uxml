@@ -1,0 +1,8 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/ARCameraScreen/CaptureGuide.uss?fileID=7433441132597879392&amp;guid=d4f1050f57ced442eb44a6c643aca301&amp;type=3#CaptureGuide" />
+    <ui:VisualElement name="root" class="capture-guide" style="flex-grow: 1;">
+        <ui:VisualElement name="topOverlay" class="guide-top-overlay" style="flex-grow: 1;" />
+        <ui:VisualElement name="imageAspect" class="guide-image-aspect" style="flex-grow: 1;" />
+        <ui:VisualElement name="bottomOverlay" class="guide-bottom-overlay" style="flex-grow: 1;" />
+    </ui:VisualElement>
+</ui:UXML>

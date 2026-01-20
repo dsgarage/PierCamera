@@ -1,0 +1,47 @@
+digraph CaptureFlow {
+    // Graph settings
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10];
+    edge [fontname="Helvetica", fontsize=9];
+
+    // Start
+    start [label="User Touch", shape=ellipse, fillcolor="#E3F2FD"];
+
+    // Button Down
+    buttonDown [label="OnCaptureButtonDown()\nisPressed = true\npressTime = 0", fillcolor="#BBDEFB"];
+
+    // Decision
+    decision [label="pressTime < 0.5s?", shape=diamond, fillcolor="#FFF9C4"];
+
+    // Photo path
+    buttonUpPhoto [label="OnCaptureButtonUp()", fillcolor="#C8E6C9"];
+    takePhoto [label="TakePhoto()", fillcolor="#81C784"];
+    flashAnim [label="Flash Animation\nopacity: 0 -> 1 -> 0", fillcolor="#A5D6A7"];
+    updateThumbnail [label="Update galleryThumbnail", fillcolor="#C8E6C9"];
+
+    // Video path
+    startRecord [label="StartRecording()\ninnerCircle.recording\nprogressRing.active", fillcolor="#FFCDD2"];
+    recording [label="Recording...\nUpdate progressArc\n(max 5s)", fillcolor="#EF9A9A"];
+    buttonUpVideo [label="OnCaptureButtonUp()\nor timeout", fillcolor="#FFCDD2"];
+    stopRecord [label="StopRecording()\nRemove .recording\nRemove .active", fillcolor="#F48FB1"];
+
+    // End
+    finish [label="Complete", shape=ellipse, fillcolor="#E8F5E9"];
+
+    // Edges
+    start -> buttonDown;
+    buttonDown -> decision;
+
+    decision -> buttonUpPhoto [label="Yes (Tap)"];
+    decision -> startRecord [label="No (Hold)"];
+
+    buttonUpPhoto -> takePhoto;
+    takePhoto -> flashAnim;
+    flashAnim -> updateThumbnail;
+    updateThumbnail -> finish;
+
+    startRecord -> recording;
+    recording -> buttonUpVideo;
+    buttonUpVideo -> stopRecord;
+    stopRecord -> updateThumbnail;
+}
