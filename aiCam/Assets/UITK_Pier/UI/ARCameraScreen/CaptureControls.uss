@@ -36,6 +36,7 @@
     left: 0;
     width: 100%;
     height: 100%;
+    background-color: var(--cg-overlay);
     /* display設定はC#側で制御 */
     pointer-events: none;
 }
@@ -135,34 +136,42 @@
 
 /* 上部パネルのボタン - タッチ領域 */
 .top-panel-button {
+    border-color: transparent;
+    border-width: 1;
 }
 
 #topButton5{
     width: 40px;
     height: 40px;
-    border-radius: 8px;
+    border-radius: 20px;
     flex-grow: 0;
     flex-shrink: 0;
-    background-color: rgba(0, 0, 0, 0);
+    background-color: rgba(0, 0, 0, 0.1);
+
+    border-color: transparent;
+    border-width: 1;
+
+    background-image: url("../Icons/FlatVisual_ON.png");
 }
 
 .top-panel-button:hover {
     background-color: rgba(255, 255, 255, 0.2);
-}
-
-/* Issue #345: 平面表示ボタン */
-#topButton5 {
-    background-image: url("../Icons/FlatVisual_ON.png");
+    border-color: transparent;
+    border-width: 1;
 }
 
 /* Issue #345: 平面表示時 */
 #topButton5.plane-visible {
     opacity: 1;
+    border-color: transparent;
+    border-width: 1;
 }
 
 /* Issue #345: 平面非表示時（やや暗く表示） */
 #topButton5.plane-hidden {
     opacity: 0.4;
+    border-color: transparent;
+    border-width: 1;
 }
 
 /* ================================
@@ -174,7 +183,7 @@
     left: 12px;
     translate: 0 -50%;
     width: 48px;
-    background-color: rgba(128, 128, 128, 0.5);
+    background-color: rgba(128, 128, 128, 0.1);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -734,6 +743,9 @@
 
 
 /* Debug */
-#topButton1:hover{
+#topButton1:hover,
+#topButton2:hover,
+#topButton3:hover,
+#topButton4:hover{
     background-color: rgba(0, 0, 0, 0.3);
 }
