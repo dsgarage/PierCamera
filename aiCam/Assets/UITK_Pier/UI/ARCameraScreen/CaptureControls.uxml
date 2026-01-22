@@ -20,7 +20,7 @@
         <ui:VisualElement name="topPanel" picking-mode="Ignore" class="top-panel">
             <ui:Button name="topButton5" class="top-panel-button plane-button" />
             <!-- Issue #451: 貫通防止のため、topButton1-4をtopPanelに戻す。位置はCSSで画面下部に配置 -->
-            <ui:VisualElement class="top-panel-bottom-buttons">
+            <ui:VisualElement picking-mode="Ignore" class="top-panel-bottom-buttons">
                 <ui:Button name="topButton2" class="icon-text-btn">
                     <ui:VisualElement name="shadowIcon" class="icon-m icon-shadow" />
                     <ui:Label text="Shadow" class="label" />
