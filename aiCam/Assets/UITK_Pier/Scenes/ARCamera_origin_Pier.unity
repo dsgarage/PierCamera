@@ -10286,6 +10286,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aef101114c89c4e1eb44d26754c7d1c4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: AICam.FBXLoader::AICam.FBXLoader.RuntimeFBXLoaderBridge
+  browser: {fileID: 0}
+  memoryCache: {fileID: 0}
+  modelParent: {fileID: 0}
+  modelPosition: {x: 0, y: -0.5, z: 2.5}
+  modelRotation: {x: 0, y: 0, z: 0}
+  modelScale: {x: 1, y: 1, z: 1}
+  animatorController: {fileID: 0}
+  initialStateName: Idle
+  avatarTemplate: {fileID: 0}
 --- !u!114 &1662580359
 MonoBehaviour:
   m_ObjectHideFlags: 0

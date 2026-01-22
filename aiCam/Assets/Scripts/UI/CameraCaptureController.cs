@@ -118,6 +118,13 @@ namespace AICam.UI
         private VisualElement settingsPanelBackdrop;
         private VisualElement lightingPanelOverlay;
         private VisualElement shadowPanelOverlay;
+
+        // Issue #450: Lighting Panel タブ切り替え用
+        private VisualElement tabMood;
+        private VisualElement tabDirection;
+        private VisualElement lightingPanelMood;
+        private VisualElement lightingPanelDirection;
+
         // Issue #74/#75 修正: 長押し関連変数は不要になったため削除
 
         // アスペクト比トグル用のステート（02_01 → 02_02 → 02_03 → 02_01）
@@ -527,6 +534,12 @@ namespace AICam.UI
             lightingPanelOverlay = root.Q<VisualElement>("lightingPanelOverlay");
             shadowPanelOverlay = root.Q<VisualElement>("shadowPanelOverlay");
 
+            // Issue #450: Lighting Panel タブ要素を取得
+            tabMood = root.Q<VisualElement>("tabMood");
+            tabDirection = root.Q<VisualElement>("tabDirection");
+            lightingPanelMood = root.Q<VisualElement>("lightingPanelMood");
+            lightingPanelDirection = root.Q<VisualElement>("lightingPanelDirection");
+
             if (settingsPanelBackdrop != null)
             {
                 // バックドロップ自体がクリックされた場合のみパネルを閉じる（子要素のクリックは無視）
@@ -555,6 +568,17 @@ namespace AICam.UI
             {
                 shadowCloseButton.RegisterCallback<ClickEvent>(evt => HideAllPanels());
                 if (enableDebugLogging) Debug.Log("✅ Shadow panel close button events registered");
+            }
+
+            // Issue #450: Lighting Panel タブ切り替えイベント登録
+            tabMood?.RegisterCallback<ClickEvent>(_ => ShowLightingMood());
+            tabDirection?.RegisterCallback<ClickEvent>(_ => ShowLightingDirection());
+            if (enableDebugLogging)
+            {
+                Debug.Log($"🔄 TabMood: {(tabMood != null ? "✅" : "❌")}");
+                Debug.Log($"🔄 TabDirection: {(tabDirection != null ? "✅" : "❌")}");
+                Debug.Log($"🔄 LightingPanelMood: {(lightingPanelMood != null ? "✅" : "❌")}");
+                Debug.Log($"🔄 LightingPanelDirection: {(lightingPanelDirection != null ? "✅" : "❌")}");
             }
 
             // LightingPanelControllerは初回使用時に遅延初期化
@@ -2860,6 +2884,30 @@ namespace AICam.UI
                 shadowPanelOverlay.RemoveFromClassList("visible");
             }
             Debug.Log("📋 All panels hidden");
+        }
+
+        /// <summary>
+        /// Issue #450: Lighting Panel の Mood タブを表示
+        /// </summary>
+        void ShowLightingMood()
+        {
+            tabMood?.AddToClassList("is-selected");
+            tabDirection?.RemoveFromClassList("is-selected");
+            lightingPanelMood?.AddToClassList("is-active");
+            lightingPanelDirection?.RemoveFromClassList("is-active");
+            if (enableDebugLogging) Debug.Log("🔄 Switched to Mood tab");
+        }
+
+        /// <summary>
+        /// Issue #450: Lighting Panel の Direction タブを表示
+        /// </summary>
+        void ShowLightingDirection()
+        {
+            tabDirection?.AddToClassList("is-selected");
+            tabMood?.RemoveFromClassList("is-selected");
+            lightingPanelDirection?.AddToClassList("is-active");
+            lightingPanelMood?.RemoveFromClassList("is-active");
+            if (enableDebugLogging) Debug.Log("🔄 Switched to Direction tab");
         }
 
         /// <summary>
