@@ -16,9 +16,28 @@
             <ui:Label name="alertMessage" text="[W001] sample Warning" class="alert-bar-message" />
             <ui:Button name="alertClose" text="×" class="alert-bar-close" />
         </ui:VisualElement>
-        <!-- トップパネル：画面いっぱいの横長で、右寄せ。現在はPlaneの可視/不可視の切り替えボタンのみ持つ -->
+        <!-- トップパネル：topButton1-4は画面下部に配置、topButton5は画面上部に配置（CSSで制御） -->
         <ui:VisualElement name="topPanel" picking-mode="Ignore" class="top-panel">
             <ui:Button name="topButton5" class="top-panel-button plane-button" />
+            <!-- Issue #451: 貫通防止のため、topButton1-4をtopPanelに戻す。位置はCSSで画面下部に配置 -->
+            <ui:VisualElement class="top-panel-bottom-buttons">
+                <ui:Button name="topButton2" class="icon-text-btn">
+                    <ui:VisualElement name="shadowIcon" class="icon-m icon-shadow" />
+                    <ui:Label text="Shadow" class="label" />
+                </ui:Button>
+                <ui:Button name="topButton1" class="icon-text-btn">
+                    <ui:VisualElement name="lightingIcon" class="icon-m icon-lighting" />
+                    <ui:Label text="Lighting" class="label" />
+                </ui:Button>
+                <ui:Button name="topButton4" class="icon-text-btn">
+                    <ui:VisualElement name="posingIcon" class="icon-m icon-posings" />
+                    <ui:Label text="Posing" class="label" />
+                </ui:Button>
+                <ui:Button name="topButton3" class="icon-text-btn">
+                    <ui:VisualElement name="expressionIcon" class="icon-m icon-expressions" />
+                    <ui:Label text="Expressions" class="label" />
+                </ui:Button>
+            </ui:VisualElement>
         </ui:VisualElement>
         <!-- サイドパネル：混乱を避けるために元々の構造を継承して、uss側で少しだけスタイルを調整 -->
         <ui:VisualElement name="sidePanel" picking-mode="Ignore" class="side-panel">
@@ -40,25 +59,7 @@
                     </ui:VisualElement>
                 </ui:ScrollView>
             </ui:VisualElement>
-            <!-- 撮影操作関連のボタンを束ねるバーを追加。もともとtopButtonに設定されていた４つのボタンを移植して、これまでのNameとclassが変わらないようにしている -->
-            <ui:VisualElement name="captureSettingBar" class="capture-setting-bar">
-                <ui:Button name="topButton2" class="icon-text-btn">
-                    <ui:VisualElement name="shadowIcon" class="icon-m icon-shadow" />
-                    <ui:Label text="Shadow" class="label" />
-                </ui:Button>
-                <ui:Button name="topButton1" class="icon-text-btn">
-                    <ui:VisualElement name="lightingIcon" class="icon-m icon-lighting" />
-                    <ui:Label text="Lighting" class="label" />
-                </ui:Button>
-                <ui:Button name="topButton4" class="icon-text-btn">
-                    <ui:VisualElement name="posingIcon" class="icon-m icon-posings" />
-                    <ui:Label text="Posing" class="label" />
-                </ui:Button>
-                <ui:Button name="topButton3" class="icon-text-btn">
-                    <ui:VisualElement name="expressionIcon" class="icon-m icon-expressions" />
-                    <ui:Label text="Expressions" class="label" />
-                </ui:Button>
-            </ui:VisualElement>
+            <!-- Issue #451: captureSettingBarは削除し、topButton1-4はtopPanelに移動 -->
             <!-- キャプチャーボタン: 構造とプログレス管理などは既存の制御系のコードを考慮して、aiCamの構造を踏襲 -->
             <ui:VisualElement name="captureButtonBar" class="capture-button-bar">
                 <ui:VisualElement name="captureButton" class="capture-button">
