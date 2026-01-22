@@ -78,6 +78,9 @@ namespace AICam.UI
         private Button sideButton3;
         private Button sideButtonBugReport; // Issue #413: バグレポート
 
+        // Issue #451: 撮影設定バー（topButton1-4用、貫通防止）
+        private VisualElement captureSettingBar;
+
         // Issue #74/#75: トップパネルボタン要素
         private Button topButton1; // Light Estimation ON/OFF
         private Button topButton2; // Shadow ON/OFF
@@ -337,6 +340,9 @@ namespace AICam.UI
             sideButton2 = root.Q<Button>("sideButton2");
             sideButton3 = root.Q<Button>("sideButton3");
             sideButtonBugReport = root.Q<Button>("sideButtonBugReport"); // Issue #413
+
+            // Issue #451: 撮影設定バー（貫通防止用）
+            captureSettingBar = root.Q<VisualElement>("captureSettingBar");
 
             // Issue #74/#75: トップパネルボタンの取得
             topButton1 = root.Q<Button>("topButton1");
@@ -1268,6 +1274,7 @@ namespace AICam.UI
             if (IsPointOverElement(topPanel, panelPosition, "topPanel")) return true;
             if (IsPointOverElement(sidePanel, panelPosition, "sidePanel")) return true;
             if (IsPointOverElement(bottomPanel, panelPosition, "bottomPanel")) return true;
+            if (IsPointOverElement(captureSettingBar, panelPosition, "captureSettingBar")) return true; // Issue #451
             if (IsPointOverElement(captureButton, panelPosition, "captureButton")) return true;
             if (IsPointOverElement(galleryThumbnail, panelPosition, "galleryThumbnail")) return true;
 

@@ -122,17 +122,16 @@
 ================================ */
 .top-panel {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;  /* Issue #451: 全画面に拡張してtopButton1-4の配置を可能に */
+    top: 60px;
+    left: 0px;
+    right: 0px;
+    height: 40px;
     flex-direction: row;
     flex-grow: 1;
-    align-items: flex-start;  /* topButton5を上部に配置 */
+    align-items: center;
     justify-content: flex-end;
     padding-left: 16px;
     padding-right: 16px;
-    padding-top: 60px;  /* 元のtop: 60pxをpaddingに変更 */
 }
 
 /* 上部パネルのボタン - タッチ領域 */
@@ -173,22 +172,6 @@
     opacity: 0.4;
     border-color: transparent;
     border-width: 1;
-}
-
-/* Issue #451: topButton1-4を画面下部に配置（貫通防止のためtopPanel内に配置） */
-.top-panel-bottom-buttons {
-    position: absolute;
-    bottom: 118px;  /* capture-button-barの高さ分上に配置 */
-    left: 0;
-    right: 0;
-    height: 92px;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    padding-right: 16px;
-    padding-left: 16px;
-    padding-top: 16px;
-    padding-bottom: 16px;
 }
 
 /* ================================
@@ -261,7 +244,6 @@
   bottom: 0;
 
   flex-direction: column;
-  justify-content: space-between;  /* Issue #451: captureSettingBar削除後もcaptureButtonBarを最下部に維持 */
   gap: 0px;
 
   padding-bottom: 0px;
@@ -439,10 +421,8 @@
 
 /* ================================
    撮影設定メニューバー
-   Issue #451: captureSettingBarは廃止、.top-panel-bottom-buttonsに移行
 ================================ */
 
-/* .capture-setting-bar は廃止（Issue #451）
 .capture-setting-bar {
   height: 92px;
   flex-direction: row;
@@ -453,7 +433,6 @@
   padding-top: 16px;
   padding-bottom: 16px;
 }
-*/
 .icon-text-btn{
   width: 64px;
   height: 70px;
