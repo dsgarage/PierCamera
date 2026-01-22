@@ -9261,6 +9261,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b13eff9ad0c74860ae783ac2c3316fa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AICam.UI.CameraCaptureController
+  photoController: {fileID: 0}
+  avatarLoader: {fileID: 236828916}
+  fbxLoaderBridge: {fileID: 1662580358}
+  poseOverrideControllers:
+  - {fileID: 11400000, guid: 74fdf1fb2ca44c15813fb0d61941deca, type: 2}
+  - {fileID: 11400000, guid: ca7ae120c5a2a4b07b763ea979712649, type: 2}
+  - {fileID: 11400000, guid: a4ee56505f8df48d981f223bde8cb338, type: 2}
+  - {fileID: 11400000, guid: 87fd058508e864785a8d1d87ade15a0f, type: 2}
+  - {fileID: 11400000, guid: ce073856b543d4146a3c0c39f7f7a287, type: 2}
+  - {fileID: 11400000, guid: 37e9885db649e4a77b6489ae22ad08e5, type: 2}
+  - {fileID: 11400000, guid: 249bd088205b9402f8ed9f291c6b4df1, type: 2}
+  poseSlotController: {fileID: 0}
+  expressionSetup: {fileID: 0}
+  enableDebugLogging: 0
 --- !u!4 &1479651380
 Transform:
   m_ObjectHideFlags: 0
