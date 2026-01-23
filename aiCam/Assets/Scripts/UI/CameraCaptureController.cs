@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UIElements;
+using UnityEngine.XR.ARFoundation;
 using NativeFilePickerNamespace;
 using Cysharp.Threading.Tasks;
 using System.IO;
@@ -115,6 +116,10 @@ namespace AICam.UI
         private bool isShadowEnabled = true;
         private Light cachedMainLight;
         private ARPlaneShadowReceiver cachedPlaneShadowReceiver;
+
+        // Issue #452: トーチ（背面ライト）状態
+        private bool isTorchEnabled = false;
+        private ARCameraManager cachedARCameraManager;
 
         // Issue #120: ライティング/シャドウパネル
         private LightingPanelController lightingPanelController;
@@ -1918,14 +1923,59 @@ namespace AICam.UI
         }
 
         /// <summary>
-        /// サイドバーボタン3（Flash）クリック時の処理
+        /// Issue #452: サイドバーボタン3（Flash/Torch）クリック時の処理
+        /// デバイスの背面ライト（トーチ）をON/OFFする
         /// </summary>
         void OnSideButton3Clicked()
         {
             Debug.Log("⚡ Side button 3 (Flash) clicked");
             TapticEngine.Selection();
 
-            // ここにフラッシュ切り替え処理を追加
+            // ARCameraManagerを取得
+            if (cachedARCameraManager == null)
+            {
+                cachedARCameraManager = FindFirstObjectByType<ARCameraManager>();
+            }
+
+            if (cachedARCameraManager == null)
+            {
+                Debug.LogWarning("[Torch] ARCameraManager not found");
+                ShowWarning("W452", "カメラが見つかりません");
+                return;
+            }
+
+            // トーチの状態をトグル
+            isTorchEnabled = !isTorchEnabled;
+
+            // AR Foundation のトーチモードを設定
+            cachedARCameraManager.requestedCameraTorchMode = isTorchEnabled
+                ? UnityEngine.XR.ARSubsystems.XRCameraTorchMode.On
+                : UnityEngine.XR.ARSubsystems.XRCameraTorchMode.Off;
+
+            Debug.Log($"[Torch] Torch mode set to: {(isTorchEnabled ? "ON" : "OFF")}");
+
+            // アイコンを更新
+            UpdateTorchIcon();
+        }
+
+        /// <summary>
+        /// Issue #452: トーチアイコンを状態に応じて更新
+        /// CSSクラスで切り替え: torch-on / torch-off
+        /// </summary>
+        void UpdateTorchIcon()
+        {
+            if (sideButton3 == null) return;
+
+            if (isTorchEnabled)
+            {
+                sideButton3.RemoveFromClassList("torch-off");
+                sideButton3.AddToClassList("torch-on");
+            }
+            else
+            {
+                sideButton3.RemoveFromClassList("torch-on");
+                sideButton3.AddToClassList("torch-off");
+            }
         }
 
         /// <summary>

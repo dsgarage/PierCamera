@@ -221,8 +221,17 @@
 } /* Aspect */
 
 #sideButton3 {
+    background-image: url("../Icons/flash_OFF.png");
+} /* Flash - デフォルトはOFF状態 */
+
+/* Issue #452: トーチ状態のアイコン切り替え */
+#sideButton3.torch-on {
     background-image: url("../Icons/flash_ON.png");
-} /* Flash */
+}
+
+#sideButton3.torch-off {
+    background-image: url("../Icons/flash_OFF.png");
+}
 
 /* Issue #413: バグレポートボタン */
 #sideButtonBugReport {
