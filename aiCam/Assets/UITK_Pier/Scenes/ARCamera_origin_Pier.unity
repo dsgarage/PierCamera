@@ -9261,7 +9261,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b13eff9ad0c74860ae783ac2c3316fa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AICam.UI.CameraCaptureController
-  photoController: {fileID: 0}
+  photoController: {fileID: 431550395}
   avatarLoader: {fileID: 236828916}
   fbxLoaderBridge: {fileID: 1662580358}
   poseOverrideControllers:
