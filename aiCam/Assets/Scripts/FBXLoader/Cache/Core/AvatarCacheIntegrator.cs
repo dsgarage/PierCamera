@@ -60,8 +60,8 @@ namespace AICam.AvatarCache
                 return cacheId;
             }
 
-            // キャッシュを作成
-            await _cacheManager.CreateCacheAsync(avatar, sourceFilePath);
+            // キャッシュを作成（引数順序: vrmPath, avatar）
+            await _cacheManager.CreateCacheAsync(sourceFilePath, avatar);
 
             Debug.Log($"[AvatarCacheIntegrator] Cache created: {cacheId}");
             return cacheId;
@@ -86,7 +86,9 @@ namespace AICam.AvatarCache
 
             try
             {
-                var avatar = await _cacheManager.LoadFromCacheAsync(cacheId, onProgress);
+                onProgress?.Invoke(10f);
+                var avatar = await _cacheManager.LoadFromCacheAsync(cacheId);
+                onProgress?.Invoke(100f);
                 Debug.Log($"[AvatarCacheIntegrator] Loaded from cache: {cacheId}");
                 return avatar;
             }
