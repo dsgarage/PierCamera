@@ -7,7 +7,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 
-namespace AICam.Tests.PlayMode.AvatarCache.Integration
+namespace AICam.Tests.PlayMode.Integration
 {
     /// <summary>
     /// Phase 3: AvatarMemoryCache統合テスト

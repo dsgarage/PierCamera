@@ -7,6 +7,7 @@ using System.IO;
 using System;
 using System.Collections.Generic;
 using AICam.AR;
+using AICam.AvatarCache;
 using DSGarage.PoseSlot;
 
 namespace AICam.UI
@@ -2097,7 +2098,7 @@ namespace AICam.UI
             if (success)
             {
                 // AvatarMemoryCacheから現在のアバターを取得してキャッシュ
-                var memoryCache = AICam.FBXLoader.AvatarMemoryCache.Instance;
+                var memoryCache = AvatarMemoryCache.Instance;
                 if (memoryCache != null)
                 {
                     cachedCurrentAvatar = memoryCache.GetCachedAvatar(slotIndex);
@@ -2332,7 +2333,7 @@ namespace AICam.UI
             if (avatar == null)
             {
                 var slotManager = AICam.FBXLoader.AvatarSlotManager.Instance;
-                var memoryCache = AICam.FBXLoader.AvatarMemoryCache.Instance;
+                var memoryCache = AvatarMemoryCache.Instance;
 
                 if (slotManager != null && memoryCache != null)
                 {
@@ -2590,7 +2591,7 @@ namespace AICam.UI
 
             // AvatarSlotManager + AvatarMemoryCacheから取得
             var slotManager = AICam.FBXLoader.AvatarSlotManager.Instance;
-            var memoryCache = AICam.FBXLoader.AvatarMemoryCache.Instance;
+            var memoryCache = AvatarMemoryCache.Instance;
 
             if (slotManager != null && memoryCache != null)
             {
