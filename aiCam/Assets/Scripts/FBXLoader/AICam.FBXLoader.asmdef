@@ -4,10 +4,14 @@
     "references": [
         "UniTask",
         "VRM",
+        "VRM10",
         "UniGLTF",
         "UniHumanoid",
         "AICam.Core",
         "AICam.AvatarCache",
+        "AICam.Analytics",
+        "AICam.AvatarBuilder",
+        "UniSIL",
         "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
