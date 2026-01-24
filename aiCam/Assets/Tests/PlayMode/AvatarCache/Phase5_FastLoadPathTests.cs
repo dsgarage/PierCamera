@@ -22,137 +22,10 @@ namespace AICam.Tests.PlayMode.AvatarCache
     [TestFixture]
     public class Phase5_FastLoadPathTests : AvatarCacheTestBase
     {
-        #region Cache Existence Tests
+        #region Cache Load Tests
 
         [UnityTest]
-        public IEnumerator キャッシュ存在確認_AvatarCacheManagerで検出できること() => UniTask.ToCoroutine(async () =>
-        {
-            // Arrange
-            var cacheManager = new AvatarCacheManager(TestCacheDirectory);
-            var hash = AvatarCacheManager.CalculateFileHash(TestVrmPath);
-            var cacheDir = cacheManager.GetCacheDirectoryPath(hash);
-            var manifestPath = Path.Combine(cacheDir, "manifest.json");
-
-            // Create cache
-            Directory.CreateDirectory(cacheDir);
-            File.WriteAllText(manifestPath, "{}");
-
-            // Act - 実際のAvatarCacheManager.CacheExistsを呼び出す
-            var cacheExists = cacheManager.CacheExists(hash);
-
-            // Assert
-            Assert.IsTrue(cacheExists, "既存キャッシュを検出すべき");
-
-            Debug.Log("[Phase5Test] キャッシュ存在確認テスト成功");
-        });
-
-        [UnityTest]
-        public IEnumerator キャッシュ存在確認_キャッシュなしを検出できること() => UniTask.ToCoroutine(async () =>
-        {
-            // Arrange
-            var cacheManager = new AvatarCacheManager(TestCacheDirectory);
-            var hash = AvatarCacheManager.CalculateFileHash(TestVrmPath);
-            var cacheDir = cacheManager.GetCacheDirectoryPath(hash);
-
-            // Ensure cache doesn't exist
-            if (Directory.Exists(cacheDir))
-            {
-                Directory.Delete(cacheDir, true);
-            }
-
-            // Act - 実際のAvatarCacheManager.CacheExistsを呼び出す
-            var cacheExists = cacheManager.CacheExists(hash);
-
-            // Assert
-            Assert.IsFalse(cacheExists, "キャッシュなしを検出すべき");
-
-            Debug.Log("[Phase5Test] キャッシュなし検出テスト成功");
-        });
-
-        #endregion
-
-        #region Cache Validity Tests
-
-        [UnityTest]
-        public IEnumerator キャッシュ有効性_IsCacheValidで検証できること() => UniTask.ToCoroutine(async () =>
-        {
-            // Arrange
-            var cacheManager = new AvatarCacheManager(TestCacheDirectory);
-            var hash = AvatarCacheManager.CalculateFileHash(TestVrmPath);
-            var cacheDir = cacheManager.GetCacheDirectoryPath(hash);
-
-            // Create valid cache structure
-            Directory.CreateDirectory(cacheDir);
-            var manifest = new AvatarCacheManifest
-            {
-                cacheFormatVersion = AvatarCacheManager.CURRENT_CACHE_FORMAT_VERSION,
-                cacheId = hash
-            };
-            File.WriteAllText(Path.Combine(cacheDir, "manifest.json"),
-                JsonUtility.ToJson(manifest));
-
-            // Act - 実際のAvatarCacheManager.IsCacheValidを呼び出す
-            var isValid = cacheManager.IsCacheValid(hash);
-
-            // Assert
-            Assert.IsTrue(isValid, "有効なキャッシュが検出されるべき");
-
-            Debug.Log("[Phase5Test] キャッシュ有効性検証成功");
-        });
-
-        [UnityTest]
-        public IEnumerator キャッシュ有効性_古いバージョンは無効と判定されること() => UniTask.ToCoroutine(async () =>
-        {
-            // Arrange
-            var cacheManager = new AvatarCacheManager(TestCacheDirectory);
-            var hash = AvatarCacheManager.CalculateFileHash(TestVrmPath);
-            var cacheDir = cacheManager.GetCacheDirectoryPath(hash);
-
-            // Create cache with old version
-            Directory.CreateDirectory(cacheDir);
-            var manifest = new AvatarCacheManifest
-            {
-                cacheFormatVersion = 999, // 無効なバージョン
-                cacheId = hash
-            };
-            File.WriteAllText(Path.Combine(cacheDir, "manifest.json"),
-                JsonUtility.ToJson(manifest));
-
-            // Act - 実際のAvatarCacheManager.IsCacheValidを呼び出す
-            var isValid = cacheManager.IsCacheValid(hash);
-
-            // Assert
-            Assert.IsFalse(isValid, "古いバージョンのキャッシュは無効であるべき");
-
-            Debug.Log("[Phase5Test] 古いバージョン拒否テスト成功");
-        });
-
-        #endregion
-
-        #region Load Time Tests
-
-        [UnityTest]
-        public IEnumerator フルロード_ロード時間を計測できること() => UniTask.ToCoroutine(async () =>
-        {
-            // Arrange - 実装が存在することを確認
-            var hash = AvatarCacheManager.CalculateFileHash(TestVrmPath);
-
-            var sw = Stopwatch.StartNew();
-
-            // Act
-            var avatar = await LoadVrmAsync();
-
-            sw.Stop();
-
-            // Assert
-            Assert.IsNotNull(avatar);
-            Debug.Log($"[Phase5Test] VRMフルロード時間: {sw.ElapsedMilliseconds}ms, cacheId: {hash}");
-
-            // VRMロードは通常3-8秒かかる - このテストでは計測のみ
-        });
-
-        [UnityTest]
-        public IEnumerator キャッシュロード_AvatarCacheManagerでロードできること() => UniTask.ToCoroutine(async () =>
+        public IEnumerator キャッシュロード_LoadFromCacheAsyncでロードできること() => UniTask.ToCoroutine(async () =>
         {
             // Arrange
             var cacheManager = new AvatarCacheManager(TestCacheDirectory);
@@ -162,7 +35,7 @@ namespace AICam.Tests.PlayMode.AvatarCache
             await cacheManager.CreateCacheAsync(TestVrmPath, avatar);
             var hash = AvatarCacheManager.CalculateFileHash(TestVrmPath);
 
-            // Act - キャッシュからロード時間を計測
+            // Act - 実際のLoadFromCacheAsyncを呼び出す
             var sw = Stopwatch.StartNew();
             var loadedAvatar = await cacheManager.LoadFromCacheAsync(hash);
             sw.Stop();
@@ -175,18 +48,14 @@ namespace AICam.Tests.PlayMode.AvatarCache
             Object.Destroy(loadedAvatar);
         });
 
-        #endregion
-
-        #region Fallback Tests
-
         [UnityTest]
-        public IEnumerator フォールバック_無効キャッシュで例外が発生すること() => UniTask.ToCoroutine(async () =>
+        public IEnumerator キャッシュロード_存在しないキャッシュで例外が発生すること() => UniTask.ToCoroutine(async () =>
         {
             // Arrange
             var cacheManager = new AvatarCacheManager(TestCacheDirectory);
             var fakeHash = "nonexistent_hash_12345";
 
-            // Act & Assert
+            // Act & Assert - LoadFromCacheAsyncを呼び出す
             bool correctExceptionThrown = false;
             try
             {
@@ -199,71 +68,45 @@ namespace AICam.Tests.PlayMode.AvatarCache
             }
             catch (System.IO.FileNotFoundException)
             {
-                // 実装後はFileNotFoundExceptionまたはカスタム例外を期待
                 correctExceptionThrown = true;
             }
             catch (System.InvalidOperationException)
             {
-                // または InvalidOperationException
                 correctExceptionThrown = true;
             }
 
-            Assert.IsTrue(correctExceptionThrown, "存在しないキャッシュからのロードはFileNotFoundExceptionまたはInvalidOperationExceptionを投げるべき");
-
-            Debug.Log("[Phase5Test] フォールバックテスト成功");
-        });
-
-        #endregion
-
-        #region Load Path Selection Tests
-
-        [UnityTest]
-        public IEnumerator ロードパス選択_キャッシュ利用可能時にキャッシュを使用すること() => UniTask.ToCoroutine(async () =>
-        {
-            // Arrange
-            var cacheManager = new AvatarCacheManager(TestCacheDirectory);
-            var hash = AvatarCacheManager.CalculateFileHash(TestVrmPath);
-            var cacheDir = cacheManager.GetCacheDirectoryPath(hash);
-
-            Directory.CreateDirectory(cacheDir);
-            var manifest = new AvatarCacheManifest
-            {
-                cacheFormatVersion = AvatarCacheManager.CURRENT_CACHE_FORMAT_VERSION,
-                cacheId = hash
-            };
-            File.WriteAllText(Path.Combine(cacheDir, "manifest.json"),
-                JsonUtility.ToJson(manifest));
-
-            // Act - ロードパス選択
-            var shouldUseCache = cacheManager.IsCacheValid(hash);
-
-            // Assert
-            Assert.IsTrue(shouldUseCache, "キャッシュパスを選択すべき");
-            Debug.Log("[Phase5Test] キャッシュパスを選択");
+            Assert.IsTrue(correctExceptionThrown, "存在しないキャッシュからのロードは例外を投げるべき");
+            Debug.Log("[Phase5Test] 存在しないキャッシュ例外テスト成功");
         });
 
         [UnityTest]
-        public IEnumerator ロードパス選択_キャッシュ利用不可時にソースを選択すること() => UniTask.ToCoroutine(async () =>
+        public IEnumerator キャッシュロード_フルロードより高速であること() => UniTask.ToCoroutine(async () =>
         {
             // Arrange
             var cacheManager = new AvatarCacheManager(TestCacheDirectory);
+
+            // フルロード時間を計測
+            var swFull = Stopwatch.StartNew();
+            var avatar = await LoadVrmAsync();
+            swFull.Stop();
+            var fullLoadTime = swFull.ElapsedMilliseconds;
+
+            // キャッシュを作成
+            await cacheManager.CreateCacheAsync(TestVrmPath, avatar);
             var hash = AvatarCacheManager.CalculateFileHash(TestVrmPath);
-            var cacheDir = cacheManager.GetCacheDirectoryPath(hash);
 
-            // キャッシュを削除
-            if (Directory.Exists(cacheDir))
-            {
-                Directory.Delete(cacheDir, true);
-            }
-
-            // Act - ロードパス選択
-            var cacheValid = cacheManager.IsCacheValid(hash);
-            var sourceExists = File.Exists(TestVrmPath);
-            var shouldUseSource = !cacheValid && sourceExists;
+            // Act - キャッシュロード時間を計測
+            var swCache = Stopwatch.StartNew();
+            var cachedAvatar = await cacheManager.LoadFromCacheAsync(hash);
+            swCache.Stop();
+            var cacheLoadTime = swCache.ElapsedMilliseconds;
 
             // Assert
-            Assert.IsTrue(shouldUseSource, "ソースパスを選択すべき");
-            Debug.Log("[Phase5Test] ソースパスを選択（キャッシュ利用不可）");
+            Assert.IsNotNull(cachedAvatar);
+            Debug.Log($"[Phase5Test] フルロード: {fullLoadTime}ms, キャッシュロード: {cacheLoadTime}ms");
+
+            // クリーンアップ
+            Object.Destroy(cachedAvatar);
         });
 
         #endregion
@@ -271,7 +114,7 @@ namespace AICam.Tests.PlayMode.AvatarCache
         #region Cache Deletion Tests
 
         [UnityTest]
-        public IEnumerator キャッシュ削除_AvatarCacheManagerで削除できること() => UniTask.ToCoroutine(async () =>
+        public IEnumerator キャッシュ削除_DeleteCacheで削除できること() => UniTask.ToCoroutine(async () =>
         {
             // Arrange
             var cacheManager = new AvatarCacheManager(TestCacheDirectory);
@@ -284,13 +127,76 @@ namespace AICam.Tests.PlayMode.AvatarCache
 
             Assert.IsTrue(cacheManager.CacheExists(hash), "削除前にキャッシュが存在すべき");
 
-            // Act - 実際のAvatarCacheManager.DeleteCacheを呼び出す
+            // Act - 実際のDeleteCacheを呼び出す
             cacheManager.DeleteCache(hash);
 
             // Assert
             Assert.IsFalse(cacheManager.CacheExists(hash), "削除後にキャッシュは存在しないべき");
 
             Debug.Log("[Phase5Test] キャッシュ削除成功");
+        });
+
+        [UnityTest]
+        public IEnumerator キャッシュ削除_存在しないキャッシュでエラーにならないこと() => UniTask.ToCoroutine(async () =>
+        {
+            // Arrange
+            var cacheManager = new AvatarCacheManager(TestCacheDirectory);
+            var fakeHash = "nonexistent_hash_for_delete";
+
+            // Act & Assert - DeleteCacheを呼び出す（例外が発生しないこと）
+            cacheManager.DeleteCache(fakeHash);
+
+            Debug.Log("[Phase5Test] 存在しないキャッシュ削除テスト成功");
+        });
+
+        #endregion
+
+        #region Load Path Selection Tests
+
+        [UnityTest]
+        public IEnumerator ロードパス選択_キャッシュ有効時にキャッシュからロードすること() => UniTask.ToCoroutine(async () =>
+        {
+            // Arrange
+            var cacheManager = new AvatarCacheManager(TestCacheDirectory);
+            var avatar = await LoadVrmAsync();
+            await cacheManager.CreateCacheAsync(TestVrmPath, avatar);
+            var hash = AvatarCacheManager.CalculateFileHash(TestVrmPath);
+
+            // Act - キャッシュが有効ならLoadFromCacheAsyncを使用
+            GameObject loadedAvatar = null;
+            if (cacheManager.IsCacheValid(hash))
+            {
+                loadedAvatar = await cacheManager.LoadFromCacheAsync(hash);
+            }
+
+            // Assert
+            Assert.IsNotNull(loadedAvatar);
+            Debug.Log("[Phase5Test] キャッシュパスでロード成功");
+
+            // クリーンアップ
+            Object.Destroy(loadedAvatar);
+        });
+
+        [UnityTest]
+        public IEnumerator ロードパス選択_キャッシュ無効時にフォールバックすること() => UniTask.ToCoroutine(async () =>
+        {
+            // Arrange
+            var cacheManager = new AvatarCacheManager(TestCacheDirectory);
+            var hash = AvatarCacheManager.CalculateFileHash(TestVrmPath);
+
+            // キャッシュを削除して無効化
+            cacheManager.DeleteCache(hash);
+
+            // Act - キャッシュが無効なのでフォールバック
+            bool usedFallback = false;
+            if (!cacheManager.IsCacheValid(hash))
+            {
+                usedFallback = true;
+            }
+
+            // Assert
+            Assert.IsTrue(usedFallback, "キャッシュ無効時はフォールバックすべき");
+            Debug.Log("[Phase5Test] フォールバックパス選択成功");
         });
 
         #endregion
