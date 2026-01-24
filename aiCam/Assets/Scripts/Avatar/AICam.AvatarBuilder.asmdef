@@ -1,18 +1,11 @@
 {
-    "name": "AICam.FBXLoader",
-    "rootNamespace": "AICam.FBXLoader",
+    "name": "AICam.AvatarBuilder",
+    "rootNamespace": "AICam.AvatarBuilder",
     "references": [
         "UniTask",
         "VRM",
-        "VRM10",
         "UniGLTF",
-        "UniHumanoid",
-        "AICam.Core",
-        "AICam.AvatarCache",
-        "AICam.Analytics",
-        "AICam.AvatarBuilder",
-        "UniSIL.ShaderInference",
-        "Unity.TextMeshPro"
+        "UniHumanoid"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
