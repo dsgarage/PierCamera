@@ -1,0 +1,22 @@
+{
+    "name": "AICam.FBXLoader",
+    "rootNamespace": "AICam.FBXLoader",
+    "references": [
+        "UniTask",
+        "VRM",
+        "UniGLTF",
+        "UniHumanoid",
+        "AICam.Core",
+        "AICam.AvatarCache",
+        "Unity.TextMeshPro"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
