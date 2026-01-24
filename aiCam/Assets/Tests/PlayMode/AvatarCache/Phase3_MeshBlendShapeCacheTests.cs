@@ -254,11 +254,12 @@ namespace AICam.Tests.PlayMode.AvatarCache
             var tempPath = Path.Combine(TestCacheDirectory, "temp_blendshapes.bin");
             BlendShapeCacheSerializer.SerializeToBinary(smrs, tempPath);
 
-            // 新しいメッシュを作成
+            // 新しいメッシュを作成（名前もコピーしてマッチングに使用）
             var newMeshes = new Mesh[originalMeshes.Count];
             for (int i = 0; i < originalMeshes.Count; i++)
             {
                 newMeshes[i] = new Mesh();
+                newMeshes[i].name = originalMeshes[i].name;
                 newMeshes[i].vertices = originalMeshes[i].vertices;
                 newMeshes[i].normals = originalMeshes[i].normals;
                 newMeshes[i].triangles = originalMeshes[i].triangles;
