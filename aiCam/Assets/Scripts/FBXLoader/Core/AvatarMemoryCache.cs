@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Cysharp.Threading.Tasks;
+using AICam.AvatarCache;
 
 namespace AICam.FBXLoader
 {
@@ -121,6 +122,9 @@ namespace AICam.FBXLoader
         // デフォルト配置用の親Transform
         [SerializeField] private Transform defaultParent;
 
+        // Issue #457: バイナリキャッシュ統合
+        private AvatarCacheIntegrator _cacheIntegrator;
+
         // キャッシュ統計
         public int CachedCount => cacheBySlot.Count;
         public int ActiveSlotIndex => activeSlotIndex;
@@ -139,6 +143,14 @@ namespace AICam.FBXLoader
         public void SetDefaultParent(Transform parent)
         {
             defaultParent = parent;
+        }
+
+        /// <summary>
+        /// Issue #457: バイナリキャッシュインテグレーターを設定
+        /// </summary>
+        public void SetCacheIntegrator(AvatarCacheIntegrator integrator)
+        {
+            _cacheIntegrator = integrator;
         }
 
         // イベント

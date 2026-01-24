@@ -90,6 +90,9 @@ namespace AICam.FBXLoader
         public string poseIconFolderPath;         // ポーズアイコンフォルダ
         public List<string> registeredOverrideNames = new List<string>(); // 登録済みOverrideController名
 
+        // Issue #457: バイナリキャッシュ統合
+        public string binaryCacheId;              // AvatarCacheManagerのキャッシュID
+
         public AvatarSlotData()
         {
             slotIndex = -1;
@@ -106,6 +109,7 @@ namespace AICam.FBXLoader
             poseManifestPath = string.Empty;
             poseIconFolderPath = string.Empty;
             registeredOverrideNames = new List<string>();
+            binaryCacheId = string.Empty;
         }
 
         public AvatarSlotData(int index) : this()
@@ -127,6 +131,27 @@ namespace AICam.FBXLoader
         /// モデルファイルが存在するか
         /// </summary>
         public bool ModelFileExists => !string.IsNullOrEmpty(modelFilePath) && File.Exists(modelFilePath);
+
+        /// <summary>
+        /// Issue #457: バイナリキャッシュが存在するか
+        /// </summary>
+        public bool HasBinaryCache => !string.IsNullOrEmpty(binaryCacheId);
+
+        /// <summary>
+        /// Issue #457: バイナリキャッシュIDを設定
+        /// </summary>
+        public void SetBinaryCacheId(string cacheId)
+        {
+            binaryCacheId = cacheId;
+        }
+
+        /// <summary>
+        /// Issue #457: バイナリキャッシュIDをクリア
+        /// </summary>
+        public void ClearBinaryCache()
+        {
+            binaryCacheId = null;
+        }
 
         /// <summary>
         /// ファイルパスからファイルタイプを判定
@@ -163,6 +188,7 @@ namespace AICam.FBXLoader
             poseManifestPath = string.Empty;
             poseIconFolderPath = string.Empty;
             registeredOverrideNames = new List<string>();
+            binaryCacheId = string.Empty;
         }
 
         /// <summary>
