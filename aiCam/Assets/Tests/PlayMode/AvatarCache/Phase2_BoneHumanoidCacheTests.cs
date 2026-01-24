@@ -281,9 +281,9 @@ namespace AICam.Tests.PlayMode.AvatarCache
             // Assert
             Assert.IsNotNull(reconstructed);
 
-            // ボーン数の確認
+            // ボーン数の確認（ExtractFromAvatarはルートを含む全Transformを抽出する）
             var reconstructedBones = reconstructed.GetComponentsInChildren<Transform>();
-            Assert.AreEqual(boneCache.bones.Length, reconstructedBones.Length - 1, "再構築されたボーン数が一致すべき（ルート除く）");
+            Assert.AreEqual(boneCache.bones.Length, reconstructedBones.Length, "再構築されたボーン数が一致すべき");
 
             Debug.Log($"[Phase2Test] 再構築したボーン数: {reconstructedBones.Length}");
 
