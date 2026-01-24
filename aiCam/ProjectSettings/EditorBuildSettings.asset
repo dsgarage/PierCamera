@@ -5,12 +5,9 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 0
-    path: Assets/Scenes/ARCamera.unity
-    guid: 9868e331eec4648f982e56553394a5f3
   - enabled: 1
-    path: Assets/Scenes/ARCamera_origin.unity
-    guid: 6bb70b3712b8d40b19d45b8c06781e5e
+    path: Assets/UITK_Pier/Scenes/ARCamera_origin_Pier.unity
+    guid: 76975217cc00646bc8eb6e883ba0c902
   m_configObjects:
     AR Foundation RemoteARFoundationRemoteLoaderSettings: {fileID: 11400000, guid: 940e5fb2cb7a34b54abc23192021a856, type: 2}
     UnityEditor.XR.ARCore.ARCoreSettings: {fileID: 11400000, guid: 0f3235a9ed9bb45599aafb58b9759f16, type: 2}
