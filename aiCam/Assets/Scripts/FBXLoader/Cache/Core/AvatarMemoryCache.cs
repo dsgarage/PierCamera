@@ -2,9 +2,8 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Cysharp.Threading.Tasks;
-using AICam.AvatarCache;
 
-namespace AICam.FBXLoader
+namespace AICam.AvatarCache
 {
     /// <summary>
     /// ロード済みアバターのメモリキャッシュ
@@ -117,7 +116,8 @@ namespace AICam.FBXLoader
 
         // ローダー参照（依存注入 or SerializeField）
         [Header("Loader")]
-        [SerializeField] private RuntimeFBXLoaderBridge avatarLoader;
+        [SerializeField] private Component avatarLoaderComponent;  // Inspector用（IAvatarLoader実装クラス）
+        private IAvatarLoader _avatarLoader;
 
         // デフォルト配置用の親Transform
         [SerializeField] private Transform defaultParent;
@@ -134,7 +134,7 @@ namespace AICam.FBXLoader
         /// </summary>
         public void SetLoader(IAvatarLoader loader)
         {
-            avatarLoader = loader as RuntimeFBXLoaderBridge;
+            _avatarLoader = loader;
         }
 
         /// <summary>
@@ -168,6 +168,12 @@ namespace AICam.FBXLoader
                 return;
             }
             Instance = this;
+
+            // SerializeFieldからIAvatarLoaderを取得
+            if (avatarLoaderComponent != null && _avatarLoader == null)
+            {
+                _avatarLoader = avatarLoaderComponent as IAvatarLoader;
+            }
         }
 
         /// <summary>
@@ -441,11 +447,11 @@ namespace AICam.FBXLoader
                     var entry = GetCacheEntry(targetSlotIndex);
                     if (entry != null && entry.hasLastTransform)
                     {
-                        // 保存された親と位置を復元（nullの場合はavatarLoaderのmodelParentを使う）
+                        // 保存された親と位置を復元（nullの場合はdefaultParentを使う）
                         Transform restoreParent = entry.lastParent;
-                        if (restoreParent == null && avatarLoader != null)
+                        if (restoreParent == null)
                         {
-                            restoreParent = avatarLoader.transform.parent; // loaderのmodelParentに近い位置
+                            restoreParent = defaultParent;
                         }
                         entry.RestoreTransform(restoreParent);
                         Debug.Log($"[AvatarMemoryCache] Restored position: {entry.lastWorldPosition}");
@@ -471,23 +477,71 @@ namespace AICam.FBXLoader
                 }
             }
 
-            // 4. キャッシュミス → ローダー経由でロード
-            Debug.Log($"[AvatarMemoryCache] CACHE MISS for slot {targetSlotIndex}, loading from file");
+            // 4. メモリキャッシュミス → バイナリキャッシュをチェック（Issue #457）
+            Debug.Log($"[AvatarMemoryCache] MEMORY CACHE MISS for slot {targetSlotIndex}");
 
             // ロード前にYield（Issue #426）
             await UniTask.Yield();
 
-            if (avatarLoader == null)
+            // 4.1 バイナリキャッシュからのロードを試みる
+            if (_cacheIntegrator != null && slotData.HasBinaryCache)
+            {
+                Debug.Log($"[AvatarMemoryCache] Trying BINARY CACHE for slot {targetSlotIndex}, cacheId={slotData.binaryCacheId}");
+                onProgress?.Invoke(10f);
+
+                try
+                {
+                    avatar = await _cacheIntegrator.LoadFromBinaryCacheAsync(
+                        slotData.binaryCacheId,
+                        progress => onProgress?.Invoke(10f + progress * 0.8f)
+                    );
+
+                    if (avatar != null)
+                    {
+                        Debug.Log($"[AvatarMemoryCache] BINARY CACHE HIT for slot {targetSlotIndex}");
+                        onProgress?.Invoke(95f);
+
+                        // キャッシュに追加
+                        CacheAvatar(targetSlotIndex, slotData.modelFilePath, avatar, keepActive: true);
+
+                        // 永続キャッシュから位置を復元
+                        if (slotData.HasSavedTransform)
+                        {
+                            slotData.ApplyTransform(avatar.transform);
+                            Debug.Log($"[AvatarMemoryCache] Applied saved transform from persistent cache");
+                        }
+
+                        onProgress?.Invoke(100f);
+
+                        var binaryCacheResult = SlotSwitchResult.Succeeded(targetSlotIndex, avatar, wasCacheHit: true);
+                        OnSlotSwitched?.Invoke(targetSlotIndex, binaryCacheResult);
+                        return binaryCacheResult;
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[AvatarMemoryCache] Binary cache load returned null, falling back to VRM loader");
+                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning($"[AvatarMemoryCache] Binary cache load failed: {e.Message}, falling back to VRM loader");
+                }
+            }
+
+            // 4.2 バイナリキャッシュミスまたは失敗 → VRMローダー経由でロード
+            Debug.Log($"[AvatarMemoryCache] Loading from VRM file for slot {targetSlotIndex}");
+
+            if (_avatarLoader == null)
             {
                 // ローダーが未設定の場合はエラー（SetLoader()またはInspectorで設定必須）
-                Debug.LogError("[AvatarMemoryCache] avatarLoader is null. Use SetLoader() or assign in Inspector.");
+                Debug.LogError("[AvatarMemoryCache] _avatarLoader is null. Use SetLoader() or assign in Inspector.");
                 return SlotSwitchResult.Failed(targetSlotIndex, "Avatar loader not configured. Call SetLoader() or assign in Inspector.");
             }
 
             onProgress?.Invoke(10f);
 
             // ローダー側のデフォルト親を使用（nullを渡すとLoaderのmodelParentが使われる）
-            var loadResult = await avatarLoader.LoadAsync(
+            var loadResult = await _avatarLoader.LoadAsync(
                 slotData.modelFilePath,
                 null,
                 progress => onProgress?.Invoke(10f + progress * 0.8f) // 10-90%

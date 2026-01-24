@@ -2,7 +2,7 @@ using UnityEngine;
 using System;
 using Cysharp.Threading.Tasks;
 
-namespace AICam.FBXLoader
+namespace AICam.AvatarCache
 {
     /// <summary>
     /// アバターローダーインターフェース

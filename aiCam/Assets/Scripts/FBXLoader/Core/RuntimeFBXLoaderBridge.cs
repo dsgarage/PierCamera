@@ -9,6 +9,7 @@ using AICam.Core.IO;
 using AICam.Core.Texture;
 using AICam.Analytics;
 using AICam.Analytics.DTOs;
+using AICam.AvatarCache;
 using UniGLTF;
 using VRM;
 using UniVRM10;

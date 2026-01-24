@@ -1,7 +1,6 @@
 using System.Collections;
 using System.IO;
 using AICam.AvatarCache;
-using AICam.FBXLoader;
 using AICam.Tests.PlayMode.AvatarCache;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
