@@ -230,16 +230,25 @@ namespace AICam.Tests.PlayMode.AvatarCache
         #region File Extension Tests
 
         [UnityTest]
-        public IEnumerator ファイル拡張子_avatarcacheであること() => UniTask.ToCoroutine(async () =>
+        public IEnumerator ファイル拡張子_エクスポート後に正しいことを確認できること() => UniTask.ToCoroutine(async () =>
         {
-            // Arrange - 実装が存在することを確認
+            // Arrange
+            var cacheManager = new AvatarCacheManager(TestCacheDirectory);
             var hash = AvatarCacheManager.CalculateFileHash(TestVrmPath);
-            var fileName = "MyAvatar.avatarcache";
+            var cacheDir = cacheManager.GetCacheDirectoryPath(hash);
+            var exportPath = Path.Combine(TestCacheDirectory, "Exports", "MyAvatar.avatarcache");
 
-            // Act
-            var extension = Path.GetExtension(fileName);
+            // Create cache structure
+            Directory.CreateDirectory(Path.Combine(cacheDir, "core"));
+            File.WriteAllText(Path.Combine(cacheDir, "manifest.json"), "{}");
+
+            Directory.CreateDirectory(Path.GetDirectoryName(exportPath));
+
+            // Act - Phase 7のExportAsyncを呼び出す
+            await AvatarCacheExporter.ExportAsync(hash, exportPath);
 
             // Assert
+            var extension = Path.GetExtension(exportPath);
             Assert.AreEqual(".avatarcache", extension);
 
             Debug.Log("[Phase7Test] ファイル拡張子検証成功");
