@@ -18,8 +18,8 @@ namespace AICam.Tests.PlayMode.AvatarCache
     public abstract class AvatarCacheTestBase
     {
         // テスト用VRMファイルパス
-        // 注: 実機テストではStreamingAssetsに配置する必要があります
-        protected const string TestVrmPath = "/Users/daisuketsukada/Documents/dsgarageUnity/arCam/Eku_VRM_v1_0_0 3.vrm";
+        // Assets/Tests/TestResources/TestAvatar.vrm に配置
+        protected static string TestVrmPath => Path.Combine(Application.dataPath, "Tests", "TestResources", "TestAvatar.vrm");
 
         // テスト用キャッシュディレクトリ
         protected string TestCacheDirectory => Path.Combine(Application.temporaryCachePath, "AvatarCacheTest");
