@@ -221,8 +221,17 @@
 } /* Aspect */
 
 #sideButton3 {
+    background-image: url("../Icons/flash_OFF.png");
+} /* Flash - デフォルトはOFF状態 */
+
+/* Issue #452: トーチ状態のアイコン切り替え */
+#sideButton3.torch-on {
     background-image: url("../Icons/flash_ON.png");
-} /* Flash */
+}
+
+#sideButton3.torch-off {
+    background-image: url("../Icons/flash_OFF.png");
+}
 
 /* Issue #413: バグレポートボタン */
 #sideButtonBugReport {
@@ -748,4 +757,18 @@
 #topButton3:hover,
 #topButton4:hover{
     background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* ================================
+   バージョン表示（右下）
+================================ */
+.version-label {
+    position: absolute;
+    bottom: 8px;
+    right: 60px;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    -unity-text-align: lower-right;
+    -unity-font-style: normal;
+    padding: 2px 4px;
 }

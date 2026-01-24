@@ -247,5 +247,7 @@
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
+        <!-- バージョン表示（右下） -->
+        <ui:Label name="versionLabel" text="v0.0.0 (0)" picking-mode="Ignore" class="version-label" />
     </ui:VisualElement>
 </ui:UXML>

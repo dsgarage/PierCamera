@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a98ca8550e42e425eb5c88fbbb7c1e5e, type: 3}
   m_Name: UaaLVersionConfig
   m_EditorClassIdentifier: Assembly-CSharp-Editor::AICam.Editor.UaaL.UaaLVersionConfig
-  version: 0.7.1
-  buildNumber: 31
+  version: 0.7.3
+  buildNumber: 34
   githubRepo: dsgarage/PierCamera
-  currentMilestone: 
-  lastBuildTime: 2026-01-05 21:54:35
+  currentMilestone: v0.7.3
+  lastBuildTime: 2026-01-23 13:55:02
   lastBuildPlatform: iOS

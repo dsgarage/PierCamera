@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UIElements;
+using UnityEngine.XR.ARFoundation;
 using NativeFilePickerNamespace;
 using Cysharp.Threading.Tasks;
 using System.IO;
@@ -78,6 +79,9 @@ namespace AICam.UI
         private Button sideButton3;
         private Button sideButtonBugReport; // Issue #413: バグレポート
 
+        // Issue #451: 撮影設定バー（topButton1-4用、貫通防止）
+        private VisualElement captureSettingBar;
+
         // Issue #74/#75: トップパネルボタン要素
         private Button topButton1; // Light Estimation ON/OFF
         private Button topButton2; // Shadow ON/OFF
@@ -113,11 +117,22 @@ namespace AICam.UI
         private Light cachedMainLight;
         private ARPlaneShadowReceiver cachedPlaneShadowReceiver;
 
+        // Issue #452: トーチ（背面ライト）状態
+        private bool isTorchEnabled = false;
+        private ARCameraManager cachedARCameraManager;
+
         // Issue #120: ライティング/シャドウパネル
         private LightingPanelController lightingPanelController;
         private VisualElement settingsPanelBackdrop;
         private VisualElement lightingPanelOverlay;
         private VisualElement shadowPanelOverlay;
+
+        // Issue #450: Lighting Panel タブ切り替え用
+        private VisualElement tabMood;
+        private VisualElement tabDirection;
+        private VisualElement lightingPanelMood;
+        private VisualElement lightingPanelDirection;
+
         // Issue #74/#75 修正: 長押し関連変数は不要になったため削除
 
         // アスペクト比トグル用のステート（02_01 → 02_02 → 02_03 → 02_01）
@@ -331,6 +346,9 @@ namespace AICam.UI
             sideButton3 = root.Q<Button>("sideButton3");
             sideButtonBugReport = root.Q<Button>("sideButtonBugReport"); // Issue #413
 
+            // Issue #451: 撮影設定バー（貫通防止用）
+            captureSettingBar = root.Q<VisualElement>("captureSettingBar");
+
             // Issue #74/#75: トップパネルボタンの取得
             topButton1 = root.Q<Button>("topButton1");
             topButton2 = root.Q<Button>("topButton2");
@@ -527,6 +545,12 @@ namespace AICam.UI
             lightingPanelOverlay = root.Q<VisualElement>("lightingPanelOverlay");
             shadowPanelOverlay = root.Q<VisualElement>("shadowPanelOverlay");
 
+            // Issue #450: Lighting Panel タブ要素を取得
+            tabMood = root.Q<VisualElement>("tabMood");
+            tabDirection = root.Q<VisualElement>("tabDirection");
+            lightingPanelMood = root.Q<VisualElement>("lightingPanelMood");
+            lightingPanelDirection = root.Q<VisualElement>("lightingPanelDirection");
+
             if (settingsPanelBackdrop != null)
             {
                 // バックドロップ自体がクリックされた場合のみパネルを閉じる（子要素のクリックは無視）
@@ -555,6 +579,17 @@ namespace AICam.UI
             {
                 shadowCloseButton.RegisterCallback<ClickEvent>(evt => HideAllPanels());
                 if (enableDebugLogging) Debug.Log("✅ Shadow panel close button events registered");
+            }
+
+            // Issue #450: Lighting Panel タブ切り替えイベント登録
+            tabMood?.RegisterCallback<ClickEvent>(_ => ShowLightingMood());
+            tabDirection?.RegisterCallback<ClickEvent>(_ => ShowLightingDirection());
+            if (enableDebugLogging)
+            {
+                Debug.Log($"🔄 TabMood: {(tabMood != null ? "✅" : "❌")}");
+                Debug.Log($"🔄 TabDirection: {(tabDirection != null ? "✅" : "❌")}");
+                Debug.Log($"🔄 LightingPanelMood: {(lightingPanelMood != null ? "✅" : "❌")}");
+                Debug.Log($"🔄 LightingPanelDirection: {(lightingPanelDirection != null ? "✅" : "❌")}");
             }
 
             // LightingPanelControllerは初回使用時に遅延初期化
@@ -1244,6 +1279,7 @@ namespace AICam.UI
             if (IsPointOverElement(topPanel, panelPosition, "topPanel")) return true;
             if (IsPointOverElement(sidePanel, panelPosition, "sidePanel")) return true;
             if (IsPointOverElement(bottomPanel, panelPosition, "bottomPanel")) return true;
+            if (IsPointOverElement(captureSettingBar, panelPosition, "captureSettingBar")) return true; // Issue #451
             if (IsPointOverElement(captureButton, panelPosition, "captureButton")) return true;
             if (IsPointOverElement(galleryThumbnail, panelPosition, "galleryThumbnail")) return true;
 
@@ -1887,14 +1923,59 @@ namespace AICam.UI
         }
 
         /// <summary>
-        /// サイドバーボタン3（Flash）クリック時の処理
+        /// Issue #452: サイドバーボタン3（Flash/Torch）クリック時の処理
+        /// デバイスの背面ライト（トーチ）をON/OFFする
         /// </summary>
         void OnSideButton3Clicked()
         {
             Debug.Log("⚡ Side button 3 (Flash) clicked");
             TapticEngine.Selection();
 
-            // ここにフラッシュ切り替え処理を追加
+            // ARCameraManagerを取得
+            if (cachedARCameraManager == null)
+            {
+                cachedARCameraManager = FindFirstObjectByType<ARCameraManager>();
+            }
+
+            if (cachedARCameraManager == null)
+            {
+                Debug.LogWarning("[Torch] ARCameraManager not found");
+                ShowWarning("W452", "カメラが見つかりません");
+                return;
+            }
+
+            // トーチの状態をトグル
+            isTorchEnabled = !isTorchEnabled;
+
+            // AR Foundation のトーチモードを設定
+            cachedARCameraManager.requestedCameraTorchMode = isTorchEnabled
+                ? UnityEngine.XR.ARSubsystems.XRCameraTorchMode.On
+                : UnityEngine.XR.ARSubsystems.XRCameraTorchMode.Off;
+
+            Debug.Log($"[Torch] Torch mode set to: {(isTorchEnabled ? "ON" : "OFF")}");
+
+            // アイコンを更新
+            UpdateTorchIcon();
+        }
+
+        /// <summary>
+        /// Issue #452: トーチアイコンを状態に応じて更新
+        /// CSSクラスで切り替え: torch-on / torch-off
+        /// </summary>
+        void UpdateTorchIcon()
+        {
+            if (sideButton3 == null) return;
+
+            if (isTorchEnabled)
+            {
+                sideButton3.RemoveFromClassList("torch-off");
+                sideButton3.AddToClassList("torch-on");
+            }
+            else
+            {
+                sideButton3.RemoveFromClassList("torch-on");
+                sideButton3.AddToClassList("torch-off");
+            }
         }
 
         /// <summary>
@@ -2860,6 +2941,30 @@ namespace AICam.UI
                 shadowPanelOverlay.RemoveFromClassList("visible");
             }
             Debug.Log("📋 All panels hidden");
+        }
+
+        /// <summary>
+        /// Issue #450: Lighting Panel の Mood タブを表示
+        /// </summary>
+        void ShowLightingMood()
+        {
+            tabMood?.AddToClassList("is-selected");
+            tabDirection?.RemoveFromClassList("is-selected");
+            lightingPanelMood?.AddToClassList("is-active");
+            lightingPanelDirection?.RemoveFromClassList("is-active");
+            if (enableDebugLogging) Debug.Log("🔄 Switched to Mood tab");
+        }
+
+        /// <summary>
+        /// Issue #450: Lighting Panel の Direction タブを表示
+        /// </summary>
+        void ShowLightingDirection()
+        {
+            tabDirection?.AddToClassList("is-selected");
+            tabMood?.RemoveFromClassList("is-selected");
+            lightingPanelDirection?.AddToClassList("is-active");
+            lightingPanelMood?.RemoveFromClassList("is-active");
+            if (enableDebugLogging) Debug.Log("🔄 Switched to Direction tab");
         }
 
         /// <summary>

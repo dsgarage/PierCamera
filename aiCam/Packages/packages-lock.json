@@ -21,6 +21,15 @@
       "dependencies": {},
       "hash": "8a808f5c8792f2c9f4159e86dcd93c98992ae278"
     },
+    "com.dsgarage.runtime-texture-compressor": {
+      "version": "git@github.com:dsgaragejp/RuntimeTextureCompressor.git?path=Unity/Packages/RuntimeTextureCompressor",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.cysharp.unitask": "2.5.10"
+      },
+      "hash": "80a75711439be23ad641ccc2113c200c676025f6"
+    },
     "com.dsgarage.unisil": {
       "version": "git@github.com:dsgarage/UniSIL.git?path=/Packages/com.dsgarage.unisil",
       "depth": 0,
