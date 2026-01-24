@@ -9,6 +9,7 @@ using AICam.Core.IO;
 using AICam.Core.Texture;
 using AICam.Analytics;
 using AICam.Analytics.DTOs;
+using PierCamera.Analytics;
 using UniGLTF;
 using VRM;
 using UniVRM10;
@@ -48,7 +49,34 @@ namespace AICam.FBXLoader
         private VrmVersion loadedVrmVersion = VrmVersion.Unknown;
 
         // Issue #440: 圧縮テクスチャデシリアライザ (VRMテクスチャメモリ約89%削減)
-        private static readonly CompressedTextureDeserializer _textureDeserializer = new CompressedTextureDeserializer();
+        // 低スペック端末（iPhone 11以下）のみ圧縮を有効化
+        private static CompressedTextureDeserializer _textureDeserializer;
+        private static bool _textureDeserializerInitialized;
+
+        /// <summary>
+        /// テクスチャデシリアライザを遅延初期化で取得
+        /// 低スペック端末（LowEnd = iPhone 11以下）のみ圧縮を有効にする
+        /// </summary>
+        private static CompressedTextureDeserializer TextureDeserializer
+        {
+            get
+            {
+                if (!_textureDeserializerInitialized)
+                {
+                    _textureDeserializerInitialized = true;
+
+                    // デバイスカテゴリを判定
+                    var category = DeviceAnalytics.GetDeviceCategory();
+                    bool enableCompression = (category == DeviceAnalytics.DeviceCategory.LowEnd);
+
+                    _textureDeserializer = new CompressedTextureDeserializer(enableCompression);
+
+                    Debug.Log($"[RuntimeFBXLoaderBridge] TextureDeserializer initialized: " +
+                              $"DeviceCategory={category}, CompressionEnabled={enableCompression}");
+                }
+                return _textureDeserializer;
+            }
+        }
 
         private GameObject currentModel;
 
@@ -369,7 +397,7 @@ namespace AICam.FBXLoader
                         canLoadVrm0X: false,
                         showMeshes: true,
                         awaitCaller: new RuntimeOnlyAwaitCaller(),
-                        textureDeserializer: _textureDeserializer,
+                        textureDeserializer: TextureDeserializer,
                         controlRigGenerationOption: ControlRigGenerationOption.None
                     );
 
@@ -394,7 +422,7 @@ namespace AICam.FBXLoader
                         awaitCaller: new RuntimeOnlyAwaitCaller(),
                         materialGeneratorCallback: null,
                         metaCallback: null,
-                        textureDeserializer: _textureDeserializer,
+                        textureDeserializer: TextureDeserializer,
                         loadAnimation: false,
                         springboneRuntime: null
                     );
@@ -509,7 +537,7 @@ namespace AICam.FBXLoader
                         canLoadVrm0X: false,
                         showMeshes: true,
                         awaitCaller: new RuntimeOnlyAwaitCaller(),
-                        textureDeserializer: _textureDeserializer,
+                        textureDeserializer: TextureDeserializer,
                         controlRigGenerationOption: ControlRigGenerationOption.None
                     );
 
@@ -533,7 +561,7 @@ namespace AICam.FBXLoader
                         awaitCaller: new RuntimeOnlyAwaitCaller(),
                         materialGeneratorCallback: null,
                         metaCallback: null,
-                        textureDeserializer: _textureDeserializer,
+                        textureDeserializer: TextureDeserializer,
                         loadAnimation: false,
                         springboneRuntime: null
                     );
@@ -1714,7 +1742,7 @@ namespace AICam.FBXLoader
                     canLoadVrm0X: false,
                     showMeshes: true,
                     awaitCaller: new RuntimeOnlyAwaitCaller(),
-                    textureDeserializer: _textureDeserializer,
+                    textureDeserializer: TextureDeserializer,
                     controlRigGenerationOption: ControlRigGenerationOption.None
                 );
 
@@ -1736,7 +1764,7 @@ namespace AICam.FBXLoader
                     awaitCaller: new RuntimeOnlyAwaitCaller(),
                     materialGeneratorCallback: null,
                     metaCallback: null,
-                    textureDeserializer: _textureDeserializer,
+                    textureDeserializer: TextureDeserializer,
                     loadAnimation: false,
                     springboneRuntime: null
                 );
