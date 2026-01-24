@@ -1,9 +1,17 @@
 {
     "name": "Tests.PlayMode",
-    "rootNamespace": "",
+    "rootNamespace": "AICam.Tests.PlayMode",
     "references": [
         "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner"
+        "UnityEditor.TestRunner",
+        "AICam.Core",
+        "AICam.VRMLoader",
+        "AICam.Analytics",
+        "AICam.AvatarCache",
+        "UniTask",
+        "VRM",
+        "UniGLTF",
+        "UniHumanoid"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
