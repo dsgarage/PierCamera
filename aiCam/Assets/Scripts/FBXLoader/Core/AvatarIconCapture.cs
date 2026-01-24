@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.Rendering;
 using Cysharp.Threading.Tasks;
 
 namespace AICam.FBXLoader
@@ -260,12 +261,13 @@ namespace AICam.FBXLoader
         }
 
         /// <summary>
-        /// Issue #440: ダミーレンダリングでシェーダーをウォームアップ
+        /// Issue #455: AsyncGPUReadback を使用してシェーダーウォームアップ完了を確実に検知
+        /// ダミーレンダリング後、GPU処理完了をコールバックで待機
         /// </summary>
         private async UniTask PerformWarmupRender(GameObject avatar, Renderer[] renderers)
         {
             // 小さいRenderTextureでダミーレンダリング
-            RenderTexture warmupRT = RenderTexture.GetTemporary(64, 64, 16);
+            RenderTexture warmupRT = RenderTexture.GetTemporary(64, 64, 16, RenderTextureFormat.ARGB32);
             GameObject warmupCamObj = null;
 
             try
@@ -285,9 +287,32 @@ namespace AICam.FBXLoader
                 // レンダリング実行（シェーダーコンパイルをトリガー）
                 warmupCam.Render();
 
-                // 1フレーム待ってGPUに処理させる
-                await UniTask.Yield();
-                await UniTask.WaitForEndOfFrame(this);
+                // Issue #455: AsyncGPUReadback でGPU処理完了を待機
+                // これにより、シェーダーコンパイルとテクスチャアップロードの完了を確実に検知
+                var completionSource = new UniTaskCompletionSource<bool>();
+
+                AsyncGPUReadback.Request(warmupRT, 0, request =>
+                {
+                    if (request.hasError)
+                    {
+                        Debug.LogWarning("[AvatarIconCapture] AsyncGPUReadback error, falling back to frame wait");
+                        completionSource.TrySetResult(false);
+                    }
+                    else
+                    {
+                        Debug.Log("[AvatarIconCapture] GPU warmup render completed via AsyncGPUReadback");
+                        completionSource.TrySetResult(true);
+                    }
+                });
+
+                // タイムアウト付きで待機（最大500ms）
+                var timeoutTask = UniTask.Delay(500);
+                var completedTask = await UniTask.WhenAny(completionSource.Task, timeoutTask);
+
+                if (completedTask == 1)
+                {
+                    Debug.LogWarning("[AvatarIconCapture] AsyncGPUReadback timeout, proceeding anyway");
+                }
             }
             finally
             {
