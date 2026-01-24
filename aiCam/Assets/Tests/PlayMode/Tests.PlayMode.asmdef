@@ -6,7 +6,6 @@
         "UnityEditor.TestRunner",
         "AICam.Core",
         "AICam.VRMLoader",
-        "AICam.FBXLoader",
         "AICam.Analytics",
         "AICam.AvatarCache",
         "UniTask",
