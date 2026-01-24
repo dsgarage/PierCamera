@@ -14,44 +14,56 @@ namespace AICam.Diagnostics
     /// 低スペック端末最適化の実機テスト用チェッカー
     /// Issue #440: Phase 1-4 の動作確認
     ///
-    /// ■ 実機テストフロー (iPhone + Xcode)
+    /// ■ 自動実行モード（推奨）
+    /// LOWSPEC_CHECK_AUTO シンボルが定義されている場合、アプリ起動時に自動実行
+    /// Project Settings > Player > Scripting Define Symbols に追加
     ///
-    /// 【準備】
+    /// ■ 手動実行モード
     /// 1. 本コンポーネントをシーン内のGameObjectにアタッチ
-    /// 2. testVrmFileName にStreamingAssets内のVRMファイル名を設定 (任意)
-    /// 3. iOSビルドして実機インストール
+    /// 2. runOnStart = true で起動時実行、または ContextMenu から実行
     ///
-    /// 【確認方法】
+    /// ■ 確認方法 (iPhone + Xcode)
     /// 1. Xcode > Window > Devices and Simulators
     /// 2. 対象端末を選択 > Open Console
     /// 3. フィルタに "[LowSpec]" を入力
     ///
-    /// 【チェック項目】
-    /// Step 1: 環境情報
-    ///   - Device Model, OS Version, Graphics API
-    ///   - ASTC Support (iOS/Androidでtrue必須)
-    ///
-    /// Step 2: テクスチャ圧縮 (Phase 4)
-    ///   - RuntimeTextureCompressor: INSTALLED ✓ が期待値
-    ///   - Compression Available: True ✓ が期待値
-    ///
-    /// Step 3: メモリ使用量
-    ///   - Texture Memory が500MB以下であること
-    ///   - Compressed > 0 が期待値 (Phase 4有効時)
-    ///
-    /// Step 4: ファイル読み込み (Phase 3, オプション)
-    ///   - Progress Callbacks > 1 が期待値 (大きいファイル時)
-    ///   - Throughput: 読み込み速度の確認
-    ///
-    /// ■ テスト結果サマリー
-    /// Unit Tests: 全76テスト成功
-    ///   - AICamCoreAssemblyTests: 10テスト
-    ///   - AvatarMemoryCacheTests: 31テスト
-    ///   - ChunkedFileReaderTests: 11テスト
-    ///   - CompressedTextureDeserializerTests: 24テスト
+    /// ■ チェック項目
+    /// Step 1: 環境情報 - Device Model, ASTC Support
+    /// Step 2: テクスチャ圧縮 (Phase 4) - RuntimeTextureCompressor 動作確認
+    /// Step 3: メモリ使用量 - Texture Memory, Compressed count
+    /// Step 4: ファイル読み込み (Phase 3) - ChunkedFileReader 動作確認
     /// </summary>
     public class LowSpecOptimizationChecker : MonoBehaviour
     {
+        /// <summary>
+        /// アプリ起動時に自動的にチェックを実行（LOWSPEC_CHECK_AUTO シンボル定義時）
+        /// シーンにコンポーネントをアタッチする必要なし
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private static void AutoInitialize()
+        {
+#if LOWSPEC_CHECK_AUTO || DEVELOPMENT_BUILD
+            Debug.Log("[LowSpec] Auto-initializing LowSpecOptimizationChecker...");
+
+            // 既に存在するか確認
+            var existing = FindFirstObjectByType<LowSpecOptimizationChecker>();
+            if (existing != null)
+            {
+                Debug.Log("[LowSpec] Instance already exists, skipping auto-create");
+                return;
+            }
+
+            // 自動生成
+            var go = new GameObject("LowSpecOptimizationChecker (Auto)");
+            var checker = go.AddComponent<LowSpecOptimizationChecker>();
+            checker.runOnStart = true;
+            checker.showOnGUI = false; // 自動実行時はGUI非表示（ログのみ）
+            DontDestroyOnLoad(go);
+
+            Debug.Log("[LowSpec] Auto-created and will run checks in 1.5 seconds");
+#endif
+        }
+
         private const string LOG_TAG = "[LowSpec]";
 
         [Header("テスト設定")]
