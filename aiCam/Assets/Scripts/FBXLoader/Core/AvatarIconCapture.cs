@@ -306,10 +306,11 @@ namespace AICam.FBXLoader
                 });
 
                 // タイムアウト付きで待機（最大500ms）
-                var timeoutTask = UniTask.Delay(500);
-                var completedTask = await UniTask.WhenAny(completionSource.Task, timeoutTask);
+                // WhenAny は (bool leftWon, (T1, T2)) を返す
+                var result = await UniTask.WhenAny(completionSource.Task, UniTask.Delay(500));
 
-                if (completedTask == 1)
+                // result.Item1 (hasResultLeft) が false の場合、右側（タイムアウト）が先に完了
+                if (!result.Item1)
                 {
                     Debug.LogWarning("[AvatarIconCapture] AsyncGPUReadback timeout, proceeding anyway");
                 }
