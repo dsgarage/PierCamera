@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 
@@ -20,25 +22,250 @@ namespace AICam.AvatarCache.IO
         /// <summary>
         /// テクスチャをPNGとして保存
         /// </summary>
-        public UniTask SaveTextureAsync(Texture2D texture, string textureId)
+        public async UniTask SaveTextureAsync(Texture2D texture, string textureId)
         {
-            throw new NotImplementedException();
+            if (texture == null)
+                throw new ArgumentNullException(nameof(texture));
+
+            if (string.IsNullOrEmpty(textureId))
+                throw new ArgumentNullException(nameof(textureId));
+
+            if (!Directory.Exists(_texturesDir))
+            {
+                Directory.CreateDirectory(_texturesDir);
+            }
+
+            var filePath = Path.Combine(_texturesDir, textureId + ".png");
+
+            // テクスチャが読み取り可能かチェック
+            Texture2D readableTexture = texture;
+            if (!texture.isReadable)
+            {
+                // 読み取り可能なコピーを作成
+                readableTexture = CreateReadableTexture(texture);
+            }
+
+            try
+            {
+                var pngData = readableTexture.EncodeToPNG();
+                await File.WriteAllBytesAsync(filePath, pngData);
+            }
+            finally
+            {
+                // コピーを作成した場合は破棄
+                if (readableTexture != texture)
+                {
+                    UnityEngine.Object.Destroy(readableTexture);
+                }
+            }
         }
 
         /// <summary>
         /// テクスチャをロード
         /// </summary>
-        public UniTask<Texture2D> LoadTextureAsync(string textureId)
+        public async UniTask<Texture2D> LoadTextureAsync(string textureId)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(textureId))
+                throw new ArgumentNullException(nameof(textureId));
+
+            var filePath = Path.Combine(_texturesDir, textureId + ".png");
+
+            if (!File.Exists(filePath))
+                throw new FileNotFoundException($"Texture not found: {filePath}");
+
+            var pngData = await File.ReadAllBytesAsync(filePath);
+
+            var texture = new Texture2D(2, 2);
+            if (!texture.LoadImage(pngData))
+            {
+                UnityEngine.Object.Destroy(texture);
+                throw new InvalidDataException($"Failed to load texture: {filePath}");
+            }
+
+            texture.name = textureId;
+            return texture;
         }
 
         /// <summary>
         /// マテリアルからテクスチャを抽出して保存
         /// </summary>
-        public UniTask<string[]> ExtractAndSaveTexturesAsync(Material[] materials)
+        public async UniTask<string[]> ExtractAndSaveTexturesAsync(Material[] materials)
         {
-            throw new NotImplementedException();
+            if (materials == null)
+                throw new ArgumentNullException(nameof(materials));
+
+            var textureIds = new List<string>();
+            var processedTextures = new HashSet<Texture2D>();
+
+            foreach (var material in materials)
+            {
+                if (material == null) continue;
+
+                // MainTexを取得
+                if (material.HasProperty("_MainTex"))
+                {
+                    var tex = material.GetTexture("_MainTex") as Texture2D;
+                    if (tex != null && !processedTextures.Contains(tex))
+                    {
+                        processedTextures.Add(tex);
+
+                        var textureId = GenerateTextureId(tex);
+                        await SaveTextureAsync(tex, textureId);
+                        textureIds.Add(textureId);
+                    }
+                }
+
+                // BumpMap（法線マップ）
+                if (material.HasProperty("_BumpMap"))
+                {
+                    var tex = material.GetTexture("_BumpMap") as Texture2D;
+                    if (tex != null && !processedTextures.Contains(tex))
+                    {
+                        processedTextures.Add(tex);
+
+                        var textureId = GenerateTextureId(tex);
+                        await SaveTextureAsync(tex, textureId);
+                        textureIds.Add(textureId);
+                    }
+                }
+            }
+
+            return textureIds.ToArray();
         }
+
+        /// <summary>
+        /// プラットフォームの圧縮フォーマットサポート情報を取得
+        /// </summary>
+        public static CompressionSupportInfo GetCompressionSupport()
+        {
+            var info = new CompressionSupportInfo();
+
+            // プラットフォーム別のサポート判定
+#if UNITY_IOS
+            info.supportsASTC = SystemInfo.SupportsTextureFormat(TextureFormat.ASTC_6x6);
+            info.supportsETC2 = false;
+            info.supportsDXT = false;
+            info.recommendedFormat = info.supportsASTC ? TextureFormat.ASTC_6x6 : TextureFormat.RGBA32;
+#elif UNITY_ANDROID
+            info.supportsASTC = SystemInfo.SupportsTextureFormat(TextureFormat.ASTC_6x6);
+            info.supportsETC2 = SystemInfo.SupportsTextureFormat(TextureFormat.ETC2_RGBA8);
+            info.supportsDXT = false;
+            info.recommendedFormat = info.supportsASTC ? TextureFormat.ASTC_6x6 :
+                                     info.supportsETC2 ? TextureFormat.ETC2_RGBA8 : TextureFormat.RGBA32;
+#else
+            info.supportsASTC = SystemInfo.SupportsTextureFormat(TextureFormat.ASTC_6x6);
+            info.supportsETC2 = SystemInfo.SupportsTextureFormat(TextureFormat.ETC2_RGBA8);
+            info.supportsDXT = SystemInfo.SupportsTextureFormat(TextureFormat.DXT5);
+            info.recommendedFormat = info.supportsDXT ? TextureFormat.DXT5 : TextureFormat.RGBA32;
+#endif
+
+            return info;
+        }
+
+        /// <summary>
+        /// テクスチャ圧縮による削減量を計算
+        /// </summary>
+        public static CompressionSavingsInfo CalculateCompressionSavings(Renderer[] renderers)
+        {
+            var info = new CompressionSavingsInfo();
+
+            if (renderers == null)
+                return info;
+
+            var processedTextures = new HashSet<Texture2D>();
+
+            foreach (var renderer in renderers)
+            {
+                if (renderer == null) continue;
+
+                foreach (var material in renderer.sharedMaterials)
+                {
+                    if (material == null) continue;
+
+                    // MainTexを取得
+                    if (material.HasProperty("_MainTex"))
+                    {
+                        var tex = material.GetTexture("_MainTex") as Texture2D;
+                        if (tex != null && !processedTextures.Contains(tex))
+                        {
+                            processedTextures.Add(tex);
+
+                            // 非圧縮サイズ（RGBA32 = 4 bytes per pixel）
+                            long uncompressedSize = (long)tex.width * tex.height * 4;
+                            info.uncompressedBytes += uncompressedSize;
+
+                            // ASTC 6x6圧縮サイズ（約0.89 bytes per pixel）
+                            long compressedSize = (long)tex.width * tex.height * 128 / (6 * 6 * 8);
+                            info.compressedBytes += compressedSize;
+                        }
+                    }
+                }
+            }
+
+            // 削減率を計算
+            if (info.uncompressedBytes > 0)
+            {
+                info.savingsRatio = 1.0f - (float)info.compressedBytes / info.uncompressedBytes;
+            }
+
+            return info;
+        }
+
+        /// <summary>
+        /// テクスチャIDを生成
+        /// </summary>
+        private static string GenerateTextureId(Texture2D texture)
+        {
+            // テクスチャ名とインスタンスIDを組み合わせてユニークなIDを生成
+            var name = string.IsNullOrEmpty(texture.name) ? "unnamed" : texture.name;
+            // ファイル名として使えない文字を置換
+            name = name.Replace("/", "_").Replace("\\", "_").Replace(":", "_");
+            return $"{name}_{texture.GetInstanceID()}";
+        }
+
+        /// <summary>
+        /// 読み取り可能なテクスチャコピーを作成
+        /// </summary>
+        private static Texture2D CreateReadableTexture(Texture2D source)
+        {
+            // RenderTextureを使用してコピー
+            var renderTex = RenderTexture.GetTemporary(
+                source.width, source.height, 0, RenderTextureFormat.ARGB32);
+
+            Graphics.Blit(source, renderTex);
+
+            var previous = RenderTexture.active;
+            RenderTexture.active = renderTex;
+
+            var readableTexture = new Texture2D(source.width, source.height, TextureFormat.RGBA32, false);
+            readableTexture.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0);
+            readableTexture.Apply();
+
+            RenderTexture.active = previous;
+            RenderTexture.ReleaseTemporary(renderTex);
+
+            return readableTexture;
+        }
+    }
+
+    /// <summary>
+    /// 圧縮サポート情報
+    /// </summary>
+    public struct CompressionSupportInfo
+    {
+        public bool supportsASTC;
+        public bool supportsETC2;
+        public bool supportsDXT;
+        public TextureFormat recommendedFormat;
+    }
+
+    /// <summary>
+    /// 圧縮削減量情報
+    /// </summary>
+    public struct CompressionSavingsInfo
+    {
+        public long uncompressedBytes;
+        public long compressedBytes;
+        public float savingsRatio;
     }
 }

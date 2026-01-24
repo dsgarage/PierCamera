@@ -237,20 +237,18 @@ namespace AICam.Tests.PlayMode.AvatarCache
         [UnityTest]
         public IEnumerator テクスチャ圧縮_ASTCサポートを確認できること() => UniTask.ToCoroutine(async () =>
         {
-            // 実装が存在することを確認
-            var hash = AvatarCacheManager.CalculateFileHash(TestVrmPath);
-
-            // Act
-            var supportsASTC = SystemInfo.SupportsTextureFormat(TextureFormat.ASTC_6x6);
-            var supportsETC2 = SystemInfo.SupportsTextureFormat(TextureFormat.ETC2_RGBA8);
+            // Act - 実際のTextureCacheManager.GetCompressionSupportを呼び出す
+            var compressionInfo = TextureCacheManager.GetCompressionSupport();
 
             // Assert - プラットフォームに依存
-            Debug.Log($"[Phase4Test] ASTCサポート: {supportsASTC}");
-            Debug.Log($"[Phase4Test] ETC2サポート: {supportsETC2}");
+            Debug.Log($"[Phase4Test] ASTCサポート: {compressionInfo.supportsASTC}");
+            Debug.Log($"[Phase4Test] ETC2サポート: {compressionInfo.supportsETC2}");
+            Debug.Log($"[Phase4Test] 推奨フォーマット: {compressionInfo.recommendedFormat}");
 
             // iOS/Androidでは通常サポートされている
             #if UNITY_IOS || UNITY_ANDROID
-            Assert.IsTrue(supportsASTC || supportsETC2, "モバイルはASTCまたはETC2をサポートすべき");
+            Assert.IsTrue(compressionInfo.supportsASTC || compressionInfo.supportsETC2,
+                "モバイルはASTCまたはETC2をサポートすべき");
             #endif
         });
 
@@ -261,40 +259,15 @@ namespace AICam.Tests.PlayMode.AvatarCache
             var avatar = await LoadVrmAsync();
             var renderers = avatar.GetComponentsInChildren<Renderer>();
 
-            // 実装が存在することを確認
-            var hash = AvatarCacheManager.CalculateFileHash(TestVrmPath);
-
-            long uncompressedSize = 0;
-            long compressedSize = 0;
-
-            foreach (var renderer in renderers)
-            {
-                foreach (var mat in renderer.sharedMaterials)
-                {
-                    if (mat == null) continue;
-                    if (!mat.HasProperty("_MainTex")) continue;
-
-                    var tex = mat.GetTexture("_MainTex") as Texture2D;
-                    if (tex == null) continue;
-
-                    // RGBA32: 4 bytes per pixel
-                    uncompressedSize += tex.width * tex.height * 4;
-
-                    // ASTC 6x6: ~0.89 bytes per pixel
-                    compressedSize += (long)(tex.width * tex.height * 0.89f);
-                }
-            }
+            // Act - 実際のTextureCacheManager.CalculateCompressionSavingsを呼び出す
+            var savingsInfo = TextureCacheManager.CalculateCompressionSavings(renderers);
 
             // Assert
-            if (uncompressedSize > 0)
-            {
-                float savings = 1f - (float)compressedSize / uncompressedSize;
-                Debug.Log($"[Phase4Test] 非圧縮: {uncompressedSize / 1024 / 1024}MB");
-                Debug.Log($"[Phase4Test] 圧縮後 (ASTC 6x6): {compressedSize / 1024 / 1024}MB");
-                Debug.Log($"[Phase4Test] メモリ削減率: {savings:P0}");
+            Debug.Log($"[Phase4Test] 非圧縮: {savingsInfo.uncompressedBytes / 1024 / 1024}MB");
+            Debug.Log($"[Phase4Test] 圧縮後: {savingsInfo.compressedBytes / 1024 / 1024}MB");
+            Debug.Log($"[Phase4Test] メモリ削減率: {savingsInfo.savingsRatio:P0}");
 
-                Assert.IsTrue(savings > 0.5f, "ASTCは50%以上のメモリ削減を提供すべき");
-            }
+            Assert.IsTrue(savingsInfo.savingsRatio > 0.5f, "ASTCは50%以上のメモリ削減を提供すべき");
         });
 
         #endregion
