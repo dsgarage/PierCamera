@@ -758,3 +758,17 @@
 #topButton4:hover{
     background-color: rgba(0, 0, 0, 0.3);
 }
+
+/* ================================
+   バージョン表示（右下）
+================================ */
+.version-label {
+    position: absolute;
+    bottom: 8px;
+    right: 60px;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    -unity-text-align: lower-right;
+    -unity-font-style: normal;
+    padding: 2px 4px;
+}
