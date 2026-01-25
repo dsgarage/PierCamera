@@ -461,6 +461,13 @@ namespace AICam.AvatarCache
                         // メモリキャッシュにない場合は永続キャッシュから復元
                         slotData.ApplyTransform(avatar.transform);
                         Debug.Log($"[AvatarMemoryCache] Restored position from persistent cache");
+
+                        // 保存された回転がidentityの場合は180° Y回転を適用
+                        if (IsRotationIdentity(avatar.transform.rotation))
+                        {
+                            avatar.transform.rotation = Quaternion.Euler(0, 180, 0);
+                            Debug.Log($"[AvatarMemoryCache] Corrected identity rotation to 180° Y (memory cache fallback)");
+                        }
                     }
 
                     onProgress?.Invoke(100f);
@@ -507,8 +514,23 @@ namespace AICam.AvatarCache
                         // 永続キャッシュから位置を復元
                         if (slotData.HasSavedTransform)
                         {
+                            // まず位置・スケールを適用
                             slotData.ApplyTransform(avatar.transform);
                             Debug.Log($"[AvatarMemoryCache] Applied saved transform from persistent cache");
+
+                            // 保存された回転がidentityの場合は180° Y回転を適用
+                            // （旧バージョンで回転前に保存された場合の対策）
+                            if (IsRotationIdentity(avatar.transform.rotation))
+                            {
+                                avatar.transform.rotation = Quaternion.Euler(0, 180, 0);
+                                Debug.Log($"[AvatarMemoryCache] Corrected identity rotation to 180° Y");
+                            }
+                        }
+                        else
+                        {
+                            // 保存されたトランスフォームがない場合、VRMのデフォルト向き（Z-方向）を設定
+                            avatar.transform.localRotation = Quaternion.Euler(0, 180, 0);
+                            Debug.Log($"[AvatarMemoryCache] Applied default VRM rotation (180° Y)");
                         }
 
                         onProgress?.Invoke(100f);
@@ -563,6 +585,20 @@ namespace AICam.AvatarCache
             {
                 slotData.ApplyTransform(avatar.transform);
                 Debug.Log($"[AvatarMemoryCache] Applied saved transform from persistent cache");
+
+                // 保存された回転がidentityの場合は180° Y回転を適用
+                if (IsRotationIdentity(avatar.transform.rotation))
+                {
+                    avatar.transform.rotation = Quaternion.Euler(0, 180, 0);
+                    Debug.Log($"[AvatarMemoryCache] Corrected identity rotation to 180° Y (VRM loader path)");
+                }
+            }
+
+            // Phase 4: VRMロード後のバイナリキャッシュ自動作成（バックグラウンド）
+            if (_cacheIntegrator != null && !slotData.HasBinaryCache)
+            {
+                // Fire-and-forget でバックグラウンド作成
+                CreateBinaryCacheInBackground(avatar, slotData).Forget();
             }
 
             onProgress?.Invoke(100f);
@@ -573,6 +609,54 @@ namespace AICam.AvatarCache
             Debug.Log($"[AvatarMemoryCache] Switch complete: slot {targetSlotIndex}, cacheHit={isCacheHit}");
             return switchResult;
         }
+
+        #endregion
+
+        #region Phase 4: 自動キャッシュ作成
+
+        /// <summary>
+        /// バイナリキャッシュをバックグラウンドで作成
+        /// VRMロード後に自動的に呼び出される
+        /// </summary>
+        private async UniTaskVoid CreateBinaryCacheInBackground(GameObject avatar, AvatarSlotData slotData)
+        {
+            if (_cacheIntegrator == null || avatar == null || slotData == null)
+            {
+                return;
+            }
+
+            try
+            {
+                Debug.Log($"[AvatarMemoryCache] Starting background binary cache creation for: {slotData.modelFilePath}");
+
+                // バイナリキャッシュを作成
+                var cacheId = await _cacheIntegrator.CreateBinaryCacheAsync(avatar, slotData.modelFilePath);
+
+                if (!string.IsNullOrEmpty(cacheId))
+                {
+                    // slotDataにcacheIdを設定
+                    slotData.SetBinaryCacheId(cacheId);
+                    Debug.Log($"[AvatarMemoryCache] Background binary cache created: {cacheId}");
+
+                    // キャッシュ作成完了イベント（オプション）
+                    OnBinaryCacheCreated?.Invoke(slotData.slotIndex, cacheId);
+                }
+                else
+                {
+                    Debug.LogWarning($"[AvatarMemoryCache] Background binary cache creation returned null for: {slotData.modelFilePath}");
+                }
+            }
+            catch (Exception e)
+            {
+                // キャッシュ作成失敗はアプリ動作に影響しない（次回はVRMから再ロード）
+                Debug.LogWarning($"[AvatarMemoryCache] Background binary cache creation failed: {e.Message}");
+            }
+        }
+
+        /// <summary>
+        /// バイナリキャッシュ作成完了イベント
+        /// </summary>
+        public event Action<int, string> OnBinaryCacheCreated;
 
         #endregion
 
@@ -888,6 +972,17 @@ namespace AICam.AvatarCache
                 return entry.avatarObject != null && entry.avatarObject;
             }
             return false;
+        }
+
+        /// <summary>
+        /// 回転がidentity（無回転）かどうかをチェック
+        /// 旧バージョンで回転適用前に保存された場合の検出用
+        /// </summary>
+        private static bool IsRotationIdentity(Quaternion rotation)
+        {
+            // Quaternion.identityとの角度差が小さければidentityとみなす
+            float angleDifference = Quaternion.Angle(rotation, Quaternion.identity);
+            return angleDifference < 1f; // 1度未満ならidentity
         }
     }
 }
