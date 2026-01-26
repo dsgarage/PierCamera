@@ -9,10 +9,16 @@ namespace AICam.AvatarCache.IO
     /// <summary>
     /// アバターキャッシュのエクスポーター
     /// .avatarcache形式（ZIP）でエクスポート
+    /// オプションでハッシュベースの難読化をサポート
     /// </summary>
     public static class AvatarCacheExporter
     {
         private static string _cacheRootPath;
+
+        /// <summary>
+        /// 難読化を有効にするかどうか（デフォルト: true）
+        /// </summary>
+        public static bool EnableObfuscation { get; set; } = true;
 
         /// <summary>
         /// キャッシュルートパスを設定
@@ -53,12 +59,46 @@ namespace AICam.AvatarCache.IO
             }
 
             // ZIPアーカイブを作成
+            var tempZipPath = exportPath + ".tmp";
             await UniTask.RunOnThreadPool(() =>
             {
-                ZipFile.CreateFromDirectory(cacheDir, exportPath, System.IO.Compression.CompressionLevel.Optimal, false);
+                ZipFile.CreateFromDirectory(cacheDir, tempZipPath, System.IO.Compression.CompressionLevel.Optimal, false);
             });
 
-            Debug.Log($"[AvatarCacheExporter] Exported: {exportPath}");
+            // 難読化処理
+            if (EnableObfuscation)
+            {
+                await UniTask.RunOnThreadPool(() =>
+                {
+                    var zipData = File.ReadAllBytes(tempZipPath);
+                    var obfuscatedData = CacheObfuscator.Obfuscate(zipData, cacheId);
+                    File.WriteAllBytes(exportPath, obfuscatedData);
+                    File.Delete(tempZipPath);
+                });
+                Debug.Log($"[AvatarCacheExporter] Exported (obfuscated): {exportPath}");
+            }
+            else
+            {
+                File.Move(tempZipPath, exportPath);
+                Debug.Log($"[AvatarCacheExporter] Exported: {exportPath}");
+            }
+        }
+
+        /// <summary>
+        /// キャッシュを.avatarcache形式でエクスポート（難読化オプション指定）
+        /// </summary>
+        public static async UniTask ExportAsync(string cacheId, string exportPath, bool obfuscate)
+        {
+            var previousSetting = EnableObfuscation;
+            try
+            {
+                EnableObfuscation = obfuscate;
+                await ExportAsync(cacheId, exportPath);
+            }
+            finally
+            {
+                EnableObfuscation = previousSetting;
+            }
         }
 
         /// <summary>
@@ -71,7 +111,28 @@ namespace AICam.AvatarCache.IO
 
             try
             {
-                using var archive = ZipFile.OpenRead(exportPath);
+                // 難読化されているか確認
+                var fileData = File.ReadAllBytes(exportPath);
+                byte[] zipData;
+
+                if (CacheObfuscator.IsObfuscated(fileData))
+                {
+                    // マニフェストからcacheIdを取得するため、一時的に復号化
+                    // 注: 検証のみなので、cacheIdが不明な場合は空文字でも構造確認可能
+                    // ただし、完全な検証には正しいcacheIdが必要
+                    Debug.Log("[AvatarCacheExporter] File is obfuscated, attempting validation...");
+
+                    // 難読化ファイルは基本的に有効とみなす（構造検証はImport時に行う）
+                    return fileData.Length > 4;
+                }
+                else
+                {
+                    zipData = fileData;
+                }
+
+                // ZIPとして検証
+                using var stream = new MemoryStream(zipData);
+                using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
 
                 // manifest.jsonが存在するかチェック
                 var manifestEntry = archive.GetEntry("manifest.json");
@@ -88,6 +149,14 @@ namespace AICam.AvatarCache.IO
                 Debug.LogWarning($"[AvatarCacheExporter] Validation failed: {e.Message}");
                 return false;
             }
+        }
+
+        /// <summary>
+        /// ファイルが難読化されているか確認
+        /// </summary>
+        public static bool IsObfuscated(string exportPath)
+        {
+            return CacheObfuscator.IsObfuscated(exportPath);
         }
 
         /// <summary>

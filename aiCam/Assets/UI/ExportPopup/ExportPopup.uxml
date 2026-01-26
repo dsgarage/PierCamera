@@ -1,0 +1,24 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="ExportPopup.uss" />
+    <ui:VisualElement name="exportPopupOverlay" class="export-popup-overlay">
+        <ui:VisualElement name="exportPopupPanel" class="export-popup-panel">
+            <!-- タイトル -->
+            <ui:Label name="exportPopupTitle" text="アバターをエクスポート" class="export-popup-title" />
+
+            <!-- メッセージ -->
+            <ui:Label name="exportPopupMessage" text="このアバターを.avatarcache形式で保存しますか？" class="export-popup-message" />
+
+            <!-- ローディングインジケーター -->
+            <ui:VisualElement name="exportLoadingIndicator" class="export-loading-indicator">
+                <ui:VisualElement class="export-loading-spinner" />
+                <ui:Label text="エクスポート中..." class="export-loading-text" />
+            </ui:VisualElement>
+
+            <!-- ボタンコンテナ -->
+            <ui:VisualElement name="exportButtonContainer" class="export-button-container">
+                <ui:Button name="exportCancelButton" text="キャンセル" class="export-popup-button cancel" />
+                <ui:Button name="exportConfirmButton" text="エクスポート" class="export-popup-button confirm" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

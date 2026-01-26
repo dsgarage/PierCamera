@@ -45,14 +45,49 @@ namespace AICam.AvatarCache.IO
 
             Directory.CreateDirectory(importDir);
 
-            // ZIPを展開
+            // 難読化チェック＆展開
             await UniTask.RunOnThreadPool(() =>
             {
-                ZipFile.ExtractToDirectory(importPath, importDir);
+                var fileData = File.ReadAllBytes(importPath);
+
+                if (CacheObfuscator.IsObfuscated(fileData))
+                {
+                    // 難読化を解除
+                    var deobfuscatedData = CacheObfuscator.Deobfuscate(fileData, cacheId);
+
+                    // 一時ファイルに書き出してから展開
+                    var tempZipPath = importPath + ".tmp.zip";
+                    try
+                    {
+                        File.WriteAllBytes(tempZipPath, deobfuscatedData);
+                        ZipFile.ExtractToDirectory(tempZipPath, importDir);
+                    }
+                    finally
+                    {
+                        if (File.Exists(tempZipPath))
+                        {
+                            File.Delete(tempZipPath);
+                        }
+                    }
+                    Debug.Log("[AvatarCacheImporter] Deobfuscated and extracted");
+                }
+                else
+                {
+                    // 通常のZIP展開
+                    ZipFile.ExtractToDirectory(importPath, importDir);
+                }
             });
 
             Debug.Log($"[AvatarCacheImporter] Imported: {cacheId} to {importDir}");
             return cacheId;
+        }
+
+        /// <summary>
+        /// ファイルが難読化されているか確認
+        /// </summary>
+        public static bool IsObfuscated(string importPath)
+        {
+            return CacheObfuscator.IsObfuscated(importPath);
         }
 
         /// <summary>
@@ -74,7 +109,25 @@ namespace AICam.AvatarCache.IO
 
             try
             {
-                using var archive = ZipFile.OpenRead(importPath);
+                // 難読化チェック
+                var fileData = File.ReadAllBytes(importPath);
+                Stream archiveStream;
+                bool isObfuscated = CacheObfuscator.IsObfuscated(fileData);
+
+                if (isObfuscated)
+                {
+                    // 難読化されている場合、まずcacheIdを推測してデコード
+                    // 注: cacheIdはファイル名またはマニフェストから取得
+                    var cacheId = Path.GetFileNameWithoutExtension(importPath);
+                    var deobfuscated = CacheObfuscator.Deobfuscate(fileData, cacheId);
+                    archiveStream = new MemoryStream(deobfuscated);
+                }
+                else
+                {
+                    archiveStream = new MemoryStream(fileData);
+                }
+
+                using var archive = new ZipArchive(archiveStream, ZipArchiveMode.Read);
 
                 // manifest.jsonを読み込み
                 var manifestEntry = archive.GetEntry("manifest.json");
@@ -125,7 +178,22 @@ namespace AICam.AvatarCache.IO
         {
             try
             {
-                using var archive = ZipFile.OpenRead(archivePath);
+                var fileData = File.ReadAllBytes(archivePath);
+                Stream archiveStream;
+
+                if (CacheObfuscator.IsObfuscated(fileData))
+                {
+                    // 難読化されている場合、ファイル名をcacheIdとして使用して復号化
+                    var fileNameCacheId = Path.GetFileNameWithoutExtension(archivePath);
+                    var deobfuscated = CacheObfuscator.Deobfuscate(fileData, fileNameCacheId);
+                    archiveStream = new MemoryStream(deobfuscated);
+                }
+                else
+                {
+                    archiveStream = new MemoryStream(fileData);
+                }
+
+                using var archive = new ZipArchive(archiveStream, ZipArchiveMode.Read);
 
                 var manifestEntry = archive.GetEntry("manifest.json");
                 if (manifestEntry == null)
@@ -138,8 +206,9 @@ namespace AICam.AvatarCache.IO
                 var manifest = JsonUtility.FromJson<AvatarCacheManifest>(json);
                 return manifest?.cacheId;
             }
-            catch
+            catch (Exception e)
             {
+                Debug.LogWarning($"[AvatarCacheImporter] Failed to extract cacheId: {e.Message}");
                 return null;
             }
         }
