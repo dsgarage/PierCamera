@@ -692,3 +692,161 @@
     -unity-font-style: normal;
     padding: 2px 4px;
 }
+
+/* ================================
+   エクスポートポップアップ (Issue #458)
+================================ */
+.export-popup-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    opacity: 0;
+    display: none;
+    transition-property: opacity;
+    transition-duration: 0.3s;
+}
+
+.export-popup-overlay.visible {
+    display: flex;
+    opacity: 1;
+}
+
+.export-popup-panel {
+    width: 320px;
+    min-height: 200px;
+    background-color: rgba(50, 50, 50, 0.98);
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-color: rgba(255, 255, 255, 0.2);
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 24px;
+    padding-bottom: 24px;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.export-popup-title {
+    font-size: 20px;
+    -unity-font-style: bold;
+    color: white;
+    -unity-text-align: middle-center;
+    margin-bottom: 16px;
+}
+
+.export-popup-message {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.8);
+    -unity-text-align: middle-center;
+    white-space: normal;
+    margin-bottom: 24px;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+.export-loading-indicator {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    display: none;
+}
+
+.export-loading-indicator.visible {
+    display: flex;
+}
+
+.export-loading-spinner {
+    width: 40px;
+    height: 40px;
+    border-left-width: 4px;
+    border-right-width: 4px;
+    border-top-width: 4px;
+    border-bottom-width: 4px;
+    border-top-left-radius: 50%;
+    border-top-right-radius: 50%;
+    border-bottom-left-radius: 50%;
+    border-bottom-right-radius: 50%;
+    border-left-color: rgba(80, 180, 255, 1);
+    border-right-color: rgba(80, 180, 255, 0.3);
+    border-top-color: rgba(80, 180, 255, 0.3);
+    border-bottom-color: rgba(80, 180, 255, 0.3);
+    margin-bottom: 12px;
+}
+
+.export-loading-text {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    -unity-text-align: middle-center;
+}
+
+.export-button-container {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin-top: auto;
+}
+
+.export-popup-button {
+    width: 130px;
+    height: 48px;
+    background-color: rgba(80, 80, 80, 0.9);
+    border-width: 0;
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    border-bottom-left-radius: 24px;
+    border-bottom-right-radius: 24px;
+    -unity-font-style: bold;
+    font-size: 16px;
+    color: white;
+    margin-left: 8px;
+    margin-right: 8px;
+    -unity-text-align: middle-center;
+}
+
+.export-popup-button:hover {
+    background-color: rgba(100, 100, 100, 1);
+}
+
+.export-popup-button:disabled {
+    opacity: 0.5;
+}
+
+.export-popup-button.cancel {
+    background-color: rgba(100, 100, 100, 0.9);
+}
+
+.export-popup-button.cancel:hover {
+    background-color: rgba(120, 120, 120, 1);
+}
+
+.export-popup-button.confirm {
+    background-color: rgba(80, 150, 220, 0.95);
+}
+
+.export-popup-button.confirm:hover {
+    background-color: rgba(100, 170, 240, 1);
+}
+
+/* 破壊的アクション用ボタン（赤） */
+.export-popup-button.destructive {
+    background-color: rgba(220, 80, 80, 0.95);
+}
+
+.export-popup-button.destructive:hover {
+    background-color: rgba(240, 100, 100, 1);
+}

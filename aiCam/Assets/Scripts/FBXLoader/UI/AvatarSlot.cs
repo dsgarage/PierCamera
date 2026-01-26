@@ -27,8 +27,10 @@ namespace AICam.FBXLoader
 
         [Header("Settings")]
         [SerializeField] private float longPressThreshold = 0.5f;
+        [SerializeField] private float doubleTapThreshold = 0.3f;
         [SerializeField] private Color emptyColor = new Color(0.3f, 0.3f, 0.3f, 0.5f);
         [SerializeField] private Color configuredColor = Color.white;
+        [SerializeField] private Color loadingColor = new Color(1f, 1f, 1f, 0.4f); // ロード中は薄く表示
 
         // スロットデータ
         private AvatarSlotData slotData;
@@ -40,6 +42,10 @@ namespace AICam.FBXLoader
         private bool isPointerDown;
         private float pointerDownTime;
 
+        // ダブルタップ検出用
+        private float lastClickTime;
+        private bool waitingForSecondTap;
+
         // Issue #73: プログレス関連
         private Material progressMaterialInstance;
         private bool isLoading;
@@ -49,6 +55,7 @@ namespace AICam.FBXLoader
         // イベント
         public event Action<int> OnSlotClicked;
         public event Action<int> OnSlotLongPressed;
+        public event Action<int> OnSlotDoubleTapped;
 
         public int SlotIndex => slotIndex;
         public bool IsConfigured => slotData != null && slotData.IsConfigured;
@@ -193,7 +200,36 @@ namespace AICam.FBXLoader
         /// </summary>
         private void OnButtonClick()
         {
+            // ロード中なら無視（重複ロード防止）
+            if (isLoading)
+            {
+                Debug.Log($"[AvatarSlot] Slot {slotIndex} is loading, ignoring click");
+                return;
+            }
+
+            float currentTime = Time.time;
+
+            // ダブルタップ検出（設定済みスロットのみ）
+            if (IsConfigured && waitingForSecondTap && (currentTime - lastClickTime) <= doubleTapThreshold)
+            {
+                // ダブルタップ検出
+                Debug.Log($"[AvatarSlot] Slot {slotIndex} double-tapped");
+                waitingForSecondTap = false;
+                OnSlotDoubleTapped?.Invoke(slotIndex);
+                return;
+            }
+
+            // シングルクリック
             Debug.Log($"[AvatarSlot] Slot {slotIndex} clicked, Configured: {IsConfigured}");
+            lastClickTime = currentTime;
+            waitingForSecondTap = IsConfigured; // 設定済みの場合のみダブルタップを待機
+
+            // 設定済みスロットの場合、即座にロード中フラグを設定（重複クリック防止）
+            if (IsConfigured)
+            {
+                isLoading = true;
+            }
+
             OnSlotClicked?.Invoke(slotIndex);
         }
 
@@ -298,6 +334,9 @@ namespace AICam.FBXLoader
             isLoading = true;
             SetProgress(0.01f); // 0より大きい値で開始（0だと非表示）
 
+            // アイコンを薄く表示
+            SetIconLoadingState(true);
+
             Debug.Log($"[AvatarSlot] Slot {slotIndex} loading started");
         }
 
@@ -307,6 +346,9 @@ namespace AICam.FBXLoader
         public void CompleteLoading()
         {
             SetProgress(1f);
+
+            // アイコンを通常表示に戻す
+            SetIconLoadingState(false);
 
             // 少し遅延してから非表示（完了アニメーション用）
             if (hideProgressCoroutine != null)
@@ -331,6 +373,9 @@ namespace AICam.FBXLoader
 
             isLoading = false;
 
+            // アイコンを通常表示に戻す
+            SetIconLoadingState(false);
+
             if (progressRing != null)
             {
                 progressRing.gameObject.SetActive(false);
@@ -349,6 +394,18 @@ namespace AICam.FBXLoader
             }
             isLoading = false;
             hideProgressCoroutine = null;
+        }
+
+        /// <summary>
+        /// アイコンのロード中表示状態を設定
+        /// </summary>
+        /// <param name="loading">ロード中かどうか</param>
+        private void SetIconLoadingState(bool loading)
+        {
+            if (iconImage != null && currentIcon != null)
+            {
+                iconImage.color = loading ? loadingColor : configuredColor;
+            }
         }
 
         #endregion

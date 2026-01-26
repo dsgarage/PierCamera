@@ -6,6 +6,7 @@ using UnityEngine;
 using Cysharp.Threading.Tasks;
 using AICam.Core.IO;
 using AICam.AvatarCache;
+using AICam.AvatarCache.IO;
 
 namespace AICam.FBXLoader
 {
@@ -19,6 +20,9 @@ namespace AICam.FBXLoader
 
         [Header("Settings")]
         [SerializeField] private int maxSlots = 6;
+
+        [Tooltip("起動時の自動アバター復元を無効化（CameraCaptureControllerがUIを担当する場合はOFFにする）")]
+        [SerializeField] private bool disableAutoRestore = true;
 
         [Header("References")]
         [SerializeField] private FileBrowserController fileBrowserController;
@@ -111,7 +115,15 @@ namespace AICam.FBXLoader
                 Debug.Log("[AvatarSlotManager] Async initialization complete");
 
                 // Issue #419: AvatarLoadHandler経由で最後にアクティブだったスロットを自動復元
-                await RestoreLastActiveSlotViaHandlerAsync();
+                // ★ CameraCaptureControllerがUIを担当する場合は自動復元をスキップ（二重ロード防止）
+                if (disableAutoRestore)
+                {
+                    Debug.Log("[AvatarSlotManager] Auto restore disabled (CameraCaptureController handles UI)");
+                }
+                else
+                {
+                    await RestoreLastActiveSlotViaHandlerAsync();
+                }
             }
             catch (Exception e)
             {
@@ -314,6 +326,7 @@ namespace AICam.FBXLoader
                 slot.Initialize(i, slotData);
                 slot.OnSlotClicked += OnSlotClickedHandler;
                 slot.OnSlotLongPressed += OnSlotLongPressedHandler;
+                slot.OnSlotDoubleTapped += OnSlotDoubleTappedHandler;
             }
 
             Debug.Log($"[AvatarSlotManager] Initialized {avatarSlots.Count} slot UIs");
@@ -331,13 +344,13 @@ namespace AICam.FBXLoader
 
                 // AvatarLoadHandlerのインスタンス待機
                 int maxWait = 20; // 最大2秒待機
-                while (AvatarLoadHandler.Instance == null && maxWait > 0)
+                while (!AvatarLoadHandler.HasInstance && maxWait > 0)
                 {
                     await UniTask.Delay(100);
                     maxWait--;
                 }
 
-                if (AvatarLoadHandler.Instance == null)
+                if (!AvatarLoadHandler.HasInstance)
                 {
                     Debug.LogWarning("[🔄 RESTORE] AvatarLoadHandler not found, falling back to legacy method");
                     await RestoreLastActiveSlotAsync();
@@ -430,6 +443,13 @@ namespace AICam.FBXLoader
         /// </summary>
         private async void OnSlotClickedHandler(int slotIndex)
         {
+            // ★ CameraCaptureControllerがUIを担当する場合はスキップ（二重ロード防止）
+            if (disableAutoRestore)
+            {
+                Debug.Log($"[AvatarSlotManager] Slot click ignored (CameraCaptureController handles UI)");
+                return;
+            }
+
             try
             {
                 Debug.Log($"[AvatarSlotManager] Slot {slotIndex} clicked");
@@ -448,8 +468,32 @@ namespace AICam.FBXLoader
                 }
                 else
                 {
+                    // 同じスロットがロード中なら無視（重複ロード防止）
+                    if (operationQueue != null && operationQueue.IsProcessing)
+                    {
+                        var currentOp = operationQueue.CurrentOperation;
+                        if (currentOp != null &&
+                            currentOp.Type == AvatarOperationQueue.OperationType.Load &&
+                            currentOp.SlotIndex == slotIndex)
+                        {
+                            Debug.Log($"[AvatarSlotManager] Slot {slotIndex} is already loading, ignoring click");
+                            return;
+                        }
+                    }
+
+                    // 既に選択中で表示されているスロットなら何もしない
+                    if (slotIndex == currentSlotIndex)
+                    {
+                        var memCache = GetMemoryCache();
+                        if (memCache != null && memCache.IsCacheValid(slotIndex))
+                        {
+                            Debug.Log($"[AvatarSlotManager] Slot {slotIndex} is already active and valid, ignoring click");
+                            return;
+                        }
+                    }
+
                     // 設定済みスロット - キュー経由でロード
-                    // 既にロード中の場合、High優先度で現在の操作をキャンセルして新しいスロットをロード
+                    // 既にロード中の場合（別スロット）、High優先度で現在の操作をキャンセルして新しいスロットをロード
                     var priority = operationQueue?.IsProcessing == true
                         ? AvatarOperationQueue.OperationPriority.High
                         : AvatarOperationQueue.OperationPriority.Normal;
@@ -493,8 +537,25 @@ namespace AICam.FBXLoader
             }
             else
             {
-                // 未設定の場合はFilePickerを開く
-                _ = OpenFilePickerForSlot(slotIndex);
+                // 未設定の場合はキャッシュクリアポップアップを表示
+                ShowClearCachePopup();
+            }
+        }
+
+        /// <summary>
+        /// スロットダブルタップハンドラー
+        /// Issue #458: アバターキャッシュのエクスポートポップアップを表示
+        /// </summary>
+        private void OnSlotDoubleTappedHandler(int slotIndex)
+        {
+            Debug.Log($"[AvatarSlotManager] Slot {slotIndex} double-tapped");
+
+            var slotData = cache.GetSlot(slotIndex);
+
+            if (slotData != null && slotData.IsConfigured)
+            {
+                // エクスポートポップアップを表示
+                ShowExportPopup(slotIndex);
             }
         }
 
@@ -508,6 +569,125 @@ namespace AICam.FBXLoader
 
             // 仮実装: 長押しでスロットをクリア
             // ClearSlot(slotIndex);
+        }
+
+        /// <summary>
+        /// キャッシュクリアポップアップを表示
+        /// </summary>
+        private void ShowClearCachePopup()
+        {
+            Debug.Log("[AvatarSlotManager] Showing clear cache popup");
+
+            // ClearCachePopupを取得または作成
+            var popup = ClearCachePopup.Instance;
+            if (popup == null)
+            {
+                var popupObj = new GameObject("ClearCachePopup");
+                popup = popupObj.AddComponent<ClearCachePopup>();
+                Debug.Log("[AvatarSlotManager] Created ClearCachePopup instance");
+            }
+
+            // ポップアップを表示
+            popup.Show((success) =>
+            {
+                if (success)
+                {
+                    Debug.Log("[AvatarSlotManager] Cache cleared, refreshing UI");
+                    // UIを更新
+                    RefreshAllSlotUIs();
+                }
+            });
+        }
+
+        /// <summary>
+        /// 全スロットのUIを更新
+        /// </summary>
+        private void RefreshAllSlotUIs()
+        {
+            for (int i = 0; i < maxSlots; i++)
+            {
+                UpdateSlotUI(i);
+            }
+        }
+
+        /// <summary>
+        /// エクスポートポップアップを表示
+        /// Issue #458: アバターキャッシュのエクスポート
+        /// </summary>
+        private void ShowExportPopup(int slotIndex)
+        {
+            var slotData = cache.GetSlot(slotIndex);
+
+            if (slotData == null || !slotData.IsConfigured)
+            {
+                Debug.LogWarning($"[AvatarSlotManager] Cannot export unconfigured slot {slotIndex}");
+                return;
+            }
+
+            // バイナリキャッシュがない場合は警告
+            if (!slotData.HasBinaryCache)
+            {
+                Debug.LogWarning($"[AvatarSlotManager] Slot {slotIndex} has no binary cache");
+                AlertBarController.WarnManifestNotFound("アバターをロードしてキャッシュを作成してください");
+                return;
+            }
+
+            // ExportPopupを取得または作成
+            var popup = ExportPopup.Instance;
+            if (popup == null)
+            {
+                // ExportPopupが存在しない場合は作成
+                var popupObj = new GameObject("ExportPopup");
+                popup = popupObj.AddComponent<ExportPopup>();
+                Debug.Log("[AvatarSlotManager] Created ExportPopup instance");
+            }
+
+            // ポップアップを表示
+            popup.Show(slotIndex, slotData, (success, path) =>
+            {
+                if (success)
+                {
+                    Debug.Log($"[AvatarSlotManager] Export completed: {path}");
+                }
+            });
+        }
+
+        /// <summary>
+        /// フォールバック: ポップアップなしでエクスポート
+        /// </summary>
+        private async UniTaskVoid ExportAvatarCacheFallback(int slotIndex, AvatarSlotData slotData)
+        {
+            try
+            {
+                string exportDir = Path.Combine(Application.persistentDataPath, "AvatarExports");
+                if (!Directory.Exists(exportDir))
+                {
+                    Directory.CreateDirectory(exportDir);
+                }
+
+                string safeName = slotData.avatarName ?? $"avatar_{slotIndex}";
+                // 無効な文字を置換
+                foreach (char c in Path.GetInvalidFileNameChars())
+                {
+                    safeName = safeName.Replace(c, '_');
+                }
+
+                string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                string fileName = $"{safeName}_{timestamp}.avatarcache";
+                string exportPath = Path.Combine(exportDir, fileName);
+
+                AvatarCacheExporter.SetCacheRootPath(Application.persistentDataPath);
+                AvatarCacheExporter.EnableObfuscation = true;
+                await AvatarCacheExporter.ExportAsync(slotData.binaryCacheId, exportPath);
+
+                Debug.Log($"[AvatarSlotManager] Fallback export completed: {exportPath}");
+                AlertBarController.ShowInfo($"エクスポート完了: {fileName}");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[AvatarSlotManager] Fallback export failed: {e.Message}");
+                AlertBarController.ErrorVrmLoadFailed($"エクスポート失敗: {e.Message}");
+            }
         }
 
         /// <summary>
@@ -779,6 +959,10 @@ namespace AICam.FBXLoader
                         slotData.iconFilePath = iconPath;
                         slotData.UpdateLastLoadedAt();
 
+                        // Issue #416: アイコンパスを永続キャッシュに保存
+                        cache.SaveToFile();
+                        Debug.Log($"[AvatarSlotManager] Saved icon path to cache: {iconPath}");
+
                         // マニフェストを更新（Humanoid情報など）
                         await UpdateManifestAfterLoad(slotData, bridge.CurrentModel);
 
@@ -790,10 +974,10 @@ namespace AICam.FBXLoader
                         }
 
                         // メモリキャッシュに追加（アクティブのまま維持）
-                        var cache = GetMemoryCache();
-                        if (cache != null && bridge.CurrentModel != null)
+                        var memCache = GetMemoryCache();
+                        if (memCache != null && bridge.CurrentModel != null)
                         {
-                            cache.CacheAvatar(slotData.slotIndex, slotData.modelFilePath, bridge.CurrentModel, keepActive: true);
+                            memCache.CacheAvatar(slotData.slotIndex, slotData.modelFilePath, bridge.CurrentModel, keepActive: true);
                             Debug.Log($"[AvatarSlotManager] Cached new avatar in memory for slot {slotData.slotIndex}");
                         }
                     }
@@ -1100,8 +1284,11 @@ namespace AICam.FBXLoader
                     if (bridge != null && result.Avatar != null)
                     {
                         bridge.SetCurrentModel(result.Avatar, slotIndex);
+                    }
 
-                        // Issue #416: AnimatorControllerを設定
+                    // Issue #416: AnimatorControllerを設定（bridgeがnullでも試行）
+                    if (result.Avatar != null)
+                    {
                         SetupAnimatorController(result.Avatar, bridge);
                     }
 
@@ -1294,7 +1481,7 @@ namespace AICam.FBXLoader
 
         /// <summary>
         /// Issue #416: アバターにAnimatorControllerを設定
-        /// RuntimeFBXLoaderBridgeからAnimatorControllerを取得して設定
+        /// RuntimeFBXLoaderBridgeまたはAvatarLoadHandlerからAnimatorControllerを取得して設定
         /// </summary>
         private void SetupAnimatorController(GameObject avatar, RuntimeFBXLoaderBridge bridge)
         {
@@ -1307,8 +1494,31 @@ namespace AICam.FBXLoader
                 Debug.Log($"[AvatarSlotManager] Added Animator component to {avatar.name}");
             }
 
+            // 既にAnimatorControllerが設定されている場合はスキップ
+            if (animator.runtimeAnimatorController != null)
+            {
+                Debug.Log($"[🎭 ANIMATOR] AnimatorController already set on {avatar.name}: {animator.runtimeAnimatorController.name}");
+                return;
+            }
+
             // RuntimeFBXLoaderBridgeからAnimatorControllerを取得
-            var controller = bridge?.GetAnimatorController();
+            RuntimeAnimatorController controller = bridge?.GetAnimatorController();
+
+            // bridgeがnullまたはcontrollerがnullの場合、AvatarLoadHandlerから取得を試みる
+            if (controller == null)
+            {
+                if (AvatarLoadHandler.HasInstance)
+                {
+                    // AvatarLoadHandlerのfbxLoaderBridgeを遅延取得で利用
+                    var handlerBridge = FindFirstObjectByType<RuntimeFBXLoaderBridge>();
+                    controller = handlerBridge?.GetAnimatorController();
+                    if (controller != null)
+                    {
+                        Debug.Log($"[🎭 ANIMATOR] Got AnimatorController from fallback search");
+                    }
+                }
+            }
+
             if (controller != null)
             {
                 animator.runtimeAnimatorController = controller;
@@ -1335,6 +1545,7 @@ namespace AICam.FBXLoader
                 slot.Initialize(index, slotData);
                 slot.OnSlotClicked += OnSlotClickedHandler;
                 slot.OnSlotLongPressed += OnSlotLongPressedHandler;
+                slot.OnSlotDoubleTapped += OnSlotDoubleTappedHandler;
             }
         }
 
@@ -1407,6 +1618,7 @@ namespace AICam.FBXLoader
                 {
                     slot.OnSlotClicked -= OnSlotClickedHandler;
                     slot.OnSlotLongPressed -= OnSlotLongPressedHandler;
+                    slot.OnSlotDoubleTapped -= OnSlotDoubleTappedHandler;
                 }
             }
 

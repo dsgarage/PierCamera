@@ -17,6 +17,21 @@ namespace AICam.FBXLoader
         #region Singleton
 
         private static AvatarLoadHandler _instance;
+        /// <summary>
+        /// インスタンスが存在するかどうか（エラーログなしでチェック）
+        /// </summary>
+        public static bool HasInstance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = FindObjectOfType<AvatarLoadHandler>();
+                }
+                return _instance != null;
+            }
+        }
+
         public static AvatarLoadHandler Instance
         {
             get

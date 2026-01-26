@@ -1249,6 +1249,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
 
         // アバターを配置
         Quaternion rotation = GetFaceCameraRotation(targetPosition, hitPlane?.alignment ?? PlaneAlignment.HorizontalUp);
+        Debug.Log($"[PlaceAvatarOnPlaneOnly] PlaceAvatarAhead: GetFaceCameraRotation returned {rotation.eulerAngles}, arCamera={arCamera?.name ?? "null"}");
         loadedAvatar.transform.SetPositionAndRotation(targetPosition, rotation);
         loadedAvatar.SetActive(true);
 

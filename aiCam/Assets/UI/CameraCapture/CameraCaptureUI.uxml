@@ -168,6 +168,38 @@
             </ui:VisualElement>
         </ui:VisualElement>
 
+        <!-- Issue #458: エクスポートポップアップ -->
+        <ui:VisualElement name="exportPopupOverlay" class="export-popup-overlay">
+            <ui:VisualElement name="exportPopupPanel" class="export-popup-panel">
+                <ui:Label name="exportPopupTitle" text="アバターをエクスポート" class="export-popup-title" />
+                <ui:Label name="exportPopupMessage" text="このアバターを.avatarcache形式で保存しますか？" class="export-popup-message" />
+                <ui:VisualElement name="exportLoadingIndicator" class="export-loading-indicator">
+                    <ui:VisualElement class="export-loading-spinner" />
+                    <ui:Label text="エクスポート中..." class="export-loading-text" />
+                </ui:VisualElement>
+                <ui:VisualElement name="exportButtonContainer" class="export-button-container">
+                    <ui:Button name="exportCancelButton" text="キャンセル" class="export-popup-button cancel" />
+                    <ui:Button name="exportConfirmButton" text="エクスポート" class="export-popup-button confirm" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- キャッシュクリアポップアップ -->
+        <ui:VisualElement name="clearCachePopupOverlay" class="export-popup-overlay">
+            <ui:VisualElement name="clearCachePopupPanel" class="export-popup-panel">
+                <ui:Label name="clearCachePopupTitle" text="キャッシュをクリア" class="export-popup-title" />
+                <ui:Label name="clearCachePopupMessage" text="すべてのアバターキャッシュを削除しますか？&#10;&#10;この操作は取り消せません。" class="export-popup-message" />
+                <ui:VisualElement name="clearCacheLoadingIndicator" class="export-loading-indicator">
+                    <ui:VisualElement class="export-loading-spinner" />
+                    <ui:Label text="クリア中..." class="export-loading-text" />
+                </ui:VisualElement>
+                <ui:VisualElement name="clearCacheButtonContainer" class="export-button-container">
+                    <ui:Button name="clearCacheCancelButton" text="キャンセル" class="export-popup-button cancel" />
+                    <ui:Button name="clearCacheConfirmButton" text="クリア" class="export-popup-button confirm destructive" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
         <!-- バージョン表示（右下） -->
         <ui:Label name="versionLabel" text="v0.0.0 (0)" picking-mode="Ignore" class="version-label" />
     </ui:VisualElement>
