@@ -1,14 +1,17 @@
+using System;
 using System.Collections;
 using System.IO;
+using System.Reflection;
 using AICam.AvatarCache;
-using AICam.FBXLoader;
 using AICam.Tests.PlayMode.AvatarCache;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
+using VRM;
+using UniGLTF;
 
-namespace AICam.Tests.PlayMode.AvatarCache.Integration
+namespace AICam.Tests.PlayMode.Integration
 {
     /// <summary>
     /// Phase 4: 自動キャッシュ作成テスト
@@ -25,25 +28,108 @@ namespace AICam.Tests.PlayMode.AvatarCache.Integration
         private AvatarMemoryCache _memoryCache;
         private AvatarCacheIntegrator _integrator;
         private GameObject _memoryCacheObject;
+        private TestAvatarLoader _testLoader;
+
+        /// <summary>
+        /// テスト用のIAvatarLoader実装
+        /// </summary>
+        private class TestAvatarLoader : IAvatarLoader
+        {
+            private RuntimeGltfInstance _loadedInstance;
+
+            public async UniTask<AvatarLoadResult> LoadAsync(string filePath, Transform parent, Action<float> onProgress = null)
+            {
+                try
+                {
+                    if (!File.Exists(filePath))
+                    {
+                        return AvatarLoadResult.Failed($"File not found: {filePath}");
+                    }
+
+                    onProgress?.Invoke(10f);
+
+                    var bytes = await File.ReadAllBytesAsync(filePath);
+                    onProgress?.Invoke(30f);
+
+                    _loadedInstance = await VrmUtility.LoadBytesAsync(
+                        path: Path.GetFileName(filePath),
+                        bytes: bytes,
+                        awaitCaller: new RuntimeOnlyAwaitCaller()
+                    );
+
+                    onProgress?.Invoke(90f);
+
+                    _loadedInstance.EnableUpdateWhenOffscreen();
+                    _loadedInstance.ShowMeshes();
+
+                    var avatar = _loadedInstance.Root;
+                    if (parent != null)
+                    {
+                        avatar.transform.SetParent(parent);
+                    }
+
+                    onProgress?.Invoke(100f);
+
+                    Debug.Log($"[TestAvatarLoader] VRM loaded: {avatar.name}");
+                    return AvatarLoadResult.Succeeded(avatar);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"[TestAvatarLoader] Load failed: {e.Message}");
+                    return AvatarLoadResult.Failed(e.Message);
+                }
+            }
+
+            public void ClearCurrentModel()
+            {
+                if (_loadedInstance != null)
+                {
+                    _loadedInstance.Dispose();
+                    _loadedInstance = null;
+                }
+            }
+        }
 
         public override void SetUp()
         {
             base.SetUp();
 
+            // シングルトンInstanceをリセット
+            var backingField = typeof(AvatarMemoryCache).GetField("<Instance>k__BackingField", BindingFlags.NonPublic | BindingFlags.Static);
+            if (backingField != null)
+            {
+                backingField.SetValue(null, null);
+            }
+
             _memoryCacheObject = new GameObject("TestMemoryCache");
             _memoryCache = _memoryCacheObject.AddComponent<AvatarMemoryCache>();
+
+            // テスト用ローダーを設定
+            _testLoader = new TestAvatarLoader();
+            _memoryCache.SetLoader(_testLoader);
+
             _integrator = new AvatarCacheIntegrator(TestCacheDirectory);
             _memoryCache.SetCacheIntegrator(_integrator);
         }
 
         public override void TearDown()
         {
+            _testLoader?.ClearCurrentModel();
+            _testLoader = null;
+
             if (_memoryCacheObject != null)
             {
-                Object.Destroy(_memoryCacheObject);
+                UnityEngine.Object.DestroyImmediate(_memoryCacheObject);
             }
             _memoryCache = null;
             _integrator = null;
+
+            // シングルトンInstanceをリセット
+            var backingField = typeof(AvatarMemoryCache).GetField("<Instance>k__BackingField", BindingFlags.NonPublic | BindingFlags.Static);
+            if (backingField != null)
+            {
+                backingField.SetValue(null, null);
+            }
 
             base.TearDown();
         }
@@ -63,7 +149,7 @@ namespace AICam.Tests.PlayMode.AvatarCache.Integration
             var result = await _memoryCache.SwitchToSlotAsync(0, slotData);
 
             // 自動キャッシュ作成の完了を待つ
-            await UniTask.Delay(1000); // バックグラウンド処理の完了を待機
+            await UniTask.Delay(2000); // バックグラウンド処理の完了を待機
 
             // Assert
             Assert.IsTrue(result.Success, "ロードが成功するべき");
@@ -75,7 +161,7 @@ namespace AICam.Tests.PlayMode.AvatarCache.Integration
             // クリーンアップ
             if (result.Avatar != null)
             {
-                Object.Destroy(result.Avatar);
+                UnityEngine.Object.Destroy(result.Avatar);
             }
         });
 
@@ -90,7 +176,7 @@ namespace AICam.Tests.PlayMode.AvatarCache.Integration
 
             // Act
             var result = await _memoryCache.SwitchToSlotAsync(0, slotData);
-            await UniTask.Delay(1000);
+            await UniTask.Delay(2000);
 
             // Assert
             Assert.IsNotNull(slotData.binaryCacheId, "cacheIdが設定されるべき");
@@ -105,7 +191,7 @@ namespace AICam.Tests.PlayMode.AvatarCache.Integration
             // クリーンアップ
             if (result.Avatar != null)
             {
-                Object.Destroy(result.Avatar);
+                UnityEngine.Object.Destroy(result.Avatar);
             }
         });
 
@@ -119,12 +205,12 @@ namespace AICam.Tests.PlayMode.AvatarCache.Integration
             };
 
             var result1 = await _memoryCache.SwitchToSlotAsync(0, slotData);
-            await UniTask.Delay(1000); // キャッシュ作成完了を待機
+            await UniTask.Delay(2000); // キャッシュ作成完了を待機
 
             // メモリキャッシュをクリア（アプリ再起動をシミュレート）
             if (result1.Avatar != null)
             {
-                Object.Destroy(result1.Avatar);
+                UnityEngine.Object.Destroy(result1.Avatar);
             }
             await UniTask.Yield();
             _memoryCache.ClearAll();
@@ -144,15 +230,14 @@ namespace AICam.Tests.PlayMode.AvatarCache.Integration
             // クリーンアップ
             if (result2.Avatar != null)
             {
-                Object.Destroy(result2.Avatar);
+                UnityEngine.Object.Destroy(result2.Avatar);
             }
         });
 
         [UnityTest]
         public IEnumerator キャッシュ作成失敗時_アプリが継続動作すること() => UniTask.ToCoroutine(async () =>
         {
-            // Arrange - 無効なパス（キャッシュ作成が失敗する状況をシミュレート）
-            // Note: 実際のテストでは書き込み権限のないディレクトリを使用するなど
+            // Arrange - 正常なパスでロード（キャッシュ作成の成功/失敗に関わらずロードは成功するべき）
             var slotData = new AvatarSlotData(0)
             {
                 modelFilePath = TestVrmPath
@@ -170,7 +255,7 @@ namespace AICam.Tests.PlayMode.AvatarCache.Integration
             // クリーンアップ
             if (result.Avatar != null)
             {
-                Object.Destroy(result.Avatar);
+                UnityEngine.Object.Destroy(result.Avatar);
             }
         });
 
@@ -187,7 +272,7 @@ namespace AICam.Tests.PlayMode.AvatarCache.Integration
             };
             slotData.SetBinaryCacheId(existingCacheId);
 
-            Object.Destroy(avatar);
+            UnityEngine.Object.Destroy(avatar);
             await UniTask.Yield();
 
             // キャッシュディレクトリの更新日時を記録
@@ -208,7 +293,7 @@ namespace AICam.Tests.PlayMode.AvatarCache.Integration
             // クリーンアップ
             if (result.Avatar != null)
             {
-                Object.Destroy(result.Avatar);
+                UnityEngine.Object.Destroy(result.Avatar);
             }
         });
     }

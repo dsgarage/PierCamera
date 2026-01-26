@@ -3,12 +3,13 @@ using System.IO;
 using System.IO.Compression;
 using AICam.AvatarCache;
 using AICam.AvatarCache.IO;
+using AICam.Tests.PlayMode.AvatarCache;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 
-namespace AICam.Tests.PlayMode.AvatarCache
+namespace AICam.Tests.PlayMode.Integration
 {
     /// <summary>
     /// Phase 7: エクスポート/インポートテスト
@@ -22,6 +23,23 @@ namespace AICam.Tests.PlayMode.AvatarCache
     [TestFixture]
     public class Phase7_ExportImportTests : AvatarCacheTestBase
     {
+        private bool _originalObfuscationSetting;
+
+        public override void SetUp()
+        {
+            base.SetUp();
+            // Phase7テストでは難読化を無効化（ファイル名とcacheIdが異なるため）
+            _originalObfuscationSetting = AvatarCacheExporter.EnableObfuscation;
+            AvatarCacheExporter.EnableObfuscation = false;
+        }
+
+        public override void TearDown()
+        {
+            // 難読化設定を元に戻す
+            AvatarCacheExporter.EnableObfuscation = _originalObfuscationSetting;
+            base.TearDown();
+        }
+
         #region Export Tests
 
         [UnityTest]

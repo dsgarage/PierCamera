@@ -2,12 +2,13 @@ using System.Collections;
 using System.IO;
 using AICam.AvatarCache;
 using AICam.AvatarCache.IO;
+using AICam.Tests.PlayMode.AvatarCache;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 
-namespace AICam.Tests.PlayMode.AvatarCache
+namespace AICam.Tests.PlayMode.Integration
 {
     /// <summary>
     /// Phase 6: 永続化・保存タイミングテスト

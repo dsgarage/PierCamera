@@ -5,6 +5,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 using AICam.FBXLoader;
+using AICam.AvatarCache;
 
 namespace AICam.Core.Tests
 {
