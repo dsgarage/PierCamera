@@ -500,13 +500,21 @@ namespace AICam.AvatarCache
                 {
                     avatar = await _cacheIntegrator.LoadFromBinaryCacheAsync(
                         slotData.binaryCacheId,
-                        progress => onProgress?.Invoke(10f + progress * 0.8f)
+                        progress => onProgress?.Invoke(10f + progress * 0.8f),
+                        targetSlotIndex
                     );
 
                     if (avatar != null)
                     {
                         Debug.Log($"[AvatarMemoryCache] BINARY CACHE HIT for slot {targetSlotIndex}");
                         onProgress?.Invoke(95f);
+
+                        // キャッシュから復元されたアイコンパスを設定
+                        var restoredIconPath = AvatarSlotCache.GetIconPath(targetSlotIndex);
+                        if (System.IO.File.Exists(restoredIconPath))
+                        {
+                            slotData.iconFilePath = restoredIconPath;
+                        }
 
                         // キャッシュに追加
                         CacheAvatar(targetSlotIndex, slotData.modelFilePath, avatar, keepActive: true);
@@ -629,8 +637,9 @@ namespace AICam.AvatarCache
             {
                 Debug.Log($"[AvatarMemoryCache] Starting background binary cache creation for: {slotData.modelFilePath}");
 
-                // バイナリキャッシュを作成
-                var cacheId = await _cacheIntegrator.CreateBinaryCacheAsync(avatar, slotData.modelFilePath);
+                // バイナリキャッシュを作成（アイコンも含める）
+                var iconSourcePath = AvatarSlotCache.GetIconPath(slotData.slotIndex);
+                var cacheId = await _cacheIntegrator.CreateBinaryCacheAsync(avatar, slotData.modelFilePath, iconSourcePath);
 
                 if (!string.IsNullOrEmpty(cacheId))
                 {
