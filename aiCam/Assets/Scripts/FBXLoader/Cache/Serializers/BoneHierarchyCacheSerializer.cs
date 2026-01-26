@@ -82,6 +82,8 @@ namespace AICam.AvatarCache.Serializers
 
         /// <summary>
         /// ボーン階層からGameObjectを再構築
+        /// bindposesとの整合性を保つため、保存時のTransformをそのまま復元する
+        /// （SMRセットアップ後に位置調整が必要な場合はNormalizeRootTransformを使用）
         /// </summary>
         public static GameObject Reconstruct(BoneHierarchyCache cache)
         {
@@ -93,7 +95,7 @@ namespace AICam.AvatarCache.Serializers
 
             var gameObjects = new GameObject[cache.bones.Length];
 
-            // 全てのGameObjectを作成
+            // 全てのGameObjectを作成（保存時のTransformをそのまま復元）
             for (int i = 0; i < cache.bones.Length; i++)
             {
                 var bone = cache.bones[i];
@@ -103,6 +105,11 @@ namespace AICam.AvatarCache.Serializers
                 t.localPosition = new Vector3(bone.localPosition[0], bone.localPosition[1], bone.localPosition[2]);
                 t.localRotation = new Quaternion(bone.localRotation[0], bone.localRotation[1], bone.localRotation[2], bone.localRotation[3]);
                 t.localScale = new Vector3(bone.localScale[0], bone.localScale[1], bone.localScale[2]);
+
+                if (bone.parentIndex == -1)
+                {
+                    Debug.Log($"[BoneHierarchy] Root '{bone.name}' restored with original transform (pos: {bone.localPosition[0]:F2}, {bone.localPosition[1]:F2}, {bone.localPosition[2]:F2})");
+                }
             }
 
             // 親子関係を設定
@@ -117,6 +124,22 @@ namespace AICam.AvatarCache.Serializers
 
             // ルートを返す（最初のボーンはルートであるべき）
             return gameObjects[0];
+        }
+
+        /// <summary>
+        /// 警告: この関数はスキニングを破壊する可能性がある
+        /// キャッシュ作成時にアバターが原点にあった場合のみ使用可能
+        /// 通常はキャッシュ作成前にアバターを原点に移動すべき
+        /// </summary>
+        public static void NormalizeRootTransform(GameObject root)
+        {
+            if (root == null) return;
+
+            Debug.LogWarning($"[BoneHierarchy] NormalizeRootTransform called - this may break skinning! " +
+                           $"Original pos: {root.transform.localPosition}, rot: {root.transform.localRotation.eulerAngles}");
+            root.transform.localPosition = Vector3.zero;
+            root.transform.localRotation = Quaternion.identity;
+            root.transform.localScale = Vector3.one;
         }
 
         /// <summary>

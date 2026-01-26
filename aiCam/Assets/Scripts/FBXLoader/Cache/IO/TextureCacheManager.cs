@@ -37,17 +37,25 @@ namespace AICam.AvatarCache.IO
 
             var filePath = Path.Combine(_texturesDir, textureId + ".png");
 
-            // テクスチャが読み取り可能かチェック
+            // テクスチャが読み取り可能かチェック、または圧縮フォーマットかチェック
+            // EncodeToPNG()は圧縮フォーマット（DXT, ASTC, ETC2等）をサポートしないため、
+            // 圧縮テクスチャは必ずRGBA32にコピーする必要がある
             Texture2D readableTexture = texture;
-            if (!texture.isReadable)
+            bool needsCopy = !texture.isReadable || IsCompressedFormat(texture.format);
+
+            if (needsCopy)
             {
-                // 読み取り可能なコピーを作成
+                // 読み取り可能なRGBA32コピーを作成
                 readableTexture = CreateReadableTexture(texture);
             }
 
             try
             {
                 var pngData = readableTexture.EncodeToPNG();
+                if (pngData == null)
+                {
+                    throw new InvalidOperationException($"Failed to encode texture to PNG. Format: {texture.format}, Size: {texture.width}x{texture.height}");
+                }
                 await File.WriteAllBytesAsync(filePath, pngData);
             }
             finally
@@ -57,6 +65,49 @@ namespace AICam.AvatarCache.IO
                 {
                     UnityEngine.Object.Destroy(readableTexture);
                 }
+            }
+        }
+
+        /// <summary>
+        /// 圧縮フォーマットかどうかをチェック
+        /// EncodeToPNG()がサポートしないフォーマット
+        /// </summary>
+        private static bool IsCompressedFormat(TextureFormat format)
+        {
+            switch (format)
+            {
+                // DXT圧縮
+                case TextureFormat.DXT1:
+                case TextureFormat.DXT5:
+                case TextureFormat.DXT1Crunched:
+                case TextureFormat.DXT5Crunched:
+                // ETC圧縮
+                case TextureFormat.ETC_RGB4:
+                case TextureFormat.ETC2_RGB:
+                case TextureFormat.ETC2_RGBA1:
+                case TextureFormat.ETC2_RGBA8:
+                case TextureFormat.ETC_RGB4Crunched:
+                case TextureFormat.ETC2_RGBA8Crunched:
+                // ASTC圧縮
+                case TextureFormat.ASTC_4x4:
+                case TextureFormat.ASTC_5x5:
+                case TextureFormat.ASTC_6x6:
+                case TextureFormat.ASTC_8x8:
+                case TextureFormat.ASTC_10x10:
+                case TextureFormat.ASTC_12x12:
+                // PVRTC圧縮（iOS）
+                case TextureFormat.PVRTC_RGB2:
+                case TextureFormat.PVRTC_RGB4:
+                case TextureFormat.PVRTC_RGBA2:
+                case TextureFormat.PVRTC_RGBA4:
+                // BC圧縮
+                case TextureFormat.BC4:
+                case TextureFormat.BC5:
+                case TextureFormat.BC6H:
+                case TextureFormat.BC7:
+                    return true;
+                default:
+                    return false;
             }
         }
 
