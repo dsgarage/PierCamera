@@ -11,7 +11,8 @@
         "UniTask",
         "VRM",
         "UniGLTF",
-        "UniHumanoid"
+        "UniHumanoid",
+        "DSGarage.BlendShape"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -24,6 +25,12 @@
     "defineConstraints": [
         "UNITY_INCLUDE_TESTS"
     ],
-    "versionDefines": [],
+    "versionDefines": [
+        {
+            "name": "com.dsgarage.blendshapecontroller",
+            "expression": "",
+            "define": "BLENDSHAPE_CONTROLLER"
+        }
+    ],
     "noEngineReferences": false
 }
