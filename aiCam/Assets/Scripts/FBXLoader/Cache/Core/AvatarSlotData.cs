@@ -93,6 +93,9 @@ namespace AICam.AvatarCache
         // Issue #457: バイナリキャッシュ統合
         public string binaryCacheId;              // AvatarCacheManagerのキャッシュID
 
+        // Issue #466: 表情アイコンフォルダパス
+        public string expressionIconFolderPath;
+
         public AvatarSlotData()
         {
             slotIndex = -1;
@@ -110,6 +113,7 @@ namespace AICam.AvatarCache
             poseIconFolderPath = string.Empty;
             registeredOverrideNames = new List<string>();
             binaryCacheId = string.Empty;
+            expressionIconFolderPath = string.Empty;
         }
 
         public AvatarSlotData(int index) : this()
@@ -136,6 +140,24 @@ namespace AICam.AvatarCache
         /// Issue #457: バイナリキャッシュが存在するか
         /// </summary>
         public bool HasBinaryCache => !string.IsNullOrEmpty(binaryCacheId);
+
+        /// <summary>
+        /// Issue #466: 表情アイコンフォルダが存在するか
+        /// </summary>
+        public bool HasExpressionIcons =>
+            !string.IsNullOrEmpty(expressionIconFolderPath)
+            && Directory.Exists(expressionIconFolderPath);
+
+        /// <summary>
+        /// Issue #466: 指定された表情キーのアイコンパスを取得
+        /// </summary>
+        public string GetExpressionIconPath(string expressionKey)
+        {
+            if (string.IsNullOrEmpty(expressionIconFolderPath) || string.IsNullOrEmpty(expressionKey))
+                return string.Empty;
+
+            return Path.Combine(expressionIconFolderPath, $"{expressionKey}.png");
+        }
 
         /// <summary>
         /// Issue #457: バイナリキャッシュIDを設定
@@ -189,6 +211,7 @@ namespace AICam.AvatarCache
             poseIconFolderPath = string.Empty;
             registeredOverrideNames = new List<string>();
             binaryCacheId = string.Empty;
+            expressionIconFolderPath = string.Empty;
         }
 
         /// <summary>
@@ -295,6 +318,7 @@ namespace AICam.AvatarCache
         public int version = CURRENT_VERSION;
         public string lastModified;
         public int lastActiveSlotIndex = -1;  // Issue #416: 最後にアクティブだったスロット
+        public int lastCreatedSlotCount = -1; // Issue #462: 最後に存在したスロットボタン数
 
         /// <summary>
         /// キャッシュディレクトリのパスを取得
@@ -399,7 +423,30 @@ namespace AICam.AvatarCache
                 }
             }
 
+            // Issue #466: 表情アイコンフォルダを削除
+            string expressionIconFolder = slots[index].expressionIconFolderPath;
+            if (!string.IsNullOrEmpty(expressionIconFolder) && Directory.Exists(expressionIconFolder))
+            {
+                try
+                {
+                    Directory.Delete(expressionIconFolder, true);
+                    Debug.Log($"[AvatarSlotCache] Deleted expression icon folder: {expressionIconFolder}");
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning($"[AvatarSlotCache] Failed to delete expression icon folder: {e.Message}");
+                }
+            }
+
             slots[index].Clear();
+
+            // 削除されたスロットが lastActiveSlotIndex の場合はリセット
+            if (lastActiveSlotIndex == index)
+            {
+                lastActiveSlotIndex = -1;
+                Debug.Log($"[AvatarSlotCache] Reset lastActiveSlotIndex (was {index})");
+            }
+
             lastModified = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
         }
 
