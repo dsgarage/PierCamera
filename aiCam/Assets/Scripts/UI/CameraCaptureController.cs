@@ -9,6 +9,9 @@ using System.Collections.Generic;
 using AICam.AR;
 using AICam.AvatarCache;
 using DSGarage.PoseSlot;
+#if BLENDSHAPE_CONTROLLER
+using DSGarage.BlendShape;
+#endif
 
 namespace AICam.UI
 {
@@ -1518,7 +1521,7 @@ namespace AICam.UI
 
                 // AOC・表情セットアップ
                 ApplyDefaultAOC(avatar);
-                SetupExpressionSystem(avatar);
+                SetupExpressionSystem(avatar, slotIndex);
                 TriggerExpressionIconGeneration(avatar, slotIndex);
 
                 if (isActiveSlot)
@@ -2220,7 +2223,7 @@ namespace AICam.UI
                 ApplyDefaultAOC(avatar);
 
                 // Issue #145/#411: 表情システムをセットアップ
-                SetupExpressionSystem(avatar);
+                SetupExpressionSystem(avatar, GetSlotIndexFromButton(targetButton));
                 TriggerExpressionIconGeneration(avatar, GetSlotIndexFromButton(targetButton));
 
                 // Issue #425: アバターをカメラの1m前方に配置
@@ -2355,7 +2358,7 @@ namespace AICam.UI
                 ApplyDefaultAOC(loadedModel);
 
                 // Issue #145/#411: 表情システムをセットアップ
-                SetupExpressionSystem(loadedModel);
+                SetupExpressionSystem(loadedModel, GetSlotIndexFromButton(targetButton));
                 TriggerExpressionIconGeneration(loadedModel, GetSlotIndexFromButton(targetButton));
 
                 // Issue #425: アバターをカメラの1m前方に配置
@@ -2537,6 +2540,10 @@ namespace AICam.UI
                     }
 
                     Debug.Log($"[CameraCaptureController] Binary cache created: {cacheId}");
+
+#if BLENDSHAPE_CONTROLLER
+                    SaveExpressionDataToCache(avatar, cacheId);
+#endif
 
                     // ポップアップを表示
                     ShowExportPopupDirect(slotIndex, avatarSlotData);
@@ -2730,6 +2737,10 @@ namespace AICam.UI
                         slotManager.Cache.SaveToFile();
                     }
                     Debug.Log($"[CameraCaptureController] VRM binary cache created for slot {slotIndex}: {cacheId}");
+
+#if BLENDSHAPE_CONTROLLER
+                    SaveExpressionDataToCache(avatar, cacheId);
+#endif
                 }
                 else
                 {
@@ -2773,6 +2784,10 @@ namespace AICam.UI
                         slotManager.Cache.SaveToFile();
                     }
                     Debug.Log($"[CameraCaptureController] Binary cache created for slot {slotIndex}: {cacheId}");
+
+#if BLENDSHAPE_CONTROLLER
+                    SaveExpressionDataToCache(currentModel, cacheId);
+#endif
                 }
                 else
                 {
@@ -2959,7 +2974,7 @@ namespace AICam.UI
                 ApplyDefaultAOC(avatar);
 
                 // Issue #145/#411: 表情システムをセットアップ
-                SetupExpressionSystem(avatar);
+                SetupExpressionSystem(avatar, slotIndex);
                 TriggerExpressionIconGeneration(avatar, slotIndex);
 
                 // Issue #425: アバターをカメラの1m前方に配置
@@ -3077,6 +3092,11 @@ namespace AICam.UI
                 }
             }
 
+            // Issue #471: スロット切り替え時に BlendshapeController をリセット
+#if BLENDSHAPE_CONTROLLER
+            blendShapeExpressionManager = null;
+#endif
+
             // 選択したスロットのアバターを表示・配置
             if (slotData?.loadedAvatar != null)
             {
@@ -3085,7 +3105,19 @@ namespace AICam.UI
 
                 // Issue #407: キャッシュを更新してポーズ切り替えが動作するようにする
                 cachedCurrentAvatar = slotData.loadedAvatar;
-                Debug.Log($"🎭 Updated cachedCurrentAvatar: {cachedCurrentAvatar.name}");
+                Debug.Log($"Updated cachedCurrentAvatar: {cachedCurrentAvatar.name}");
+
+                // Issue #471: 切り替え先アバターの ExpressionSetManager を復元
+#if BLENDSHAPE_CONTROLLER
+                var manager = slotData.loadedAvatar.GetComponent<ExpressionSetManager>();
+                if (manager != null)
+                {
+                    blendShapeExpressionManager = manager;
+                    expressionSetup = null;
+                    vrm0ExpressionController = null;
+                    Debug.Log($"[Expression] Restored BlendShape expression manager: {manager.Collection?.CurrentSet?.Count ?? 0} expressions");
+                }
+#endif
             }
         }
 
@@ -3406,7 +3438,7 @@ namespace AICam.UI
                 ApplyDefaultAOC(result.Avatar);
 
                 // 表情システムをセットアップ
-                SetupExpressionSystem(result.Avatar);
+                SetupExpressionSystem(result.Avatar, result.SlotIndex);
                 TriggerExpressionIconGeneration(result.Avatar, result.SlotIndex);
 
                 Debug.Log($"🎭 Avatar setup complete from AvatarLoadHandler: {result.Avatar.name}");
@@ -3521,7 +3553,20 @@ namespace AICam.UI
                 }
             }
 
-            Debug.LogWarning("😊 No expression controller available - load a VRM avatar first");
+            // Issue #471: BlendshapeController SDK フォールバック
+#if BLENDSHAPE_CONTROLLER
+            if (blendShapeExpressionManager != null)
+            {
+                int indexBefore = blendShapeExpressionManager.CurrentExpressionIndex;
+                blendShapeExpressionManager.NextExpression();
+                int indexAfter = blendShapeExpressionManager.CurrentExpressionIndex;
+                var current = blendShapeExpressionManager.CurrentExpression;
+                Debug.Log($"BlendShape Expression switched: {indexBefore} -> {indexAfter}, Name: {current?.name}");
+                return;
+            }
+#endif
+
+            Debug.LogWarning("No expression controller available - load a VRM avatar first");
         }
 
         /// <summary>
@@ -3557,7 +3602,17 @@ namespace AICam.UI
                 }
             }
 
-            Debug.LogWarning("😊 No expression controller available - load a VRM avatar first");
+            // Issue #471: BlendshapeController SDK フォールバック
+#if BLENDSHAPE_CONTROLLER
+            if (blendShapeExpressionManager != null)
+            {
+                blendShapeExpressionManager.ResetAllBlendShapes();
+                Debug.Log("BlendShape Expression reset to neutral");
+                return;
+            }
+#endif
+
+            Debug.LogWarning("No expression controller available - load a VRM avatar first");
         }
 
         /// <summary>
@@ -4019,21 +4074,26 @@ namespace AICam.UI
         // Issue #145/#411: VRM 0.x用の表情コントローラー
         private AICam.Expression.Vrm0ExpressionController vrm0ExpressionController;
 
+#if BLENDSHAPE_CONTROLLER
+        // Issue #471: キャッシュロード時のフォールバック表情コントローラー
+        private ExpressionSetManager blendShapeExpressionManager;
+#endif
+
         /// <summary>
         /// Issue #145/#411: VRM表情システムをセットアップ
         /// VRM 1.0とVRM 0.xの両方に対応
         /// </summary>
-        void SetupExpressionSystem(GameObject avatar)
+        void SetupExpressionSystem(GameObject avatar, int slotIndex = -1)
         {
             if (avatar == null) return;
 
-            Debug.Log($"🎭 SetupExpressionSystem: Starting setup for {avatar.name}");
+            Debug.Log($"SetupExpressionSystem: Starting setup for {avatar.name}, slotIndex={slotIndex}");
 
             // VRM 1.0を確認
             var vrm10Instance = avatar.GetComponent<UniVRM10.Vrm10Instance>();
             if (vrm10Instance != null)
             {
-                Debug.Log($"🎭 SetupExpressionSystem: VRM 1.0 detected");
+                Debug.Log($"SetupExpressionSystem: VRM 1.0 detected");
                 SetupVrm10ExpressionSystem(avatar, vrm10Instance);
                 return;
             }
@@ -4042,13 +4102,190 @@ namespace AICam.UI
             var blendShapeProxy = avatar.GetComponent<global::VRM.VRMBlendShapeProxy>();
             if (blendShapeProxy != null)
             {
-                Debug.Log($"🎭 SetupExpressionSystem: VRM 0.x detected");
+                Debug.Log($"SetupExpressionSystem: VRM 0.x detected");
                 SetupVrm0ExpressionSystem(avatar, blendShapeProxy);
                 return;
             }
 
-            Debug.LogWarning($"🎭 SetupExpressionSystem: {avatar.name} is not a VRM avatar - no VRM expression support");
+            // Issue #471: キャッシュロード時のフォールバック（BlendshapeController SDK）
+#if BLENDSHAPE_CONTROLLER
+            if (TrySetupBlendShapeExpressionSystem(avatar, slotIndex))
+            {
+                return;
+            }
+#endif
+
+            Debug.LogWarning($"SetupExpressionSystem: {avatar.name} - no expression support");
         }
+
+#if BLENDSHAPE_CONTROLLER
+        /// <summary>
+        /// Issue #471: キャッシュロードされたアバター用の BlendshapeController SDK フォールバック
+        /// 1. expressions.json があればそれを使用
+        /// 2. なければアバターのブレンドシェイプから直接構築（VRoidStudio アバターの場合）
+        /// </summary>
+        bool TrySetupBlendShapeExpressionSystem(GameObject avatar, int slotIndex)
+        {
+            // expressions.json からの読み込みを試行
+            string jsonPath = null;
+            string cacheDir = null;
+            if (slotIndex >= 0)
+            {
+                var slotManager = AICam.FBXLoader.AvatarSlotManager.Instance;
+                if (slotManager?.Cache != null)
+                {
+                    var slotData = slotManager.Cache.GetSlot(slotIndex);
+                    if (slotData != null && !string.IsNullOrEmpty(slotData.binaryCacheId))
+                    {
+                        cacheDir = Path.Combine(Application.persistentDataPath, "AvatarCache", slotData.binaryCacheId);
+                        jsonPath = Path.Combine(cacheDir, "expressions.json");
+                    }
+                }
+            }
+
+            // パス1: expressions.json が存在する場合
+            if (jsonPath != null && File.Exists(jsonPath))
+            {
+                try
+                {
+                    string json = File.ReadAllText(jsonPath);
+                    if (SetupBlendShapeManager(avatar, json))
+                    {
+                        Debug.Log($"[Expression] BlendShape setup from expressions.json: {blendShapeExpressionManager.Collection?.CurrentSet?.Count ?? 0} expressions");
+                        return true;
+                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning($"[Expression] Failed to load expressions.json: {e.Message}");
+                }
+            }
+
+            // パス2: expressions.json がない場合、アバターから直接構築
+            Debug.Log("[Expression] No expressions.json found, attempting direct blendshape scan...");
+            ExpressionSet expressionSet = null;
+
+            if (AICam.VRM.VrmExpressionBridge.IsVRoidStudioAvatar(avatar))
+            {
+                expressionSet = AICam.VRM.VrmExpressionBridge.GetStandardExpressionSet();
+                Debug.Log("[Expression] VRoidStudio avatar detected, using standard expression set");
+            }
+
+            if (expressionSet == null || expressionSet.Count == 0)
+            {
+                Debug.Log("[Expression] Cannot build expression set from avatar blendshapes");
+                return false;
+            }
+
+            // ExpressionSetCollection を構築
+            var collection = new ExpressionSetCollection
+            {
+                collectionName = "VRM Expressions",
+                avatarName = avatar.name
+            };
+            collection.AddSet(expressionSet);
+
+            // JSON にシリアライズしてマネージャーにロード
+            string collectionJson = ExpressionSetSerializer.ToJson(collection);
+            if (!SetupBlendShapeManager(avatar, collectionJson))
+            {
+                return false;
+            }
+
+            // 次回のために expressions.json を保存
+            if (cacheDir != null)
+            {
+                try
+                {
+                    string savePath = Path.Combine(cacheDir, "expressions.json");
+                    ExpressionSetSerializer.SaveCollection(collection, savePath);
+                    Debug.Log($"[Expression] Saved generated expressions.json to cache: {savePath}");
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning($"[Expression] Failed to save expressions.json: {e.Message}");
+                }
+            }
+
+            Debug.Log($"[Expression] BlendShape setup from avatar scan: {expressionSet.Count} expressions");
+            return true;
+        }
+
+        /// <summary>
+        /// ExpressionSetManager をアバターにアタッチして JSON からロード
+        /// </summary>
+        bool SetupBlendShapeManager(GameObject avatar, string json)
+        {
+            try
+            {
+                var manager = avatar.GetComponent<ExpressionSetManager>();
+                if (manager == null)
+                {
+                    manager = avatar.AddComponent<ExpressionSetManager>();
+                }
+
+                manager.SetTargetAvatar(avatar);
+                manager.LoadCollectionFromJson(json);
+
+                if (manager.Collection != null && manager.Collection.SetCount > 0)
+                {
+                    manager.SwitchSet(0);
+                }
+
+                blendShapeExpressionManager = manager;
+                expressionSetup = null;
+                vrm0ExpressionController = null;
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[Expression] Failed to setup BlendShape manager: {e.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Issue #471: VRM 表情メタデータをキャッシュに保存
+        /// </summary>
+        void SaveExpressionDataToCache(GameObject avatar, string cacheId)
+        {
+            try
+            {
+                var vrm10 = avatar.GetComponent<UniVRM10.Vrm10Instance>();
+                if (vrm10 == null) return;
+
+                ExpressionSet expressionSet = null;
+                if (AICam.VRM.VrmExpressionBridge.IsVRoidStudioAvatar(avatar))
+                {
+                    expressionSet = AICam.VRM.VrmExpressionBridge.GetStandardExpressionSet();
+                }
+                else
+                {
+                    expressionSet = AICam.VRM.VrmExpressionBridge.CreateExpressionSetFromVrm10(vrm10, avatar);
+                }
+
+                if (expressionSet == null || expressionSet.Count == 0) return;
+
+                var collection = new ExpressionSetCollection
+                {
+                    collectionName = "VRM Expressions",
+                    avatarName = avatar.name
+                };
+                collection.AddSet(expressionSet);
+
+                string cacheDir = Path.Combine(Application.persistentDataPath, "AvatarCache", cacheId);
+                string jsonPath = Path.Combine(cacheDir, "expressions.json");
+                ExpressionSetSerializer.SaveCollection(collection, jsonPath);
+
+                Debug.Log($"[Expression] Saved expression data to cache: {jsonPath} ({expressionSet.Count} expressions)");
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[Expression] Failed to save expression data: {e.Message}");
+            }
+        }
+#endif
 
         /// <summary>
         /// VRM 1.0用の表情システムセットアップ
