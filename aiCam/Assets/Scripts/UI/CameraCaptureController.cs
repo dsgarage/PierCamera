@@ -22,7 +22,7 @@ namespace AICam.UI
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     [RequireComponent(typeof(UIToolkitInputBlocker))]
-    public class CameraCaptureController : MonoBehaviour, IUIBlockingProvider, ILightingSettingsProvider
+    public class CameraCaptureController : MonoBehaviour, IUIBlockingProvider, ILightingSettingsProvider, ISlotPersistenceHost
     {
         [Header("Capture Settings")]
         [SerializeField] private ARPhotoController photoController;
@@ -64,6 +64,11 @@ namespace AICam.UI
         // Phase 04: コントローラー
         private ExpressionUIController expressionUIController;
         private PoseUIController poseUIController;
+
+        // Phase 05: キャッシュ・永続化
+        private BinaryCacheService binaryCacheService;
+        private AvatarCacheSyncService avatarCacheSyncService;
+        private SlotPersistenceController slotPersistenceController;
 
         // パネル要素
         private VisualElement topPanel;
@@ -119,27 +124,7 @@ namespace AICam.UI
         private Button lastClickedSlotButton;
         private float lastSlotClickTime;
 
-        /// <summary>
-        /// スロットのファイルタイプ
-        /// </summary>
-        private enum SlotFileType
-        {
-            None,
-            VRM,
-            FBX
-        }
-
-        /// <summary>
-        /// スロットデータ（ファイルパス、サムネイル、ロード済みアバターを管理）
-        /// </summary>
-        private class SlotData
-        {
-            public string filePath;
-            public SlotFileType fileType;
-            public Texture2D thumbnail;
-            public GameObject loadedAvatar;
-            public bool IsConfigured => !string.IsNullOrEmpty(filePath);
-        }
+        // SlotFileType と SlotData は AICam.UI.SlotData.cs に移動（Phase 05）
 
 
         void OnEnable()
@@ -222,6 +207,17 @@ namespace AICam.UI
             poseUIController = new PoseUIController(root, poseOverrideControllers, poseSlotController,
                 fbxLoaderBridge, enableDebugLogging,
                 (code, msg, duration) => ShowInfo(code, msg, duration));
+
+            // Phase 05: キャッシュ・永続化サービス初期化
+            binaryCacheService = new BinaryCacheService(
+                expressionUIController, fbxLoaderBridge,
+                (code, msg, duration) => ShowInfo(code, msg, duration),
+                (code, msg, duration) => ShowWarning(code, msg, duration),
+                (code, msg) => ShowError(code, msg),
+                (slotIndex, avatarSlotData) => ShowExportPopupDirect(slotIndex, avatarSlotData));
+            avatarCacheSyncService = new AvatarCacheSyncService(binaryCacheService, fbxLoaderBridge);
+            slotPersistenceController = new SlotPersistenceController(
+                this, slotProgressService, poseUIController, expressionUIController, enableDebugLogging);
 
             topPanel = root.Q<VisualElement>("topPanel");
             bottomPanel = root.Q<VisualElement>("bottomPanel");
@@ -325,7 +321,7 @@ namespace AICam.UI
 
             // Issue #416: 永続化されたスロットデータを読み込み（非同期でキャッシュ準備を待つ）
             if (enableDebugLogging) Debug.Log("🔧 Loading persisted slot data...");
-            LoadPersistedSlotDataAsync().Forget();
+            slotPersistenceController?.LoadPersistedSlotDataAsync().Forget();
 
             // Phase 02: AspectRatioController 初期化（GeometryChanged登録・初期アスペクト比設定含む）
             aspectRatioController = new AspectRatioController(root, sideButton2, photoController);
@@ -501,7 +497,7 @@ namespace AICam.UI
             // Issue #462: スロットボタン数をキャッシュに保存
             if (persistSlotCount)
             {
-                SaveSlotCountToCache();
+                slotPersistenceController?.SaveSlotCount(bottomButtonCount);
             }
 
             // Light impact for button addition
@@ -554,20 +550,6 @@ namespace AICam.UI
 
             Debug.Log($"➕ Added button for slot {slotIndex}: {newButton.name}");
             return newButton;
-        }
-
-        /// <summary>
-        /// Issue #462: 現在のスロットボタン数をキャッシュに保存
-        /// </summary>
-        void SaveSlotCountToCache()
-        {
-            var slotManager = AICam.FBXLoader.AvatarSlotManager.Instance;
-            if (slotManager?.Cache != null)
-            {
-                slotManager.Cache.lastCreatedSlotCount = bottomButtonCount;
-                slotManager.Cache.SaveToFile();
-                Debug.Log($"[📦 PERSIST] Saved lastCreatedSlotCount={bottomButtonCount}");
-            }
         }
 
         /// <summary>
@@ -634,311 +616,6 @@ namespace AICam.UI
             root.Add(clearCachePopup);
 
             Debug.Log("✅ Clear cache popup created");
-        }
-
-        /// <summary>
-        /// Issue #416: 永続化されたスロットデータを読み込み（非同期版）
-        /// AvatarSlotManagerの初期化完了を待ってからアイコンを読み込み
-        /// </summary>
-        async Cysharp.Threading.Tasks.UniTaskVoid LoadPersistedSlotDataAsync()
-        {
-            Debug.Log("[📦 PERSIST] LoadPersistedSlotDataAsync called - waiting for AvatarSlotManager...");
-
-            // AvatarSlotManagerの初期化完了を待機（最大3秒）
-            var slotManager = AICam.FBXLoader.AvatarSlotManager.Instance;
-            int maxWait = 30;
-            while ((slotManager == null || !slotManager.IsInitialized) && maxWait > 0)
-            {
-                await Cysharp.Threading.Tasks.UniTask.Delay(100);
-                slotManager = AICam.FBXLoader.AvatarSlotManager.Instance;
-                maxWait--;
-            }
-
-            if (slotManager == null)
-            {
-                Debug.LogWarning("[📦 PERSIST] AvatarSlotManager.Instance is null after waiting");
-                return;
-            }
-            if (!slotManager.IsInitialized)
-            {
-                Debug.LogWarning("[📦 PERSIST] AvatarSlotManager not initialized after waiting");
-                return;
-            }
-            if (slotManager.Cache == null)
-            {
-                Debug.LogWarning("[📦 PERSIST] AvatarSlotManager.Cache is null");
-                return;
-            }
-
-            Debug.Log("[📦 PERSIST] AvatarSlotManager ready, loading persisted data...");
-
-            var cache = slotManager.Cache;
-            Debug.Log($"[📦 PERSIST] Cache available: {cache.GetConfiguredSlotCount()} configured slots, lastActive={cache.lastActiveSlotIndex}");
-
-            if (bottomButtonContainer == null)
-            {
-                Debug.LogWarning("[📦 PERSIST] bottomButtonContainer is null");
-                return;
-            }
-
-            // Issue #462: 既存ボタン数を正確にカウントし、bottomButtonCountを補正
-            var existingButtons = bottomButtonContainer.Query<Button>().ToList();
-            int existingSlotCount = 0;
-            foreach (var btn in existingButtons)
-            {
-                if (btn != bottomButtonAdd) existingSlotCount++;
-            }
-            bottomButtonCount = existingSlotCount;
-            Debug.Log($"[📦 PERSIST] Existing slot buttons: {existingSlotCount}, corrected bottomButtonCount={bottomButtonCount}");
-
-            // 孤立スロットデータのクリーンアップ
-            // lastCreatedSlotCount 以上のインデックスに残っている設定済みデータは
-            // ボタン削除時にクリアされなかった孤立データなので起動時に削除する
-            if (cache.lastCreatedSlotCount >= 0)
-            {
-                bool cleaned = false;
-                for (int i = cache.lastCreatedSlotCount; i < cache.slots.Count; i++)
-                {
-                    var orphan = cache.GetSlot(i);
-                    if (orphan != null && orphan.IsConfigured)
-                    {
-                        Debug.Log($"[📦 PERSIST] Cleaning orphaned slot {i}: {orphan.avatarName}");
-                        cache.ClearSlot(i);
-                        cleaned = true;
-                    }
-                }
-                if (cleaned)
-                {
-                    cache.SaveToFile();
-                    Debug.Log("[📦 PERSIST] Orphaned slot data cleaned up");
-                }
-            }
-
-            // Issue #462: 設定済みスロットの最大インデックスを特定
-            int maxConfiguredIndex = -1;
-            var configuredSlotIndices = new System.Collections.Generic.List<int>();
-            for (int i = 0; i < cache.slots.Count; i++)
-            {
-                var slot = cache.GetSlot(i);
-                if (slot != null && slot.IsConfigured)
-                {
-                    configuredSlotIndices.Add(i);
-                    maxConfiguredIndex = i;
-                }
-            }
-
-            if (configuredSlotIndices.Count == 0)
-            {
-                Debug.Log("[📦 PERSIST] No configured slots found");
-                return;
-            }
-
-            Debug.Log($"[📦 PERSIST] Configured slots: [{string.Join(", ", configuredSlotIndices)}], maxIndex={maxConfiguredIndex}");
-
-            // Issue #462: 設定済みスロットのみボタン生成（空スロットは復元しない）
-            Debug.Log($"[📦 PERSIST] Creating buttons for {configuredSlotIndices.Count} configured slots");
-            foreach (int slotIdx in configuredSlotIndices)
-            {
-                // slot 0 → bottomButton1 は UXML に既存
-                if (slotIdx == 0) continue;
-                AddBottomPanelButtonForSlot(slotIdx);
-            }
-
-            // Phase 1: 全設定済みスロットのメタデータ・アイコンを復元
-            var allButtons = bottomButtonContainer.Query<Button>().ToList();
-            Debug.Log($"[📦 PERSIST] Total buttons after creation: {allButtons.Count}");
-            int loadedCount = 0;
-            Button lastActiveButton = null;
-            var configuredButtons = new System.Collections.Generic.List<Button>();
-
-            foreach (var button in allButtons)
-            {
-                if (button == bottomButtonAdd) continue;
-
-                int slotIndex = GetSlotIndexFromButton(button);
-                if (slotIndex < 0) continue;
-
-                var avatarSlotData = cache.GetSlot(slotIndex);
-                if (avatarSlotData == null || !avatarSlotData.IsConfigured) continue;
-
-                Debug.Log($"[📦 PERSIST] Processing slot {slotIndex}: {avatarSlotData.avatarName}, hasIcon={avatarSlotData.HasIcon}");
-
-                // slotDataMapを更新
-                if (!slotDataMap.ContainsKey(button))
-                {
-                    slotDataMap[button] = new SlotData();
-                }
-
-                var slotData = slotDataMap[button];
-                slotData.filePath = avatarSlotData.modelFilePath;
-                slotData.fileType = avatarSlotData.fileType == AICam.AvatarCache.AvatarFileType.VRM
-                    ? SlotFileType.VRM
-                    : SlotFileType.FBX;
-
-                // アイコンを読み込んでUIを更新
-                if (avatarSlotData.HasIcon && System.IO.File.Exists(avatarSlotData.iconFilePath))
-                {
-                    try
-                    {
-                        byte[] iconData = System.IO.File.ReadAllBytes(avatarSlotData.iconFilePath);
-                        var texture = new Texture2D(2, 2);
-                        if (texture.LoadImage(iconData))
-                        {
-                            slotData.thumbnail = texture;
-                            UpdateButtonIcon(button, texture);
-                            Debug.Log($"[📦 PERSIST] ✅ Icon loaded for slot {slotIndex}");
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.LogWarning($"[📦 PERSIST] Failed to load icon for slot {slotIndex}: {e.Message}");
-                    }
-                }
-
-                // lastActiveSlotIndexのボタンを記録
-                if (slotIndex == cache.lastActiveSlotIndex)
-                {
-                    lastActiveButton = button;
-                }
-
-                configuredButtons.Add(button);
-                loadedCount++;
-            }
-
-            Debug.Log($"[📦 PERSIST] Restored metadata for {loadedCount} slots");
-
-            // Phase 2: Issue #462 バイナリキャッシュからアバターを自動ロード
-            // lastActiveSlotを最初にロード（表示用）、その後他のスロットをロード（非表示）
-            // lastActiveSlotが見つからない場合は最初の設定済みスロットをアクティブにする
-            if (lastActiveButton == null && configuredButtons.Count > 0)
-            {
-                lastActiveButton = configuredButtons[0];
-                Debug.Log($"[📦 PERSIST] lastActiveSlot not found, using first configured: {lastActiveButton.name}");
-            }
-
-            if (lastActiveButton != null)
-            {
-                Debug.Log($"[📦 PERSIST] Auto-loading lastActive slot: {lastActiveButton.name}");
-                await AutoLoadSlotFromCacheAsync(lastActiveButton, slotManager, isActiveSlot: true);
-            }
-
-            // 他の設定済みスロットをロード
-            foreach (var button in configuredButtons)
-            {
-                if (button == lastActiveButton) continue;
-                Debug.Log($"[📦 PERSIST] Auto-loading additional slot: {button.name}");
-                await AutoLoadSlotFromCacheAsync(button, slotManager, isActiveSlot: false);
-            }
-
-            Debug.Log($"[📦 PERSIST] ✅ All {loadedCount} persisted slots loaded");
-        }
-
-        /// <summary>
-        /// Issue #462: 起動時にバイナリキャッシュからアバターを自動ロード
-        /// TryLoadFromBinaryCacheAsyncと異なり、既存アバターを破棄しない
-        /// </summary>
-        async UniTask AutoLoadSlotFromCacheAsync(Button button, AICam.FBXLoader.AvatarSlotManager slotManager, bool isActiveSlot)
-        {
-            if (!slotDataMap.TryGetValue(button, out var slotData) || !slotData.IsConfigured)
-                return;
-
-            int slotIndex = GetSlotIndexFromButton(button);
-            if (slotIndex < 0) return;
-
-            var avatarSlotData = slotManager.Cache.GetSlot(slotIndex);
-            if (avatarSlotData == null || string.IsNullOrEmpty(avatarSlotData.binaryCacheId))
-            {
-                Debug.Log($"[📦 AUTO-LOAD] No binaryCacheId for slot {slotIndex}, skipping");
-                return;
-            }
-
-            string cacheId = avatarSlotData.binaryCacheId;
-
-            try
-            {
-                var cacheIntegrator = new AICam.AvatarCache.AvatarCacheIntegrator(Application.persistentDataPath);
-
-                if (!cacheIntegrator.HasBinaryCache(cacheId))
-                {
-                    Debug.Log($"[📦 AUTO-LOAD] Cache not found for slot {slotIndex}: {cacheId}");
-                    return;
-                }
-
-                // プログレス表示
-                StartSlotLoading(button);
-                UpdateSlotProgress(button, 0.1f);
-
-                var avatar = await cacheIntegrator.LoadFromBinaryCacheAsync(cacheId, progress =>
-                {
-                    UpdateSlotProgress(button, 0.1f + (progress / 100f) * 0.6f);
-                }, slotIndex);
-
-                if (avatar == null)
-                {
-                    Debug.LogWarning($"[📦 AUTO-LOAD] Failed to load avatar for slot {slotIndex}");
-                    CancelSlotLoading(button);
-                    return;
-                }
-
-                Debug.Log($"[📦 AUTO-LOAD] Avatar loaded for slot {slotIndex}: {avatar.name}");
-
-                UpdateSlotProgress(button, 0.7f);
-
-                // AOC・表情セットアップ
-                poseUIController?.ApplyDefaultAOC(avatar);
-                expressionUIController?.SetupExpressionSystem(avatar, slotIndex);
-                expressionUIController?.TriggerExpressionIconGeneration(avatar, slotIndex);
-
-                if (isActiveSlot)
-                {
-                    // アクティブスロット: カメラ前方に配置して表示
-                    PlaceAvatarAheadOfCamera(avatar);
-                    ReapplyLightingSettings();
-
-                    UpdateSlotProgress(button, 0.85f);
-                    await UniTask.DelayFrame(3);
-                    CompleteSlotLoading(button);
-
-                    slotData.loadedAvatar = avatar;
-                    UpdateSlotSelection(button);
-                    poseUIController?.SetCachedAvatar(avatar);
-                    avatar.SetActive(true);
-                    Debug.Log($"[📦 AUTO-LOAD] ✅ Active slot {slotIndex} loaded and visible");
-                }
-                else
-                {
-                    // 非アクティブスロット: 配置せずロードだけして非表示
-                    // PlaceAvatarAheadOfCamera を呼ばない（PlaceAvatarOnPlaneOnly の
-                    // 内部 avatar フィールドを上書きしないため）
-                    avatar.SetActive(false);
-
-                    UpdateSlotProgress(button, 0.85f);
-                    await UniTask.DelayFrame(3);
-                    CompleteSlotLoading(button);
-
-                    slotData.loadedAvatar = avatar;
-                    Debug.Log($"[📦 AUTO-LOAD] ✅ Slot {slotIndex} loaded (hidden)");
-                }
-
-                // アイコン復元（キャッシュから復元されていない場合）
-                string iconPath = AICam.AvatarCache.AvatarSlotCache.GetIconPath(slotIndex);
-                if (!System.IO.File.Exists(iconPath) && avatar != null)
-                {
-                    await UniTask.DelayFrame(3);
-                    var thumbnail = await AICam.FBXLoader.AvatarIconCapture.Instance.CaptureAsTextureAsync(avatar);
-                    if (thumbnail != null)
-                    {
-                        slotData.thumbnail = thumbnail;
-                        UpdateButtonIcon(button, thumbnail);
-                        SaveThumbnailToFile(button, thumbnail);
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"[📦 AUTO-LOAD] Error loading slot {slotIndex}: {e.Message}");
-                CancelSlotLoading(button);
-            }
         }
 
         /// <summary>
@@ -1283,7 +960,7 @@ namespace AICam.UI
                 if (child is Button btn && btn != bottomButtonAdd)
                     bottomButtonCount++;
             }
-            SaveSlotCountToCache();
+            slotPersistenceController?.SaveSlotCount(bottomButtonCount);
 
             // Medium impact for deletion
             TapticEngine.Impact(TapticEngine.ImpactStyle.Medium);
@@ -1607,7 +1284,7 @@ namespace AICam.UI
                 string iconPath = SaveThumbnailToFile(targetButton, thumbnail);
 
                 // Issue #458: AvatarSlotManagerのキャッシュと同期（VRM用）
-                SyncWithAvatarSlotManagerForVRM(targetButton, filePath, avatar, iconPath);
+                avatarCacheSyncService?.SyncSlotForVRM(GetSlotIndexFromButton(targetButton), filePath, avatar, iconPath);
 
                 if (thumbnail != null)
                 {
@@ -1740,7 +1417,7 @@ namespace AICam.UI
                 string iconPath = SaveThumbnailToFile(targetButton, thumbnail);
 
                 // Issue #458: AvatarSlotManagerのキャッシュと同期
-                SyncWithAvatarSlotManager(targetButton, filePath, loadedModel.name, iconPath);
+                avatarCacheSyncService?.SyncSlot(GetSlotIndexFromButton(targetButton), filePath, loadedModel.name, iconPath);
 
                 if (thumbnail != null)
                 {
@@ -1837,7 +1514,7 @@ namespace AICam.UI
                 // バイナリキャッシュを作成（現在のアバターから）
                 if (slotData.loadedAvatar != null)
                 {
-                    CreateBinaryCacheAndShowPopup(slotIndex, avatarSlotData, slotData.loadedAvatar);
+                    binaryCacheService?.CreateBinaryCacheAndShowPopupAsync(slotIndex, avatarSlotData, slotData.loadedAvatar);
                 }
                 else
                 {
@@ -1853,53 +1530,6 @@ namespace AICam.UI
 
             // ハプティックフィードバック
             TapticEngine.Impact(TapticEngine.ImpactStyle.Medium);
-        }
-
-        /// <summary>
-        /// バイナリキャッシュを作成してからポップアップを表示
-        /// </summary>
-        async void CreateBinaryCacheAndShowPopup(int slotIndex, AICam.AvatarCache.AvatarSlotData avatarSlotData, GameObject avatar)
-        {
-            try
-            {
-                ShowInfo("Cache", "キャッシュを作成中...", 3f);
-
-                // AvatarCacheIntegratorを使用してバイナリキャッシュを作成
-                var cacheIntegrator = new AICam.AvatarCache.AvatarCacheIntegrator(Application.persistentDataPath);
-                string cacheId = await cacheIntegrator.CreateBinaryCacheAsync(avatar, avatarSlotData.modelFilePath);
-
-                if (!string.IsNullOrEmpty(cacheId))
-                {
-                    avatarSlotData.binaryCacheId = cacheId;
-
-                    // AvatarSlotManagerのキャッシュを更新
-                    var slotManager = AICam.FBXLoader.AvatarSlotManager.Instance;
-                    if (slotManager?.Cache != null)
-                    {
-                        slotManager.Cache.UpdateSlot(slotIndex, avatarSlotData);
-                        slotManager.Cache.SaveToFile();
-                    }
-
-                    Debug.Log($"[CameraCaptureController] Binary cache created: {cacheId}");
-
-#if BLENDSHAPE_CONTROLLER
-                    expressionUIController?.SaveExpressionDataToCache(avatar, cacheId);
-#endif
-
-                    // ポップアップを表示
-                    ShowExportPopupDirect(slotIndex, avatarSlotData);
-                }
-                else
-                {
-                    Debug.LogWarning($"[CameraCaptureController] Failed to create binary cache for slot {slotIndex}");
-                    ShowWarning("CACHE_ERROR", "キャッシュの作成に失敗しました");
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"[CameraCaptureController] Error creating binary cache: {e.Message}");
-                ShowError("CACHE_ERROR", $"キャッシュエラー: {e.Message}");
-            }
         }
 
         /// <summary>
@@ -1945,200 +1575,6 @@ namespace AICam.UI
                 }
             }
             return -1;
-        }
-
-        /// <summary>
-        /// AvatarSlotManagerのキャッシュと同期
-        /// Issue #458: エクスポート機能のために必要
-        /// </summary>
-        void SyncWithAvatarSlotManager(Button button, string filePath, string avatarName, string iconFilePath = null)
-        {
-            int slotIndex = GetSlotIndexFromButton(button);
-            if (slotIndex < 0)
-            {
-                Debug.LogWarning($"[CameraCaptureController] Cannot sync - invalid slot index for {button.name}");
-                return;
-            }
-
-            var slotManager = AICam.FBXLoader.AvatarSlotManager.Instance;
-            if (slotManager == null || slotManager.Cache == null)
-            {
-                Debug.LogWarning("[CameraCaptureController] AvatarSlotManager not available for sync");
-                return;
-            }
-
-            // スロットデータを取得または作成
-            var avatarSlotData = slotManager.Cache.GetSlot(slotIndex);
-            if (avatarSlotData == null)
-            {
-                avatarSlotData = new AICam.AvatarCache.AvatarSlotData(slotIndex);
-            }
-
-            // ファイルパスとアバター名を設定
-            avatarSlotData.modelFilePath = filePath;
-            avatarSlotData.avatarName = avatarName;
-            avatarSlotData.isValid = true;
-            avatarSlotData.fileType = AICam.AvatarCache.AvatarFileType.FBX;
-
-            // アイコンパスを設定
-            if (!string.IsNullOrEmpty(iconFilePath))
-            {
-                avatarSlotData.iconFilePath = iconFilePath;
-            }
-
-            // キャッシュを更新
-            slotManager.Cache.UpdateSlot(slotIndex, avatarSlotData);
-            slotManager.Cache.SetLastActiveSlot(slotIndex);  // Issue #416: lastActiveSlotIndexを設定
-            slotManager.Cache.SaveToFile();
-
-            Debug.Log($"[CameraCaptureController] Synced slot {slotIndex} with AvatarSlotManager: {avatarName}, icon={iconFilePath ?? "none"}, lastActive={slotIndex}");
-
-            // バイナリキャッシュを作成（AvatarMemoryCacheが利用可能な場合）
-            var memoryCache = FindFirstObjectByType<AICam.AvatarCache.AvatarMemoryCache>();
-            if (memoryCache != null && fbxLoaderBridge != null && fbxLoaderBridge.CurrentModel != null)
-            {
-                // 非同期でバイナリキャッシュを作成
-                CreateBinaryCacheAsync(slotIndex, avatarSlotData, memoryCache).Forget();
-            }
-        }
-
-        /// <summary>
-        /// AvatarSlotManagerのキャッシュと同期（VRM用）
-        /// Issue #458: エクスポート機能のために必要
-        /// </summary>
-        void SyncWithAvatarSlotManagerForVRM(Button button, string filePath, GameObject avatar, string iconFilePath = null)
-        {
-            int slotIndex = GetSlotIndexFromButton(button);
-            if (slotIndex < 0)
-            {
-                Debug.LogWarning($"[CameraCaptureController] Cannot sync VRM - invalid slot index for {button.name}");
-                return;
-            }
-
-            var slotManager = AICam.FBXLoader.AvatarSlotManager.Instance;
-            if (slotManager == null || slotManager.Cache == null)
-            {
-                Debug.LogWarning("[CameraCaptureController] AvatarSlotManager not available for VRM sync");
-                return;
-            }
-
-            // スロットデータを取得または作成
-            var avatarSlotData = slotManager.Cache.GetSlot(slotIndex);
-            if (avatarSlotData == null)
-            {
-                avatarSlotData = new AICam.AvatarCache.AvatarSlotData(slotIndex);
-            }
-
-            // ファイルパスとアバター名を設定
-            avatarSlotData.modelFilePath = filePath;
-            avatarSlotData.avatarName = avatar != null ? avatar.name : Path.GetFileNameWithoutExtension(filePath);
-            avatarSlotData.isValid = true;
-            avatarSlotData.fileType = AICam.AvatarCache.AvatarFileType.VRM;
-
-            // アイコンパスを設定
-            if (!string.IsNullOrEmpty(iconFilePath))
-            {
-                avatarSlotData.iconFilePath = iconFilePath;
-            }
-
-            // キャッシュを更新
-            slotManager.Cache.UpdateSlot(slotIndex, avatarSlotData);
-            slotManager.Cache.SetLastActiveSlot(slotIndex);  // Issue #416: lastActiveSlotIndexを設定
-            slotManager.Cache.SaveToFile();
-
-            Debug.Log($"[CameraCaptureController] Synced VRM slot {slotIndex} with AvatarSlotManager: {avatarSlotData.avatarName}, icon={iconFilePath ?? "none"}, lastActive={slotIndex}");
-
-            // VRM用バイナリキャッシュを作成
-            if (avatar != null)
-            {
-                CreateBinaryCacheForVRMAsync(slotIndex, avatarSlotData, avatar, iconFilePath).Forget();
-            }
-        }
-
-        /// <summary>
-        /// VRM用バイナリキャッシュを非同期で作成
-        /// </summary>
-        async UniTaskVoid CreateBinaryCacheForVRMAsync(int slotIndex, AICam.AvatarCache.AvatarSlotData avatarSlotData, GameObject avatar, string iconSourcePath = null)
-        {
-            try
-            {
-                // AvatarCacheIntegratorを取得
-                var cacheIntegrator = new AICam.AvatarCache.AvatarCacheIntegrator(Application.persistentDataPath);
-
-                // バイナリキャッシュを作成（アイコンも含む）
-                string cacheId = await cacheIntegrator.CreateBinaryCacheAsync(avatar, avatarSlotData.modelFilePath, iconSourcePath);
-
-                if (!string.IsNullOrEmpty(cacheId))
-                {
-                    avatarSlotData.binaryCacheId = cacheId;
-                    var slotManager = AICam.FBXLoader.AvatarSlotManager.Instance;
-                    if (slotManager?.Cache != null)
-                    {
-                        slotManager.Cache.UpdateSlot(slotIndex, avatarSlotData);
-                        slotManager.Cache.SaveToFile();
-                    }
-                    Debug.Log($"[CameraCaptureController] VRM binary cache created for slot {slotIndex}: {cacheId}");
-
-#if BLENDSHAPE_CONTROLLER
-                    expressionUIController?.SaveExpressionDataToCache(avatar, cacheId);
-#endif
-                }
-                else
-                {
-                    Debug.LogWarning($"[CameraCaptureController] Failed to create VRM binary cache for slot {slotIndex}");
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"[CameraCaptureController] Error creating VRM binary cache: {e.Message}");
-            }
-        }
-
-        /// <summary>
-        /// バイナリキャッシュを非同期で作成
-        /// </summary>
-        async UniTaskVoid CreateBinaryCacheAsync(int slotIndex, AICam.AvatarCache.AvatarSlotData avatarSlotData, AICam.AvatarCache.AvatarMemoryCache memoryCache)
-        {
-            try
-            {
-                // 現在のモデルを取得
-                GameObject currentModel = fbxLoaderBridge?.CurrentModel;
-                if (currentModel == null)
-                {
-                    Debug.LogWarning($"[CameraCaptureController] No current model available for binary cache");
-                    return;
-                }
-
-                // AvatarCacheIntegratorを取得
-                var cacheIntegrator = new AICam.AvatarCache.AvatarCacheIntegrator(Application.persistentDataPath);
-
-                // バイナリキャッシュを作成（キャッシュIDはファイルハッシュから自動生成される）
-                string cacheId = await cacheIntegrator.CreateBinaryCacheAsync(currentModel, avatarSlotData.modelFilePath);
-
-                if (!string.IsNullOrEmpty(cacheId))
-                {
-                    avatarSlotData.binaryCacheId = cacheId;
-                    var slotManager = AICam.FBXLoader.AvatarSlotManager.Instance;
-                    if (slotManager?.Cache != null)
-                    {
-                        slotManager.Cache.UpdateSlot(slotIndex, avatarSlotData);
-                        slotManager.Cache.SaveToFile();
-                    }
-                    Debug.Log($"[CameraCaptureController] Binary cache created for slot {slotIndex}: {cacheId}");
-
-#if BLENDSHAPE_CONTROLLER
-                    expressionUIController?.SaveExpressionDataToCache(currentModel, cacheId);
-#endif
-                }
-                else
-                {
-                    Debug.LogWarning($"[CameraCaptureController] Failed to create binary cache for slot {slotIndex}");
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"[CameraCaptureController] Error creating binary cache: {e.Message}");
-            }
         }
 
         /// <summary>
@@ -2738,6 +2174,48 @@ namespace AICam.UI
             => iconPreviewController?.Hide();
 
         public bool IsIconPreviewShowing => iconPreviewController != null && iconPreviewController.IsShowing;
+
+        #endregion
+
+        #region ISlotPersistenceHost (Phase 05)
+
+        VisualElement ISlotPersistenceHost.BottomButtonContainer => bottomButtonContainer;
+        Button ISlotPersistenceHost.BottomButtonAdd => bottomButtonAdd;
+        int ISlotPersistenceHost.BottomButtonCount
+        {
+            get => bottomButtonCount;
+            set => bottomButtonCount = value;
+        }
+
+        SlotData ISlotPersistenceHost.EnsureSlotData(Button button)
+        {
+            if (!slotDataMap.ContainsKey(button))
+                slotDataMap[button] = new SlotData();
+            return slotDataMap[button];
+        }
+
+        SlotData ISlotPersistenceHost.GetSlotData(Button button)
+        {
+            return slotDataMap.TryGetValue(button, out var data) ? data : null;
+        }
+
+        void ISlotPersistenceHost.AddBottomPanelButtonForSlot(int slotIndex)
+            => AddBottomPanelButtonForSlot(slotIndex);
+
+        int ISlotPersistenceHost.GetSlotIndexFromButton(Button button)
+            => GetSlotIndexFromButton(button);
+
+        void ISlotPersistenceHost.PlaceAvatarAheadOfCamera(GameObject avatar)
+            => PlaceAvatarAheadOfCamera(avatar);
+
+        void ISlotPersistenceHost.UpdateSlotSelection(Button button)
+            => UpdateSlotSelection(button);
+
+        void ISlotPersistenceHost.UpdateButtonIcon(Button button, Texture2D texture)
+            => UpdateButtonIcon(button, texture);
+
+        string ISlotPersistenceHost.SaveThumbnailToFile(Button button, Texture2D texture)
+            => SaveThumbnailToFile(button, texture);
 
         #endregion
 
