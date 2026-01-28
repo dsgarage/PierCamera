@@ -1,20 +1,25 @@
 {
-    "name": "AICam.FBXLoader",
-    "rootNamespace": "AICam.FBXLoader",
+    "name": "AICam.UI",
+    "rootNamespace": "AICam.UI",
     "references": [
-        "UniTask",
         "AICam.Core",
         "AICam.AR",
-        "AICam.Analytics",
+        "AICam.Expression",
+        "AICam.FBXLoader",
+        "AICam.VRMLoader",
         "AICam.AvatarCache",
         "AICam.AvatarBuilder",
+        "AICam.BugReport",
         "VRM",
         "VRM10",
-        "UniGLTF",
-        "UniHumanoid",
-        "UniSIL.ShaderInference",
+        "UniTask",
         "NativeFilePicker.Runtime",
-        "Unity.TextMeshPro"
+        "DSGarage.PoseSlot",
+        "DSGarage.BlendShape",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI",
+        "Unity.XR.ARFoundation",
+        "Unity.XR.ARSubsystems"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -24,6 +29,11 @@
     "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [
+        {
+            "name": "com.dsgarage.blendshapecontroller",
+            "expression": "",
+            "define": "BLENDSHAPE_CONTROLLER"
+        },
         {
             "name": "com.vrmc.vrm",
             "expression": "",

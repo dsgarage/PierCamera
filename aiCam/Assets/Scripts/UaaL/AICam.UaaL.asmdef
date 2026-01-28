@@ -1,0 +1,18 @@
+{
+    "name": "AICam.UaaL",
+    "rootNamespace": "AICam.UaaL",
+    "references": [
+        "AICam.UI",
+        "AICam.AR",
+        "Pier.UaaL.Runtime"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

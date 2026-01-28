@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using AICam.AR;
 using AICam.AvatarCache;
+using AICam.Core;
 using DSGarage.PoseSlot;
 #if BLENDSHAPE_CONTROLLER
 using DSGarage.BlendShape;
@@ -21,7 +22,7 @@ namespace AICam.UI
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     [RequireComponent(typeof(UIToolkitInputBlocker))]
-    public class CameraCaptureController : MonoBehaviour
+    public class CameraCaptureController : MonoBehaviour, IUIBlockingProvider, ILightingSettingsProvider
     {
         [Header("Capture Settings")]
         [SerializeField] private ARPhotoController photoController;
@@ -40,6 +41,9 @@ namespace AICam.UI
         [Header("Debug (Issue #427)")]
         [Tooltip("起動時のデバッグログを有効化（プロダクションビルドではOFFにして起動時間を短縮）")]
         [SerializeField] private bool enableDebugLogging = false;
+
+        // IAvatarPlacer（PlaceAvatarOnPlaneOnlyの抽象化）
+        private IAvatarPlacer cachedAvatarPlacer;
 
         private VisualElement root;
         private VisualElement captureButton;
@@ -2184,23 +2188,16 @@ namespace AICam.UI
                 Debug.Log("🗑️ Clearing existing avatar before loading new VRM...");
                 avatarLoader.ClearCurrentAvatar();
 
-                // PlaceAvatarOnPlaneOnlyのavatarもクリア
-                var placer = FindFirstObjectByType<PlaceAvatarOnPlaneOnly>();
+                // IAvatarPlacerのavatarもクリア
+                var placer = FindAvatarPlacer();
                 if (placer != null)
                 {
-                    // Reflectionを使ってprivateフィールドにアクセス
-                    var avatarField = typeof(PlaceAvatarOnPlaneOnly).GetField("avatar",
-                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-
-                    if (avatarField != null)
+                    var existingAvatar = placer.PlacedAvatar;
+                    if (existingAvatar != null)
                     {
-                        var existingAvatar = avatarField.GetValue(placer) as GameObject;
-                        if (existingAvatar != null)
-                        {
-                            Debug.Log($"🗑️ Destroying existing avatar in PlaceAvatarOnPlaneOnly: {existingAvatar.name}");
-                            Destroy(existingAvatar);
-                            avatarField.SetValue(placer, null);
-                        }
+                        Debug.Log($"🗑️ Destroying existing avatar in IAvatarPlacer: {existingAvatar.name}");
+                        Destroy(existingAvatar);
+                        placer.PlacedAvatar = null;
                     }
                 }
 
@@ -2952,21 +2949,16 @@ namespace AICam.UI
                     avatarLoader.ClearCurrentAvatar();
                 }
 
-                // PlaceAvatarOnPlaneOnlyのavatarもクリア
-                var placer = FindFirstObjectByType<PlaceAvatarOnPlaneOnly>();
-                if (placer != null)
+                // IAvatarPlacerのavatarもクリア
+                var placer2 = FindAvatarPlacer();
+                if (placer2 != null)
                 {
-                    var avatarField = typeof(PlaceAvatarOnPlaneOnly).GetField("avatar",
-                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    if (avatarField != null)
+                    var existingAvatar = placer2.PlacedAvatar;
+                    if (existingAvatar != null)
                     {
-                        var existingAvatar = avatarField.GetValue(placer) as GameObject;
-                        if (existingAvatar != null)
-                        {
-                            Debug.Log($"🗑️ Destroying existing avatar in PlaceAvatarOnPlaneOnly: {existingAvatar.name}");
-                            Destroy(existingAvatar);
-                            avatarField.SetValue(placer, null);
-                        }
+                        Debug.Log($"🗑️ Destroying existing avatar in IAvatarPlacer: {existingAvatar.name}");
+                        Destroy(existingAvatar);
+                        placer2.PlacedAvatar = null;
                     }
                 }
 
@@ -3982,14 +3974,33 @@ namespace AICam.UI
         }
 
         /// <summary>
+        /// IAvatarPlacerの検索（キャッシュ付き）
+        /// </summary>
+        private IAvatarPlacer FindAvatarPlacer()
+        {
+            if (cachedAvatarPlacer != null && cachedAvatarPlacer is MonoBehaviour mb && mb != null)
+                return cachedAvatarPlacer;
+
+            foreach (var obj in FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None))
+            {
+                if (obj is IAvatarPlacer placer)
+                {
+                    cachedAvatarPlacer = placer;
+                    return placer;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
         /// Issue #425: アバターをカメラの1m前方に配置
-        /// PlaceAvatarOnPlaneOnlyを使用して平面優先で配置
+        /// IAvatarPlacerを使用して平面優先で配置
         /// </summary>
         void PlaceAvatarAheadOfCamera(GameObject avatar)
         {
             if (avatar == null) return;
 
-            var placer = FindFirstObjectByType<PlaceAvatarOnPlaneOnly>();
+            var placer = FindAvatarPlacer();
             if (placer != null)
             {
                 bool success = placer.PlaceAvatarAhead(avatar, 1.5f);
@@ -3997,7 +4008,7 @@ namespace AICam.UI
             }
             else
             {
-                Debug.LogWarning("⚠️ PlaceAvatarOnPlaneOnly not found - avatar position unchanged");
+                Debug.LogWarning("⚠️ IAvatarPlacer not found - avatar position unchanged");
             }
         }
 

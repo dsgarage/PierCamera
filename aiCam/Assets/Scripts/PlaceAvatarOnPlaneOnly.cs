@@ -3,9 +3,10 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
+using AICam.Core;
 
 [RequireComponent(typeof(ARRaycastManager))]
-public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
+public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour, IAvatarPlacer
 {
     [Header("Prefab")]
     [SerializeField] GameObject avatarPrefab;
@@ -86,6 +87,10 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
     static readonly List<ARRaycastHit> s_Hits = new();
     ARRaycastManager rcMgr;
     GameObject avatar;
+
+    /// <summary>IAvatarPlacer実装: 配置済みアバターへのアクセス</summary>
+    public GameObject PlacedAvatar { get => avatar; set => avatar = value; }
+
     ARPlane avatarPlane; // アバターが配置された平面
     FaceController avatarFaceController;
     Animator avatarAnimator;
