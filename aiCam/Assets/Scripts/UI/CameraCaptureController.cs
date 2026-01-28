@@ -53,21 +53,14 @@ namespace AICam.UI
         private VisualElement flashOverlay;
         private VisualElement galleryThumbnail;
 
-        // ビューア要素
-        private VisualElement viewerOverlay;
-        private Image viewerImage;
-
         // Phase 01: サービス
         private AlertService alertService;
         private SlotProgressService slotProgressService;
 
-        // アイコンプレビューパネル要素
-        private VisualElement iconPreviewPanel;
-        private VisualElement iconPreviewImage;
-        private Button iconPreviewRetake;
-        private Button iconPreviewConfirm;
-        private System.Action onIconPreviewConfirm;
-        private System.Action onIconPreviewRetake;
+        // Phase 02: コントローラー
+        private IconPreviewController iconPreviewController;
+        private MediaViewerController mediaViewerController;
+        private AspectRatioController aspectRatioController;
 
         // パネル要素
         private VisualElement topPanel;
@@ -138,31 +131,6 @@ namespace AICam.UI
         private VisualElement lightingPanelDirection;
 
         // Issue #74/#75 修正: 長押し関連変数は不要になったため削除
-
-        // アスペクト比トグル用のステート（02_01 → 02_02 → 02_03 → 02_01）
-        private int aspectRatioState = 0;
-        private readonly string[] aspectRatioIcons = new string[]
-        {
-            "Sprite/PictIcon/SideBear/02_01_Full",
-            "Sprite/PictIcon/SideBear/02_02_169",
-            "Sprite/PictIcon/SideBear/02_03_32",
-            "Sprite/PictIcon/SideBear/02_04_11"  // 1:1 (正方形)
-        };
-
-        // アスペクト比の定義（幅/高さ）
-        private readonly float[] aspectRatios = new float[]
-        {
-            0f,      // Full (0 = カメラの最大画角)
-            16f/9f,  // 16:9
-            3f/2f,   // 3:2
-            1f       // 1:1 (正方形)
-        };
-
-        // アスペクト比マスク要素
-        private VisualElement topMask;
-        private VisualElement bottomMask;
-        private VisualElement leftMask;
-        private VisualElement rightMask;
 
         // 削除ポップアップ関連
         private VisualElement deletePopup;
@@ -324,19 +292,14 @@ namespace AICam.UI
             flashOverlay = root.Q<VisualElement>("flashOverlay");
             galleryThumbnail = root.Q<VisualElement>("galleryThumbnail");
 
-            viewerOverlay = root.Q<VisualElement>("viewerOverlay");
-            viewerImage = root.Q<Image>("viewerImage");
-
             // Phase 01: サービス初期化
             alertService = new AlertService(root);
             slotProgressService = new SlotProgressService(root);
             new VersionInfoService(root);
 
-            // アイコンプレビューパネル要素の取得
-            iconPreviewPanel = root.Q<VisualElement>("iconPreviewPanel");
-            iconPreviewImage = root.Q<VisualElement>("iconPreviewImage");
-            iconPreviewRetake = root.Q<Button>("iconPreviewRetake");
-            iconPreviewConfirm = root.Q<Button>("iconPreviewConfirm");
+            // Phase 02: コントローラー初期化
+            iconPreviewController = new IconPreviewController(root);
+            mediaViewerController = new MediaViewerController(root);
 
             topPanel = root.Q<VisualElement>("topPanel");
             bottomPanel = root.Q<VisualElement>("bottomPanel");
@@ -359,12 +322,6 @@ namespace AICam.UI
             topButton3 = root.Q<Button>("topButton3"); // Issue #33/#405: Expression
             topButton4 = root.Q<Button>("topButton4"); // Issue #407: Pose
             topButton5 = root.Q<Button>("topButton5"); // Issue #345: Plane Visibility
-
-            // アスペクト比マスク要素の取得
-            topMask = root.Q<VisualElement>("topMask");
-            bottomMask = root.Q<VisualElement>("bottomMask");
-            leftMask = root.Q<VisualElement>("leftMask");
-            rightMask = root.Q<VisualElement>("rightMask");
 
             // ScrollViewの設定（物理スクロール対応）
             var bottomScrollView = root.Q<ScrollView>("bottomScrollView");
@@ -409,8 +366,6 @@ namespace AICam.UI
                 Debug.Log($"progressArc: {(progressArc != null ? "✅" : "❌")}");
                 Debug.Log($"flashOverlay: {(flashOverlay != null ? "✅" : "❌")}");
                 Debug.Log($"galleryThumbnail: {(galleryThumbnail != null ? "✅" : "❌")}");
-                Debug.Log($"viewerOverlay: {(viewerOverlay != null ? "✅" : "❌")}");
-                Debug.Log($"viewerImage: {(viewerImage != null ? "✅" : "❌")}");
             }
 
             if (captureButton != null)
@@ -427,27 +382,9 @@ namespace AICam.UI
 
             if (galleryThumbnail != null)
             {
-                galleryThumbnail.RegisterCallback<ClickEvent>(evt => OpenViewer());
+                galleryThumbnail.RegisterCallback<ClickEvent>(evt =>
+                    mediaViewerController?.OpenViewer(lastCapturedPhoto, lastMediaIsVideo));
                 if (enableDebugLogging) Debug.Log("✅ Gallery thumbnail events registered");
-            }
-
-            if (viewerOverlay != null)
-            {
-                viewerOverlay.RegisterCallback<ClickEvent>(evt => CloseViewer());
-                if (enableDebugLogging) Debug.Log("✅ Viewer overlay events registered");
-            }
-
-            // アイコンプレビューパネルのイベント登録
-            if (iconPreviewConfirm != null)
-            {
-                iconPreviewConfirm.RegisterCallback<ClickEvent>(evt => OnIconPreviewConfirmClicked());
-                if (enableDebugLogging) Debug.Log("✅ Icon preview confirm button events registered");
-            }
-
-            if (iconPreviewRetake != null)
-            {
-                iconPreviewRetake.RegisterCallback<ClickEvent>(evt => OnIconPreviewRetakeClicked());
-                if (enableDebugLogging) Debug.Log("✅ Icon preview retake button events registered");
             }
 
             if (bottomButtonAdd != null)
@@ -475,11 +412,7 @@ namespace AICam.UI
                 if (enableDebugLogging) Debug.Log("✅ Side button 1 events registered");
             }
 
-            if (sideButton2 != null)
-            {
-                sideButton2.RegisterCallback<ClickEvent>(evt => OnSideButton2Clicked());
-                if (enableDebugLogging) Debug.Log("✅ Side button 2 events registered");
-            }
+            // sideButton2 のイベントは AspectRatioController が管理
 
             if (sideButton3 != null)
             {
@@ -628,17 +561,8 @@ namespace AICam.UI
             if (enableDebugLogging) Debug.Log("🔧 Loading persisted slot data...");
             LoadPersistedSlotDataAsync().Forget();
 
-            // GeometryChangedEventでアスペクト比マスクを更新（レイアウト確定後）
-            if (enableDebugLogging) Debug.Log("🔧 Registering GeometryChangedEvent for aspect mask...");
-            root.RegisterCallback<GeometryChangedEvent>(OnGeometryChanged);
-
-            // ARPhotoControllerに初期アスペクト比を設定
-            if (photoController != null)
-            {
-                float targetAspect = aspectRatios[aspectRatioState];
-                photoController.SetAspectRatio(targetAspect);
-                if (enableDebugLogging) Debug.Log($"✅ Initial aspect ratio set to: {targetAspect:F3}");
-            }
+            // Phase 02: AspectRatioController 初期化（GeometryChanged登録・初期アスペクト比設定含む）
+            aspectRatioController = new AspectRatioController(root, sideButton2, photoController);
 
             // Issue #407: AvatarSlotManagerのイベント購読
             if (AICam.FBXLoader.AvatarSlotManager.Instance != null)
@@ -692,11 +616,8 @@ namespace AICam.UI
                 photoController.OnPhotoCaptured -= OnPhotoCapturedHandler;
             }
 
-            // GeometryChangedEventの解除
-            if (root != null)
-            {
-                root.UnregisterCallback<GeometryChangedEvent>(OnGeometryChanged);
-            }
+            // Phase 02: AspectRatioController のイベント解除
+            aspectRatioController?.Dispose();
 
             // Issue #407: AvatarSlotManagerのイベント解除
             if (AICam.FBXLoader.AvatarSlotManager.Instance != null)
@@ -990,64 +911,13 @@ namespace AICam.UI
             }
         }
 
-        void OpenViewer()
-        {
-            Debug.Log("🖼 OpenViewer called");
-
-            if (viewerOverlay == null)
-            {
-                Debug.LogWarning("⚠️ viewerOverlay is null");
-                return;
-            }
-
-            viewerOverlay.style.display = DisplayStyle.Flex;
-            Debug.Log("✅ Viewer opened");
-
-            if (lastMediaIsVideo)
-            {
-                // 動画の場合は今後実装
-                Debug.Log("📹 Video mode (not implemented)");
-                if (viewerImage != null)
-                {
-                    viewerImage.style.display = DisplayStyle.None;
-                }
-            }
-            else
-            {
-                if (viewerImage != null && lastCapturedPhoto != null)
-                {
-                    viewerImage.style.display = DisplayStyle.Flex;
-                    viewerImage.image = lastCapturedPhoto;
-                    Debug.Log("✅ Photo displayed in viewer");
-                }
-                else
-                {
-                    Debug.LogWarning("⚠️ No photo to display");
-                }
-            }
-        }
-
-        void CloseViewer()
-        {
-            Debug.Log("✋ CloseViewer called");
-
-            if (viewerOverlay != null)
-            {
-                viewerOverlay.style.display = DisplayStyle.None;
-                Debug.Log("✅ Viewer closed");
-            }
-            else
-            {
-                Debug.LogWarning("⚠️ viewerOverlay is null");
-            }
-        }
-
         /// <summary>
         /// ARPhotoControllerを設定（外部から呼び出し可能）
         /// </summary>
         public void SetPhotoController(ARPhotoController controller)
         {
             photoController = controller;
+            aspectRatioController?.SetPhotoController(controller);
         }
 
         /// <summary>
@@ -1964,15 +1834,14 @@ namespace AICam.UI
                 return true;
             }
 
-            // アイコンプレビューパネルのチェック
-            if (iconPreviewPanel != null && iconPreviewPanel.ClassListContains("visible"))
+            // Phase 02: コントローラー経由のチェック
+            if (iconPreviewController != null && iconPreviewController.IsVisible)
             {
                 Debug.Log($"[#71] Touch over iconPreviewPanel (visible)");
                 return true;
             }
 
-            // ビューアオーバーレイのチェック
-            if (viewerOverlay != null && viewerOverlay.resolvedStyle.display == DisplayStyle.Flex)
+            if (mediaViewerController != null && mediaViewerController.IsViewerVisible)
             {
                 Debug.Log($"[#71] Touch over viewerOverlay (visible)");
                 return true;
@@ -3154,46 +3023,6 @@ namespace AICam.UI
             TapticEngine.Selection();
 
             // ここに設定画面を開く処理を追加
-        }
-
-        /// <summary>
-        /// サイドバーボタン2（アスペクト比）クリック時の処理
-        /// Full → 16:9 → 3:2 → Full のようにトグル
-        /// </summary>
-        void OnSideButton2Clicked()
-        {
-            Debug.Log("📐 Side button 2 (Aspect Ratio) clicked");
-            TapticEngine.Selection();
-
-            // アスペクト比ステートをトグル
-            aspectRatioState = (aspectRatioState + 1) % aspectRatioIcons.Length;
-
-            // アイコンを更新
-            if (sideButton2 != null)
-            {
-                var iconPath = aspectRatioIcons[aspectRatioState];
-                var icon = Resources.Load<Texture2D>(iconPath);
-
-                if (icon != null)
-                {
-                    sideButton2.style.backgroundImage = new StyleBackground(icon);
-                    Debug.Log($"✅ Aspect ratio changed to: {iconPath}");
-                }
-                else
-                {
-                    Debug.LogWarning($"⚠️ Icon not found: {iconPath}");
-                }
-            }
-
-            // アスペクト比マスクを更新
-            UpdateAspectMask();
-
-            // ARPhotoControllerにアスペクト比を設定
-            if (photoController != null)
-            {
-                float targetAspect = aspectRatios[aspectRatioState];
-                photoController.SetAspectRatio(targetAspect);
-            }
         }
 
         /// <summary>
@@ -4585,149 +4414,6 @@ namespace AICam.UI
             return null;
         }
 
-        /// <summary>
-        /// UI要素のジオメトリ変更時のコールバック
-        /// レイアウト確定後にアスペクト比マスクを更新
-        /// </summary>
-        void OnGeometryChanged(GeometryChangedEvent evt)
-        {
-            Debug.Log($"📐 GeometryChangedEvent: {root.resolvedStyle.width}x{root.resolvedStyle.height}");
-            UpdateAspectMask();
-        }
-
-        /// <summary>
-        /// アスペクト比マスクを更新
-        /// </summary>
-        void UpdateAspectMask()
-        {
-            if (topMask == null || bottomMask == null)
-            {
-                Debug.LogWarning("⚠️ topMask or bottomMask is null");
-                return;
-            }
-
-            Debug.Log($"📐 UpdateAspectMask called: state={aspectRatioState}");
-
-            float targetAspect = aspectRatios[aspectRatioState];
-
-            // Full (0) の場合はマスクを非表示
-            if (targetAspect == 0f)
-            {
-                topMask.style.display = DisplayStyle.None;
-                bottomMask.style.display = DisplayStyle.None;
-                if (leftMask != null) leftMask.style.display = DisplayStyle.None;
-                if (rightMask != null) rightMask.style.display = DisplayStyle.None;
-                Debug.Log("📐 Aspect masks hidden (Full mode)");
-                return;
-            }
-
-            // UI要素の実際のレンダリングサイズを取得
-            float screenWidth = root.resolvedStyle.width;
-            float screenHeight = root.resolvedStyle.height;
-
-            // resolvedStyleが未確定の場合は処理をスキップ
-            if (float.IsNaN(screenWidth) || float.IsNaN(screenHeight) || screenWidth <= 0 || screenHeight <= 0)
-            {
-                Debug.LogWarning($"⚠️ resolvedStyle not ready: {screenWidth}x{screenHeight}");
-                return;
-            }
-
-            // モバイルは縦長画面なので、targetAspectを「高さ/幅」として扱う
-            float targetHeightWidthRatio = targetAspect;  // 高さ/幅
-            float screenHeightWidthRatio = screenHeight / screenWidth;
-
-            Debug.Log($"📐 UI Size (resolvedStyle): {screenWidth}x{screenHeight}, screen H/W ratio: {screenHeightWidthRatio:F3}, target H/W ratio: {targetHeightWidthRatio:F3}");
-
-            // カメラの最大画角の中心から指定アスペクト比でクロップ
-            float maskWidth = 0f;
-            float maskHeight = 0f;
-            bool isVerticalCrop = screenHeightWidthRatio > targetHeightWidthRatio;
-
-            if (screenHeightWidthRatio > targetHeightWidthRatio)
-            {
-                // 画面が目標より縦長 → 上下にマスク
-                float targetHeight = screenWidth * targetHeightWidthRatio;
-                maskHeight = (screenHeight - targetHeight) / 2f;
-                Debug.Log($"📐 Vertical crop: target height={targetHeight}px, mask height={maskHeight}px");
-            }
-            else
-            {
-                // 画面が目標より横長 → 左右にマスク
-                float targetWidth = screenHeight / targetHeightWidthRatio;
-                maskWidth = (screenWidth - targetWidth) / 2f;
-                Debug.Log($"📐 Horizontal crop: target width={targetWidth}px, mask width={maskWidth}px");
-            }
-
-            if (isVerticalCrop)
-            {
-                // 上下にマスク
-                if (leftMask != null) leftMask.style.display = DisplayStyle.None;
-                if (rightMask != null) rightMask.style.display = DisplayStyle.None;
-
-                // 上マスク（画面上端から配置）
-                topMask.style.display = DisplayStyle.Flex;
-                topMask.style.position = Position.Absolute;
-                topMask.style.left = 0;
-                topMask.style.right = 0;
-                topMask.style.top = 0;
-                topMask.style.width = screenWidth;
-                topMask.style.height = maskHeight;
-                topMask.style.backgroundColor = new Color(0.5f, 0.5f, 0.5f, 1f);
-                topMask.style.opacity = 1f;
-                topMask.pickingMode = PickingMode.Ignore;
-                Debug.Log($"📐 Top mask SET: {screenWidth}x{maskHeight}px");
-
-                // 下マスク（画面下端から配置）
-                bottomMask.style.display = DisplayStyle.Flex;
-                bottomMask.style.position = Position.Absolute;
-                bottomMask.style.left = 0;
-                bottomMask.style.right = 0;
-                bottomMask.style.bottom = 0;
-                bottomMask.style.width = screenWidth;
-                bottomMask.style.height = maskHeight;
-                bottomMask.style.backgroundColor = new Color(0.5f, 0.5f, 0.5f, 1f);
-                bottomMask.style.opacity = 1f;
-                bottomMask.pickingMode = PickingMode.Ignore;
-                Debug.Log($"📐 Bottom mask SET: {screenWidth}x{maskHeight}px");
-            }
-            else
-            {
-                // 左右にマスク
-                topMask.style.display = DisplayStyle.None;
-                bottomMask.style.display = DisplayStyle.None;
-
-                if (leftMask != null)
-                {
-                    leftMask.style.display = DisplayStyle.Flex;
-                    leftMask.style.position = Position.Absolute;
-                    leftMask.style.left = 0;
-                    leftMask.style.top = 0;
-                    leftMask.style.bottom = 0;
-                    leftMask.style.width = maskWidth;
-                    leftMask.style.height = screenHeight;
-                    leftMask.style.backgroundColor = new Color(0.5f, 0.5f, 0.5f, 1f);
-                    leftMask.style.opacity = 1f;
-                    leftMask.pickingMode = PickingMode.Ignore;
-                    Debug.Log($"📐 Left mask SET: {maskWidth}x{screenHeight}px");
-                }
-
-                if (rightMask != null)
-                {
-                    rightMask.style.display = DisplayStyle.Flex;
-                    rightMask.style.position = Position.Absolute;
-                    rightMask.style.right = 0;
-                    rightMask.style.top = 0;
-                    rightMask.style.bottom = 0;
-                    rightMask.style.width = maskWidth;
-                    rightMask.style.height = screenHeight;
-                    rightMask.style.backgroundColor = new Color(0.5f, 0.5f, 0.5f, 1f);
-                    rightMask.style.opacity = 1f;
-                    rightMask.pickingMode = PickingMode.Ignore;
-                    Debug.Log($"📐 Right mask SET: {maskWidth}x{screenHeight}px");
-                }
-            }
-        }
-
         #region AlertBar Methods
 
         /// <summary>
@@ -4763,97 +4449,15 @@ namespace AICam.UI
 
         #endregion
 
-        #region IconPreviewPanel Methods
+        #region IconPreviewPanel Methods (Phase 02: delegated to IconPreviewController)
 
-        /// <summary>
-        /// アイコンプレビューパネルを表示（フェードイン）
-        /// </summary>
-        /// <param name="texture">プレビューするテクスチャ</param>
-        /// <param name="onConfirm">確定ボタン押下時のコールバック</param>
-        /// <param name="onRetake">撮り直すボタン押下時のコールバック（nullの場合はボタン非表示）</param>
         public void ShowIconPreview(Texture2D texture, System.Action onConfirm, System.Action onRetake = null)
-        {
-            if (iconPreviewPanel == null || iconPreviewImage == null)
-            {
-                Debug.LogWarning("⚠️ IconPreviewPanel elements not found");
-                return;
-            }
+            => iconPreviewController?.Show(texture, onConfirm, onRetake);
 
-            // コールバックを保存
-            onIconPreviewConfirm = onConfirm;
-            onIconPreviewRetake = onRetake;
-
-            // 画像を設定
-            iconPreviewImage.style.backgroundImage = new StyleBackground(texture);
-
-            // 撮り直しボタンの表示/非表示
-            if (iconPreviewRetake != null)
-            {
-                iconPreviewRetake.style.display = onRetake != null ? DisplayStyle.Flex : DisplayStyle.None;
-            }
-
-            // フェードイン表示
-            iconPreviewPanel.style.display = DisplayStyle.Flex;
-            iconPreviewPanel.style.opacity = 0;
-
-            // 次のフレームでopacity:1に変更してCSSトランジションを発火
-            iconPreviewPanel.schedule.Execute(() =>
-            {
-                iconPreviewPanel.AddToClassList("visible");
-                iconPreviewPanel.style.opacity = 1;
-            }).StartingIn(10);
-
-            Debug.Log($"🖼 IconPreview shown: {texture.width}x{texture.height}");
-        }
-
-        /// <summary>
-        /// アイコンプレビューパネルを非表示（フェードアウト）
-        /// </summary>
         public void HideIconPreview()
-        {
-            if (iconPreviewPanel == null) return;
+            => iconPreviewController?.Hide();
 
-            iconPreviewPanel.RemoveFromClassList("visible");
-            iconPreviewPanel.style.opacity = 0;
-
-            // フェードアウト完了後に非表示
-            iconPreviewPanel.schedule.Execute(() =>
-            {
-                iconPreviewPanel.style.display = DisplayStyle.None;
-                iconPreviewImage.style.backgroundImage = null;
-            }).StartingIn(300);
-
-            onIconPreviewConfirm = null;
-            onIconPreviewRetake = null;
-
-            Debug.Log("✅ IconPreview hidden");
-        }
-
-        private void OnIconPreviewConfirmClicked()
-        {
-            Debug.Log("✅ IconPreview confirm clicked");
-            TapticEngine.Impact(TapticEngine.ImpactStyle.Medium);
-
-            var callback = onIconPreviewConfirm;
-            HideIconPreview();
-            callback?.Invoke();
-        }
-
-        private void OnIconPreviewRetakeClicked()
-        {
-            Debug.Log("🔄 IconPreview retake clicked");
-            TapticEngine.Impact(TapticEngine.ImpactStyle.Light);
-
-            var callback = onIconPreviewRetake;
-            HideIconPreview();
-            callback?.Invoke();
-        }
-
-        /// <summary>
-        /// アイコンプレビューが表示中かどうか
-        /// </summary>
-        public bool IsIconPreviewShowing => iconPreviewPanel != null &&
-            iconPreviewPanel.resolvedStyle.display == DisplayStyle.Flex;
+        public bool IsIconPreviewShowing => iconPreviewController != null && iconPreviewController.IsShowing;
 
         #endregion
 
