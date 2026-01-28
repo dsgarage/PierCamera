@@ -1,15 +1,8 @@
 using UnityEngine;
 using UnityEngine.UIElements;
-using UnityEngine.XR.ARFoundation;
 using Cysharp.Threading.Tasks;
-using System;
-using AICam.AR;
-using AICam.AvatarCache;
 using AICam.Core;
 using DSGarage.PoseSlot;
-#if BLENDSHAPE_CONTROLLER
-using DSGarage.BlendShape;
-#endif
 
 namespace AICam.UI
 {
@@ -84,16 +77,6 @@ namespace AICam.UI
         // Issue #451: 撮影設定バー（topButton1-4用、貫通防止）
         private VisualElement captureSettingBar;
 
-        // Issue #74: Light Estimation状態
-        private bool isLightEstimationEnabled = true;
-        private ARLightEstimationController cachedLightEstimationController;
-
-        // Issue #75: Shadow状態
-        private bool isShadowEnabled = true;
-        private Light cachedMainLight;
-        private ARPlaneShadowReceiver cachedPlaneShadowReceiver;
-
-
         void OnEnable()
         {
             if (enableDebugLogging) Debug.Log("🔧 CameraCaptureController OnEnable called");
@@ -115,7 +98,7 @@ namespace AICam.UI
                 return;
             }
 
-            InitializeUIElements();
+            InitializeSubControllers();
         }
 
         /// <summary>
@@ -141,13 +124,13 @@ namespace AICam.UI
             }
 
             Debug.Log($"✅ Root element found after {retryCount} frame(s): {root.name}");
-            InitializeUIElements();
+            InitializeSubControllers();
         }
 
         /// <summary>
-        /// UI要素の初期化（OnEnableまたは遅延初期化から呼ばれる）
+        /// サブコントローラーの初期化（OnEnableまたは遅延初期化から呼ばれる）
         /// </summary>
-        private void InitializeUIElements()
+        private void InitializeSubControllers()
         {
             if (enableDebugLogging) Debug.Log($"✅ Root element found: {root.name}");
 
@@ -306,7 +289,6 @@ namespace AICam.UI
             }
         }
 
-
         void Update()
         {
             // Phase 03: 撮影ボタンの状態更新
@@ -442,8 +424,6 @@ namespace AICam.UI
             bugReportManager.StartBugReport();
         }
 
-
-
         /// <summary>
         /// Issue #407: アバタースロットロード完了時のハンドラ
         /// </summary>
@@ -524,83 +504,6 @@ namespace AICam.UI
         /// </summary>
         public void ReapplyLightingSettings()
             => settingsPanelUIController?.ReapplyLightingSettings();
-        void UpdateTopButtonOpacity(Button button, bool isEnabled)
-        {
-            if (button == null) return;
-            button.style.opacity = isEnabled ? 1.0f : 0.4f;
-        }
-
-        /// <summary>
-        /// Issue #74: Light Estimation設定を適用
-        /// </summary>
-        void ApplyLightEstimationSetting()
-        {
-            // キャッシュがない場合のみ検索（lazy initialization）
-            if (cachedLightEstimationController == null)
-            {
-                cachedLightEstimationController = FindFirstObjectByType<ARLightEstimationController>();
-            }
-
-            if (cachedLightEstimationController != null)
-            {
-                cachedLightEstimationController.enabled = isLightEstimationEnabled;
-                Debug.Log($"💡 ARLightEstimationController.enabled = {isLightEstimationEnabled}");
-            }
-            else
-            {
-                Debug.LogWarning("⚠️ ARLightEstimationController not found in scene");
-            }
-        }
-
-        /// <summary>
-        /// Issue #75: Shadow設定を適用
-        /// </summary>
-        void ApplyShadowSetting()
-        {
-            // キャッシュがない場合のみ検索（lazy initialization）
-            if (cachedMainLight == null)
-            {
-                cachedMainLight = FindMainDirectionalLight();
-            }
-
-            if (cachedMainLight != null)
-            {
-                cachedMainLight.shadows = isShadowEnabled ? LightShadows.Soft : LightShadows.None;
-                Debug.Log($"🌑 Main light shadows = {cachedMainLight.shadows}");
-            }
-            else
-            {
-                Debug.LogWarning("⚠️ Main Directional Light not found in scene");
-            }
-
-            // AR平面の落ち影レシーバーも制御
-            if (cachedPlaneShadowReceiver == null)
-            {
-                cachedPlaneShadowReceiver = FindFirstObjectByType<ARPlaneShadowReceiver>();
-            }
-
-            if (cachedPlaneShadowReceiver != null)
-            {
-                cachedPlaneShadowReceiver.SetShadowEnabled(isShadowEnabled);
-                Debug.Log($"🌑 AR Plane shadow receiver = {isShadowEnabled}");
-            }
-        }
-
-        /// <summary>
-        /// メインのDirectional Lightを検索
-        /// </summary>
-        Light FindMainDirectionalLight()
-        {
-            var lights = FindObjectsByType<Light>(FindObjectsSortMode.None);
-            foreach (var light in lights)
-            {
-                if (light.type == LightType.Directional)
-                {
-                    return light;
-                }
-            }
-            return null;
-        }
 
         #region AlertBar Methods
 
@@ -626,7 +529,6 @@ namespace AICam.UI
             => alertService?.HideAlert();
 
         #endregion
-
 
         #region IconPreviewPanel Methods (Phase 02: delegated to IconPreviewController)
 
