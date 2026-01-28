@@ -46,12 +46,6 @@ namespace AICam.UI
         private IAvatarPlacer cachedAvatarPlacer;
 
         private VisualElement root;
-        private VisualElement captureButton;
-        private VisualElement innerCircle;
-        private VisualElement progressRing;
-        private VisualElement progressArc;
-        private VisualElement flashOverlay;
-        private VisualElement galleryThumbnail;
 
         // Phase 01: サービス
         private AlertService alertService;
@@ -62,6 +56,11 @@ namespace AICam.UI
         private MediaViewerController mediaViewerController;
         private AspectRatioController aspectRatioController;
 
+        // Phase 03: コントローラー
+        private CaptureController captureController;
+        private SettingsPanelUIController settingsPanelUIController;
+        private ARFeatureController arFeatureController;
+
         // パネル要素
         private VisualElement topPanel;
         private VisualElement bottomPanel;
@@ -69,22 +68,17 @@ namespace AICam.UI
         private Button bottomButtonAdd;
         private int bottomButtonCount = 1; // UXML has only bottomButton1
 
-        // サイドパネル要素
+        // サイドパネル要素（sideButton1/3 は ARFeatureController が管理）
         private VisualElement sidePanel;
-        private Button sideButton1;
         private Button sideButton2;
-        private Button sideButton3;
         private Button sideButtonBugReport; // Issue #413: バグレポート
 
         // Issue #451: 撮影設定バー（topButton1-4用、貫通防止）
         private VisualElement captureSettingBar;
 
-        // Issue #74/#75: トップパネルボタン要素
-        private Button topButton1; // Light Estimation ON/OFF
-        private Button topButton2; // Shadow ON/OFF
+        // トップパネルボタン要素（topButton1/2/5 はコントローラーが管理）
         private Button topButton3; // Issue #33/#405: Expression切り替え
         private Button topButton4; // Issue #407: Pose切り替え
-        private Button topButton5; // Issue #345: Plane Visibility ON/OFF
 
         // Issue #407: ポーズ切り替え
         private int currentPoseIndex = 0;
@@ -101,10 +95,6 @@ namespace AICam.UI
         private int expressionTapCount = 0;
         private System.Threading.CancellationTokenSource expressionTapCts;
 
-        // Issue #345: 平面表示状態
-        private bool isPlaneVisible = true;
-        private ARPlaneVisibilityController cachedPlaneVisibilityController;
-
         // Issue #74: Light Estimation状態
         private bool isLightEstimationEnabled = true;
         private ARLightEstimationController cachedLightEstimationController;
@@ -113,22 +103,6 @@ namespace AICam.UI
         private bool isShadowEnabled = true;
         private Light cachedMainLight;
         private ARPlaneShadowReceiver cachedPlaneShadowReceiver;
-
-        // Issue #452: トーチ（背面ライト）状態
-        private bool isTorchEnabled = false;
-        private ARCameraManager cachedARCameraManager;
-
-        // Issue #120: ライティング/シャドウパネル
-        private LightingPanelController lightingPanelController;
-        private VisualElement settingsPanelBackdrop;
-        private VisualElement lightingPanelOverlay;
-        private VisualElement shadowPanelOverlay;
-
-        // Issue #450: Lighting Panel タブ切り替え用
-        private VisualElement tabMood;
-        private VisualElement tabDirection;
-        private VisualElement lightingPanelMood;
-        private VisualElement lightingPanelDirection;
 
         // Issue #74/#75 修正: 長押し関連変数は不要になったため削除
 
@@ -146,16 +120,6 @@ namespace AICam.UI
         private VisualElement clearCachePopup;
         private Button clearCacheButton;
         private Button clearCacheCancelButton;
-
-        private bool isPressed = false;
-        private bool isRecording = false;
-        private float pressTime = 0f;
-        private const float longPressThreshold = 0.5f;
-        private const float maxRecordTime = 5f;
-        private bool lastMediaIsVideo = false;
-
-        private Texture2D lastCapturedPhoto;
-        private string lastCapturedVideoPath;
 
         // スロットデータ管理
         private Dictionary<Button, SlotData> slotDataMap = new Dictionary<Button, SlotData>();
@@ -191,48 +155,12 @@ namespace AICam.UI
             public bool IsConfigured => !string.IsNullOrEmpty(filePath);
         }
 
-        #region Lazy Initialization
-
-        /// <summary>
-        /// LightingPanelControllerを遅延取得・初期化
-        /// パネルを開くときに呼び出す
-        /// </summary>
-        private LightingPanelController GetLightingPanelController()
-        {
-            if (lightingPanelController == null)
-            {
-                lightingPanelController = FindFirstObjectByType<LightingPanelController>();
-                if (lightingPanelController == null)
-                {
-                    Debug.Log("💡 LightingPanelController not found - creating automatically (lazy)");
-                    var lightingObj = new GameObject("LightingPanelController");
-                    lightingPanelController = lightingObj.AddComponent<LightingPanelController>();
-                }
-
-                if (lightingPanelController != null)
-                {
-                    lightingPanelController.Initialize();
-                    lightingPanelController.OnWarning += (code, message) => ShowWarning(code, message);
-                    lightingPanelController.OnError += (code, message) => ShowError(code, message);
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-                    Debug.Log("[Init] LightingPanelController initialized (lazy)");
-#endif
-                }
-            }
-            return lightingPanelController;
-        }
-
-        #endregion
 
         void OnEnable()
         {
             if (enableDebugLogging) Debug.Log("🔧 CameraCaptureController OnEnable called");
 
-            // ARPhotoControllerのイベント登録
-            if (photoController != null)
-            {
-                photoController.OnPhotoCaptured += OnPhotoCapturedHandler;
-            }
+            // Phase 03: photoControllerのイベント登録はCaptureControllerが管理
 
             var uiDoc = GetComponent<UIDocument>();
             if (uiDoc == null)
@@ -285,13 +213,6 @@ namespace AICam.UI
         {
             if (enableDebugLogging) Debug.Log($"✅ Root element found: {root.name}");
 
-            captureButton = root.Q<VisualElement>("captureButton");
-            innerCircle = root.Q<VisualElement>("innerCircle");
-            progressRing = root.Q<VisualElement>("progressRing");
-            progressArc = root.Q<VisualElement>("progressArc");
-            flashOverlay = root.Q<VisualElement>("flashOverlay");
-            galleryThumbnail = root.Q<VisualElement>("galleryThumbnail");
-
             // Phase 01: サービス初期化
             alertService = new AlertService(root);
             slotProgressService = new SlotProgressService(root);
@@ -301,27 +222,31 @@ namespace AICam.UI
             iconPreviewController = new IconPreviewController(root);
             mediaViewerController = new MediaViewerController(root);
 
+            // Phase 03: コントローラー初期化
+            captureController = new CaptureController(root, photoController,
+                (photo, isVideo) => mediaViewerController?.OpenViewer(photo, isVideo));
+            settingsPanelUIController = new SettingsPanelUIController(root, enableDebugLogging,
+                (code, msg) => ShowWarning(code, msg),
+                (code, msg) => ShowError(code, msg));
+            arFeatureController = new ARFeatureController(root, enableDebugLogging,
+                (code, msg) => ShowWarning(code, msg));
+
             topPanel = root.Q<VisualElement>("topPanel");
             bottomPanel = root.Q<VisualElement>("bottomPanel");
             bottomButtonContainer = root.Q<VisualElement>("bottomButtonContainer");
             bottomButtonAdd = root.Q<Button>("bottomButtonAdd");
 
-            // サイドパネル要素の取得
+            // サイドパネル要素の取得（sideButton1/3 は ARFeatureController が自己取得）
             sidePanel = root.Q<VisualElement>("sidePanel");
-            sideButton1 = root.Q<Button>("sideButton1");
             sideButton2 = root.Q<Button>("sideButton2");
-            sideButton3 = root.Q<Button>("sideButton3");
             sideButtonBugReport = root.Q<Button>("sideButtonBugReport"); // Issue #413
 
             // Issue #451: 撮影設定バー（貫通防止用）
             captureSettingBar = root.Q<VisualElement>("captureSettingBar");
 
-            // Issue #74/#75: トップパネルボタンの取得
-            topButton1 = root.Q<Button>("topButton1");
-            topButton2 = root.Q<Button>("topButton2");
+            // Issue #33/#405/#407: 表情・ポーズボタンの取得（topButton1/2/5 はコントローラーが自己取得）
             topButton3 = root.Q<Button>("topButton3"); // Issue #33/#405: Expression
             topButton4 = root.Q<Button>("topButton4"); // Issue #407: Pose
-            topButton5 = root.Q<Button>("topButton5"); // Issue #345: Plane Visibility
 
             // ScrollViewの設定（物理スクロール対応）
             var bottomScrollView = root.Q<ScrollView>("bottomScrollView");
@@ -357,36 +282,6 @@ namespace AICam.UI
                 if (enableDebugLogging) Debug.Log($"✅ ScrollView configured: mode={bottomScrollView.mode}, touchBehavior={bottomScrollView.touchScrollBehavior}");
             }
 
-            // Issue #427: デバッグログを条件付きに変更（起動時間短縮）
-            if (enableDebugLogging)
-            {
-                Debug.Log($"captureButton: {(captureButton != null ? "✅" : "❌")}");
-                Debug.Log($"innerCircle: {(innerCircle != null ? "✅" : "❌")}");
-                Debug.Log($"progressRing: {(progressRing != null ? "✅" : "❌")}");
-                Debug.Log($"progressArc: {(progressArc != null ? "✅" : "❌")}");
-                Debug.Log($"flashOverlay: {(flashOverlay != null ? "✅" : "❌")}");
-                Debug.Log($"galleryThumbnail: {(galleryThumbnail != null ? "✅" : "❌")}");
-            }
-
-            if (captureButton != null)
-            {
-                captureButton.RegisterCallback<PointerDownEvent>(OnPointerDown);
-                captureButton.RegisterCallback<PointerUpEvent>(OnPointerUp);
-                if (enableDebugLogging) captureButton.RegisterCallback<ClickEvent>(evt => Debug.Log("🖱 Capture button clicked!"));
-                if (enableDebugLogging) Debug.Log("✅ Capture button events registered");
-            }
-            else
-            {
-                Debug.LogError("❌ captureButton is null - cannot register events");
-            }
-
-            if (galleryThumbnail != null)
-            {
-                galleryThumbnail.RegisterCallback<ClickEvent>(evt =>
-                    mediaViewerController?.OpenViewer(lastCapturedPhoto, lastMediaIsVideo));
-                if (enableDebugLogging) Debug.Log("✅ Gallery thumbnail events registered");
-            }
-
             if (bottomButtonAdd != null)
             {
                 bottomButtonAdd.RegisterCallback<ClickEvent>(evt =>
@@ -405,20 +300,8 @@ namespace AICam.UI
                 if (enableDebugLogging) Debug.Log("✅ Add button events registered (including long press)");
             }
 
-            // サイドパネルボタンのイベント登録
-            if (sideButton1 != null)
-            {
-                sideButton1.RegisterCallback<ClickEvent>(evt => OnSideButton1Clicked());
-                if (enableDebugLogging) Debug.Log("✅ Side button 1 events registered");
-            }
-
+            // sideButton1/3 のイベントは ARFeatureController が管理
             // sideButton2 のイベントは AspectRatioController が管理
-
-            if (sideButton3 != null)
-            {
-                sideButton3.RegisterCallback<ClickEvent>(evt => OnSideButton3Clicked());
-                if (enableDebugLogging) Debug.Log("✅ Side button 3 events registered");
-            }
 
             // Issue #413: バグレポートボタンのイベント登録
             if (sideButtonBugReport != null)
@@ -434,26 +317,7 @@ namespace AICam.UI
                 }
             }
 
-            // Issue #74/#75: トップパネルボタンのイベント登録
-            if (enableDebugLogging)
-            {
-                Debug.Log($"🔘 topButton1: {(topButton1 != null ? "✅ found" : "❌ NOT FOUND")}");
-                Debug.Log($"🔘 topButton2: {(topButton2 != null ? "✅ found" : "❌ NOT FOUND")}");
-            }
-
-            if (topButton1 != null)
-            {
-                // Issue #74 修正: 短押しでライティングパネル表示（パネル内にON/OFFトグルあり）
-                topButton1.RegisterCallback<ClickEvent>(evt => OnTopButton1Click());
-                if (enableDebugLogging) Debug.Log("✅ Top button 1 (Light Estimation) click event registered");
-            }
-
-            if (topButton2 != null)
-            {
-                // Issue #75 修正: 短押しでシャドウパネル表示（パネル内にON/OFFトグルあり）
-                topButton2.RegisterCallback<ClickEvent>(evt => OnTopButton2Click());
-                if (enableDebugLogging) Debug.Log("✅ Top button 2 (Shadow) click event registered");
-            }
+            // topButton1/2 のイベントは SettingsPanelUIController が管理
 
             // Issue #33/#405: 表情切り替えボタンのイベント登録
             if (enableDebugLogging) Debug.Log($"🔘 topButton3: {(topButton3 != null ? "✅ found" : "❌ NOT FOUND")}");
@@ -471,78 +335,11 @@ namespace AICam.UI
                 if (enableDebugLogging) Debug.Log("✅ Top button 4 (Pose) click event registered");
             }
 
-            // Issue #345: 平面表示切り替えボタンのイベント登録
-            if (enableDebugLogging) Debug.Log($"🔘 topButton5: {(topButton5 != null ? "✅ found" : "❌ NOT FOUND")}");
-            if (topButton5 != null)
-            {
-                topButton5.RegisterCallback<ClickEvent>(evt => OnTopButton5Click());
-                if (enableDebugLogging) Debug.Log("✅ Top button 5 (Plane Visibility) click event registered");
+            // topButton5 のイベントは ARFeatureController が管理
+            // Settings panel の要素・イベントは SettingsPanelUIController が管理
 
-                // 初期アイコンを設定
-                UpdatePlaneVisibilityIcon();
-            }
-
-            // Issue #120: パネル要素を直接取得
-            settingsPanelBackdrop = root.Q<VisualElement>("settingsPanelBackdrop");
-            lightingPanelOverlay = root.Q<VisualElement>("lightingPanelOverlay");
-            shadowPanelOverlay = root.Q<VisualElement>("shadowPanelOverlay");
-
-            // Issue #450: Lighting Panel タブ要素を取得
-            tabMood = root.Q<VisualElement>("tabMood");
-            tabDirection = root.Q<VisualElement>("tabDirection");
-            lightingPanelMood = root.Q<VisualElement>("lightingPanelMood");
-            lightingPanelDirection = root.Q<VisualElement>("lightingPanelDirection");
-
-            if (settingsPanelBackdrop != null)
-            {
-                // バックドロップ自体がクリックされた場合のみパネルを閉じる（子要素のクリックは無視）
-                settingsPanelBackdrop.RegisterCallback<PointerDownEvent>(evt =>
-                {
-                    // クリックがバックドロップ自体の場合のみ閉じる
-                    if (evt.target == settingsPanelBackdrop)
-                    {
-                        if (enableDebugLogging) Debug.Log("🔲 Backdrop clicked directly - closing panels");
-                        HideAllPanels();
-                        evt.StopPropagation();
-                    }
-                });
-                if (enableDebugLogging) Debug.Log("✅ Settings panel backdrop events registered");
-            }
-
-            var lightingCloseButton = root.Q<Button>("lightingPanelClose");
-            if (lightingCloseButton != null)
-            {
-                lightingCloseButton.RegisterCallback<ClickEvent>(evt => HideAllPanels());
-                if (enableDebugLogging) Debug.Log("✅ Lighting panel close button events registered");
-            }
-
-            var shadowCloseButton = root.Q<Button>("shadowPanelClose");
-            if (shadowCloseButton != null)
-            {
-                shadowCloseButton.RegisterCallback<ClickEvent>(evt => HideAllPanels());
-                if (enableDebugLogging) Debug.Log("✅ Shadow panel close button events registered");
-            }
-
-            // Issue #450: Lighting Panel タブ切り替えイベント登録
-            tabMood?.RegisterCallback<ClickEvent>(_ => ShowLightingMood());
-            tabDirection?.RegisterCallback<ClickEvent>(_ => ShowLightingDirection());
             if (enableDebugLogging)
             {
-                Debug.Log($"🔄 TabMood: {(tabMood != null ? "✅" : "❌")}");
-                Debug.Log($"🔄 TabDirection: {(tabDirection != null ? "✅" : "❌")}");
-                Debug.Log($"🔄 LightingPanelMood: {(lightingPanelMood != null ? "✅" : "❌")}");
-                Debug.Log($"🔄 LightingPanelDirection: {(lightingPanelDirection != null ? "✅" : "❌")}");
-            }
-
-            // LightingPanelControllerは初回使用時に遅延初期化
-            // 起動時間短縮のためFindFirstObjectByTypeをここでは呼ばない
-            // InitializeLightingPanelControllerAsync().Forget() は必要時に呼び出される
-            if (enableDebugLogging)
-            {
-                Debug.Log($"💡 SettingsPanelBackdrop: {(settingsPanelBackdrop != null ? "✅" : "❌")}");
-                Debug.Log($"💡 LightingPanelOverlay: {(lightingPanelOverlay != null ? "✅" : "❌")}");
-                Debug.Log($"🌑 ShadowPanelOverlay: {(shadowPanelOverlay != null ? "✅" : "❌")}");
-
                 // 削除ポップアップを作成（初期状態では非表示）
                 Debug.Log("🔧 Creating delete popup...");
             }
@@ -610,11 +407,8 @@ namespace AICam.UI
 
         void OnDisable()
         {
-            // ARPhotoControllerのイベント解除
-            if (photoController != null)
-            {
-                photoController.OnPhotoCaptured -= OnPhotoCapturedHandler;
-            }
+            // Phase 03: CaptureController のイベント解除（photoController含む）
+            captureController?.Dispose();
 
             // Phase 02: AspectRatioController のイベント解除
             aspectRatioController?.Dispose();
@@ -633,78 +427,11 @@ namespace AICam.UI
             }
         }
 
-        void OnPhotoCapturedHandler(Texture2D thumbnail)
-        {
-            Debug.Log("📸 Photo captured, updating thumbnail");
-            lastCapturedPhoto = thumbnail;
-            lastMediaIsVideo = false;
-
-            if (galleryThumbnail != null)
-            {
-                galleryThumbnail.style.backgroundImage = new StyleBackground(thumbnail);
-            }
-        }
-
-        void OnPointerDown(PointerDownEvent evt)
-        {
-            Debug.Log("👇 OnPointerDown triggered");
-            isPressed = true;
-            pressTime = 0f;
-
-            // Light impact for button press
-            TapticEngine.Impact(TapticEngine.ImpactStyle.Light);
-        }
-
-        void OnPointerUp(PointerUpEvent evt)
-        {
-            Debug.Log($"👆 OnPointerUp triggered (pressTime: {pressTime}s, isRecording: {isRecording})");
-            isPressed = false;
-
-            if (isRecording)
-            {
-                // 録画中だった場合は停止
-                StopRecording();
-            }
-            else if (pressTime < longPressThreshold)
-            {
-                // 短押しの場合は写真撮影
-                TakePhoto();
-            }
-
-            pressTime = 0f;
-        }
 
         void Update()
         {
-            // Issue #74/#75 修正: 長押し検出は不要になったため削除
-            // 短押しでパネル表示、パネル内にON/OFFトグルあり
-
-            if (isPressed)
-            {
-                pressTime += Time.deltaTime;
-
-                // 長押し判定: 0.5秒経過したら録画開始
-                if (!isRecording && pressTime >= longPressThreshold)
-                {
-                    StartRecording();
-                }
-
-                // 録画中の処理
-                if (isRecording)
-                {
-                    float recordTime = pressTime - longPressThreshold;
-                    float progress = Mathf.Clamp01(recordTime / maxRecordTime);
-
-                    UpdateProgressRing(progress);
-
-                    // 最大録画時間に達したら自動停止
-                    if (progress >= 1f)
-                    {
-                        isPressed = false;
-                        StopRecording();
-                    }
-                }
-            }
+            // Phase 03: 撮影ボタンの状態更新
+            captureController?.Tick(Time.deltaTime);
 
             // アバタースロットボタンの長押し検出
             if (isLongPressing && currentLongPressButton != null)
@@ -737,207 +464,26 @@ namespace AICam.UI
             }
         }
 
-        void StartRecording()
-        {
-            isRecording = true;
-            Debug.Log("🎬 録画開始");
-
-            // UIの状態変更
-            innerCircle?.AddToClassList("recording");
-            progressRing?.AddToClassList("active");
-
-            // Heavy impact for recording start
-            TapticEngine.Impact(TapticEngine.ImpactStyle.Heavy);
-        }
-
-        void TakePhoto()
-        {
-            Debug.Log("📸 写真撮影");
-            FlashEffect();
-
-            if (photoController != null)
-            {
-                photoController.Capture();
-                // サムネイルはOnPhotoCapturedHandlerで更新される
-            }
-            else
-            {
-                Debug.LogWarning("ARPhotoController is not assigned");
-            }
-
-            ResetButtonState();
-
-            // Medium impact for photo capture
-            TapticEngine.Impact(TapticEngine.ImpactStyle.Medium);
-        }
-
-        void StopRecording()
-        {
-            if (!isRecording) return;
-
-            Debug.Log("🎥 動画撮影終了");
-            FlashEffect();
-
-            lastMediaIsVideo = true;
-            lastCapturedVideoPath = Application.persistentDataPath + "/lastVideo.mp4";
-
-            // 仮の赤サムネイル
-            Texture2D dummyFrame = new Texture2D(64, 64);
-            Color[] pixels = new Color[64 * 64];
-            for (int i = 0; i < pixels.Length; i++)
-            {
-                pixels[i] = Color.red;
-            }
-            dummyFrame.SetPixels(pixels);
-            dummyFrame.Apply();
-
-            if (galleryThumbnail != null)
-            {
-                galleryThumbnail.style.backgroundImage = new StyleBackground(dummyFrame);
-            }
-
-            ResetButtonState();
-            isRecording = false;
-        }
-
-        void FlashEffect()
-        {
-            if (flashOverlay == null) return;
-
-            flashOverlay.style.opacity = 1;
-            flashOverlay.schedule.Execute(() =>
-            {
-                flashOverlay.style.opacity = 0;
-            }).StartingIn(100);
-        }
-
-        void UpdateProgressRing(float progress)
-        {
-            if (progressArc == null) return;
-
-            // 連続的な円形プログレス表示（12時位置から時計回り）
-            // rotate: -90degにより、12時位置スタート
-            // 進行度を360度の角度に変換し、各辺の表示を細かく制御
-
-            Color red = new Color(1f, 0f, 0f, 1f);
-            Color transparent = new Color(0f, 0f, 0f, 0f);
-
-            // 進行度を角度に変換（0-360度）
-            float angle = progress * 360f;
-
-            // 各辺は90度ずつ担当
-            // rotate: -90deg により: top=12時~3時, right=3時~6時, bottom=6時~9時, left=9時~12時
-
-            // 上辺 (0-90度 = 12時~3時)
-            Color topColor;
-            if (angle < 90f)
-            {
-                // 0-90度の範囲で線形補間
-                topColor = Color.Lerp(transparent, red, angle / 90f);
-            }
-            else
-            {
-                topColor = red;
-            }
-
-            // 右辺 (90-180度 = 3時~6時)
-            Color rightColor;
-            if (angle < 90f)
-            {
-                rightColor = transparent;
-            }
-            else if (angle < 180f)
-            {
-                topColor = red;
-                rightColor = Color.Lerp(transparent, red, (angle - 90f) / 90f);
-            }
-            else
-            {
-                topColor = red;
-                rightColor = red;
-            }
-
-            // 下辺 (180-270度 = 6時~9時)
-            Color bottomColor;
-            if (angle < 180f)
-            {
-                bottomColor = transparent;
-            }
-            else if (angle < 270f)
-            {
-                topColor = red;
-                rightColor = red;
-                bottomColor = Color.Lerp(transparent, red, (angle - 180f) / 90f);
-            }
-            else
-            {
-                topColor = red;
-                rightColor = red;
-                bottomColor = red;
-            }
-
-            // 左辺 (270-360度 = 9時~12時)
-            Color leftColor;
-            if (angle < 270f)
-            {
-                leftColor = transparent;
-            }
-            else
-            {
-                topColor = red;
-                rightColor = red;
-                bottomColor = red;
-                leftColor = Color.Lerp(transparent, red, (angle - 270f) / 90f);
-            }
-
-            progressArc.style.borderTopColor = topColor;
-            progressArc.style.borderRightColor = rightColor;
-            progressArc.style.borderBottomColor = bottomColor;
-            progressArc.style.borderLeftColor = leftColor;
-        }
-
-        void ResetButtonState()
-        {
-            innerCircle?.RemoveFromClassList("recording");
-            progressRing?.RemoveFromClassList("active");
-
-            if (progressArc != null)
-            {
-                Color transparent = new Color(0f, 0f, 0f, 0f);
-                progressArc.style.borderTopColor = transparent;
-                progressArc.style.borderRightColor = transparent;
-                progressArc.style.borderBottomColor = transparent;
-                progressArc.style.borderLeftColor = transparent;
-            }
-        }
-
         /// <summary>
         /// ARPhotoControllerを設定（外部から呼び出し可能）
         /// </summary>
         public void SetPhotoController(ARPhotoController controller)
         {
             photoController = controller;
+            captureController?.SetPhotoController(controller);
             aspectRatioController?.SetPhotoController(controller);
         }
 
         /// <summary>
         /// 録画中かどうかを取得
         /// </summary>
-        public bool IsRecording => isRecording;
+        public bool IsRecording => captureController != null && captureController.IsRecording;
 
         /// <summary>
         /// 最後にキャプチャした写真のサムネイルを更新
         /// </summary>
         public void UpdateLastCapturedPhoto(Texture2D photo)
-        {
-            lastCapturedPhoto = photo;
-            lastMediaIsVideo = false;
-
-            if (galleryThumbnail != null && photo != null)
-            {
-                galleryThumbnail.style.backgroundImage = new StyleBackground(photo);
-            }
-        }
+            => captureController?.UpdateLastCapturedPhoto(photo);
 
         /// <summary>
         /// 下部パネルにボタンを追加
@@ -1803,28 +1349,13 @@ namespace AICam.UI
             if (IsPointOverElement(sidePanel, panelPosition, "sidePanel")) return true;
             if (IsPointOverElement(bottomPanel, panelPosition, "bottomPanel")) return true;
             if (IsPointOverElement(captureSettingBar, panelPosition, "captureSettingBar")) return true; // Issue #451
-            if (IsPointOverElement(captureButton, panelPosition, "captureButton")) return true;
-            if (IsPointOverElement(galleryThumbnail, panelPosition, "galleryThumbnail")) return true;
+            if (IsPointOverElement(captureController?.CaptureButton, panelPosition, "captureButton")) return true;
+            if (IsPointOverElement(captureController?.GalleryThumbnail, panelPosition, "galleryThumbnail")) return true;
 
-            // Issue #120: ライティング/シャドウパネルのチェックを追加
-            // バックドロップが表示中の場合、全画面をブロック
-            if (settingsPanelBackdrop != null && settingsPanelBackdrop.ClassListContains("visible"))
+            // Phase 03: 設定パネル表示中は全画面ブロック
+            if (settingsPanelUIController != null && settingsPanelUIController.IsSettingsVisible)
             {
-                Debug.Log($"[#71] Touch over settingsPanelBackdrop (visible)");
-                return true;
-            }
-
-            // ライティングパネルオーバーレイ
-            if (lightingPanelOverlay != null && lightingPanelOverlay.ClassListContains("visible"))
-            {
-                Debug.Log($"[#71] Touch over lightingPanelOverlay (visible)");
-                return true;
-            }
-
-            // シャドウパネルオーバーレイ
-            if (shadowPanelOverlay != null && shadowPanelOverlay.ClassListContains("visible"))
-            {
-                Debug.Log($"[#71] Touch over shadowPanelOverlay (visible)");
+                Debug.Log($"[#71] Touch over settingsPanel (visible)");
                 return true;
             }
 
@@ -3014,72 +2545,6 @@ namespace AICam.UI
             }
         }
 
-        /// <summary>
-        /// サイドバーボタン1（Preference）クリック時の処理
-        /// </summary>
-        void OnSideButton1Clicked()
-        {
-            Debug.Log("⚙️ Side button 1 (Preference) clicked");
-            TapticEngine.Selection();
-
-            // ここに設定画面を開く処理を追加
-        }
-
-        /// <summary>
-        /// Issue #452: サイドバーボタン3（Flash/Torch）クリック時の処理
-        /// デバイスの背面ライト（トーチ）をON/OFFする
-        /// </summary>
-        void OnSideButton3Clicked()
-        {
-            Debug.Log("⚡ Side button 3 (Flash) clicked");
-            TapticEngine.Selection();
-
-            // ARCameraManagerを取得
-            if (cachedARCameraManager == null)
-            {
-                cachedARCameraManager = FindFirstObjectByType<ARCameraManager>();
-            }
-
-            if (cachedARCameraManager == null)
-            {
-                Debug.LogWarning("[Torch] ARCameraManager not found");
-                ShowWarning("W452", "カメラが見つかりません");
-                return;
-            }
-
-            // トーチの状態をトグル
-            isTorchEnabled = !isTorchEnabled;
-
-            // AR Foundation のトーチモードを設定
-            cachedARCameraManager.requestedCameraTorchMode = isTorchEnabled
-                ? UnityEngine.XR.ARSubsystems.XRCameraTorchMode.On
-                : UnityEngine.XR.ARSubsystems.XRCameraTorchMode.Off;
-
-            Debug.Log($"[Torch] Torch mode set to: {(isTorchEnabled ? "ON" : "OFF")}");
-
-            // アイコンを更新
-            UpdateTorchIcon();
-        }
-
-        /// <summary>
-        /// Issue #452: トーチアイコンを状態に応じて更新
-        /// CSSクラスで切り替え: torch-on / torch-off
-        /// </summary>
-        void UpdateTorchIcon()
-        {
-            if (sideButton3 == null) return;
-
-            if (isTorchEnabled)
-            {
-                sideButton3.RemoveFromClassList("torch-off");
-                sideButton3.AddToClassList("torch-on");
-            }
-            else
-            {
-                sideButton3.RemoveFromClassList("torch-on");
-                sideButton3.AddToClassList("torch-off");
-            }
-        }
 
         /// <summary>
         /// Issue #413: バグレポートボタンクリック時の処理
@@ -3108,88 +2573,7 @@ namespace AICam.UI
             bugReportManager.StartBugReport();
         }
 
-        /// <summary>
-        /// Issue #74 修正: トップボタン1 クリック時の処理
-        /// ライティングパネルを表示（パネル内にLight Estimation ON/OFFトグルあり）
-        /// </summary>
-        void OnTopButton1Click()
-        {
-            Debug.Log("💡 Top button 1 clicked: Opening Lighting Panel");
-            TapticEngine.Selection();
-            ShowLightingPanel();
-        }
 
-        /// <summary>
-        /// Issue #75 修正: トップボタン2 クリック時の処理
-        /// シャドウパネルを表示（パネル内にShadow ON/OFFトグルあり）
-        /// </summary>
-        void OnTopButton2Click()
-        {
-            Debug.Log("🌑 Top button 2 clicked: Opening Shadow Panel");
-            TapticEngine.Selection();
-            ShowShadowPanel();
-        }
-
-        /// <summary>
-        /// Issue #345: トップボタン5 クリック時の処理
-        /// 平面表示/非表示を切り替え
-        /// </summary>
-        void OnTopButton5Click()
-        {
-            Debug.Log($"🔲 Top button 5 clicked: Toggle Plane Visibility (current: {isPlaneVisible})");
-            TapticEngine.Selection();
-            TogglePlaneVisibility();
-        }
-
-        /// <summary>
-        /// Issue #345: 平面表示/非表示を切り替え
-        /// </summary>
-        void TogglePlaneVisibility()
-        {
-            isPlaneVisible = !isPlaneVisible;
-            Debug.Log($"🔲 Plane visibility toggled to: {isPlaneVisible}");
-
-            // ARPlaneVisibilityControllerを取得して表示を切り替え
-            if (cachedPlaneVisibilityController == null)
-            {
-                cachedPlaneVisibilityController = FindFirstObjectByType<ARPlaneVisibilityController>();
-            }
-
-            if (cachedPlaneVisibilityController != null)
-            {
-                cachedPlaneVisibilityController.SetPlanesVisible(isPlaneVisible);
-                Debug.Log($"✅ Plane visibility set to: {isPlaneVisible}");
-            }
-            else
-            {
-                Debug.LogWarning("⚠️ ARPlaneVisibilityController not found in scene");
-            }
-
-            // アイコンを更新
-            UpdatePlaneVisibilityIcon();
-        }
-
-        /// <summary>
-        /// Issue #345: 平面表示ボタンのアイコンを更新
-        /// </summary>
-        void UpdatePlaneVisibilityIcon()
-        {
-            if (topButton5 == null) return;
-
-            // 表示状態に応じてスタイルを切り替え
-            if (isPlaneVisible)
-            {
-                topButton5.RemoveFromClassList("plane-hidden");
-                topButton5.AddToClassList("plane-visible");
-            }
-            else
-            {
-                topButton5.RemoveFromClassList("plane-visible");
-                topButton5.AddToClassList("plane-hidden");
-            }
-
-            Debug.Log($"🔲 Plane button icon updated: {(isPlaneVisible ? "visible" : "hidden")}");
-        }
 
         /// <summary>
         /// Issue #407: アバタースロットロード完了時のハンドラ
@@ -3818,26 +3202,10 @@ namespace AICam.UI
 
         /// <summary>
         /// Issue #442: ライティング・シャドウ設定を再適用
-        /// アバターロード後に呼び出して、新しいマテリアルに設定を適用する
-        ///
-        /// 修正: FindFirstObjectByType ではなく GetLightingPanelController() を使用
-        /// LightingPanelController は遅延初期化されるため、直接検索すると null になる
-        ///
         /// public: RuntimeFBXLoaderBridge からも呼び出せるように公開
         /// </summary>
         public void ReapplyLightingSettings()
-        {
-            var lightingPanel = GetLightingPanelController();
-            if (lightingPanel != null)
-            {
-                lightingPanel.ReapplyAllSettings();
-                Debug.Log("💡 Issue #442: Reapplied lighting and shadow settings");
-            }
-            else
-            {
-                Debug.LogWarning("⚠️ LightingPanelController could not be initialized");
-            }
-        }
+            => settingsPanelUIController?.ReapplyLightingSettings();
 
         /// <summary>
         /// Issue #407: アバターロード時にデフォルトのAOCを適用
@@ -4213,124 +3581,6 @@ namespace AICam.UI
         public void ShowInfo(string code, string message, float autoDismissSeconds = 3f)
             => alertService?.ShowInfo(code, message, autoDismissSeconds);
 
-        /// <summary>
-        /// Issue #120: ライティングパネルを表示
-        /// </summary>
-        void ShowLightingPanel()
-        {
-            Debug.Log($"📋 ShowLightingPanel called");
-            Debug.Log($"📋 settingsPanelBackdrop is null: {settingsPanelBackdrop == null}");
-            Debug.Log($"📋 lightingPanelOverlay is null: {lightingPanelOverlay == null}");
-            HideAllPanels(); // 他のパネルを閉じる
-
-            // パネル表示時にLightingPanelControllerを遅延初期化
-            GetLightingPanelController();
-
-            if (settingsPanelBackdrop != null)
-            {
-                settingsPanelBackdrop.pickingMode = PickingMode.Position; // 表示時はクリック受付
-                settingsPanelBackdrop.AddToClassList("visible");
-                Debug.Log($"📋 settingsPanelBackdrop classes after: {string.Join(", ", settingsPanelBackdrop.GetClasses())}");
-                Debug.Log($"📋 settingsPanelBackdrop display: {settingsPanelBackdrop.resolvedStyle.display}");
-            }
-            else
-            {
-                Debug.LogWarning("⚠️ settingsPanelBackdrop is NULL - cannot show backdrop");
-            }
-            if (lightingPanelOverlay != null)
-            {
-                lightingPanelOverlay.AddToClassList("visible");
-                Debug.Log($"📋 lightingPanelOverlay classes after: {string.Join(", ", lightingPanelOverlay.GetClasses())}");
-                Debug.Log($"📋 lightingPanelOverlay display: {lightingPanelOverlay.resolvedStyle.display}");
-                Debug.Log("💡 Lighting panel shown");
-            }
-            else
-            {
-                Debug.LogWarning("⚠️ lightingPanelOverlay is NULL - cannot show panel");
-            }
-        }
-
-        /// <summary>
-        /// Issue #120: シャドウパネルを表示
-        /// </summary>
-        void ShowShadowPanel()
-        {
-            Debug.Log($"📋 ShowShadowPanel called");
-            Debug.Log($"📋 settingsPanelBackdrop is null: {settingsPanelBackdrop == null}");
-            Debug.Log($"📋 shadowPanelOverlay is null: {shadowPanelOverlay == null}");
-            HideAllPanels(); // 他のパネルを閉じる
-
-            // パネル表示時にLightingPanelControllerを遅延初期化
-            GetLightingPanelController();
-
-            if (settingsPanelBackdrop != null)
-            {
-                settingsPanelBackdrop.pickingMode = PickingMode.Position; // 表示時はクリック受付
-                settingsPanelBackdrop.AddToClassList("visible");
-                Debug.Log($"📋 settingsPanelBackdrop classes after: {string.Join(", ", settingsPanelBackdrop.GetClasses())}");
-                Debug.Log($"📋 settingsPanelBackdrop display: {settingsPanelBackdrop.resolvedStyle.display}");
-            }
-            else
-            {
-                Debug.LogWarning("⚠️ settingsPanelBackdrop is NULL - cannot show backdrop");
-            }
-            if (shadowPanelOverlay != null)
-            {
-                shadowPanelOverlay.AddToClassList("visible");
-                Debug.Log($"📋 shadowPanelOverlay classes after: {string.Join(", ", shadowPanelOverlay.GetClasses())}");
-                Debug.Log($"📋 shadowPanelOverlay display: {shadowPanelOverlay.resolvedStyle.display}");
-                Debug.Log("🌑 Shadow panel shown");
-            }
-            else
-            {
-                Debug.LogWarning("⚠️ shadowPanelOverlay is NULL - cannot show panel");
-            }
-        }
-
-        /// <summary>
-        /// Issue #120: すべてのパネルを非表示
-        /// </summary>
-        void HideAllPanels()
-        {
-            if (settingsPanelBackdrop != null)
-            {
-                settingsPanelBackdrop.pickingMode = PickingMode.Ignore; // 非表示時はクリック無視
-                settingsPanelBackdrop.RemoveFromClassList("visible");
-            }
-            if (lightingPanelOverlay != null)
-            {
-                lightingPanelOverlay.RemoveFromClassList("visible");
-            }
-            if (shadowPanelOverlay != null)
-            {
-                shadowPanelOverlay.RemoveFromClassList("visible");
-            }
-            Debug.Log("📋 All panels hidden");
-        }
-
-        /// <summary>
-        /// Issue #450: Lighting Panel の Mood タブを表示
-        /// </summary>
-        void ShowLightingMood()
-        {
-            tabMood?.AddToClassList("is-selected");
-            tabDirection?.RemoveFromClassList("is-selected");
-            lightingPanelMood?.AddToClassList("is-active");
-            lightingPanelDirection?.RemoveFromClassList("is-active");
-            if (enableDebugLogging) Debug.Log("🔄 Switched to Mood tab");
-        }
-
-        /// <summary>
-        /// Issue #450: Lighting Panel の Direction タブを表示
-        /// </summary>
-        void ShowLightingDirection()
-        {
-            tabDirection?.AddToClassList("is-selected");
-            tabMood?.RemoveFromClassList("is-selected");
-            lightingPanelDirection?.AddToClassList("is-active");
-            lightingPanelMood?.RemoveFromClassList("is-active");
-            if (enableDebugLogging) Debug.Log("🔄 Switched to Direction tab");
-        }
 
         /// <summary>
         /// トップボタンの透明度を更新
