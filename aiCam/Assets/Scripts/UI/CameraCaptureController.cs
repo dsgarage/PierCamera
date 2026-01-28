@@ -57,13 +57,9 @@ namespace AICam.UI
         private VisualElement viewerOverlay;
         private Image viewerImage;
 
-        // アラートバー要素
-        private VisualElement alertBar;
-        private Label alertMessage;
-        private Button alertClose;
-
-        // バージョン表示ラベル
-        private Label versionLabel;
+        // Phase 01: サービス
+        private AlertService alertService;
+        private SlotProgressService slotProgressService;
 
         // アイコンプレビューパネル要素
         private VisualElement iconPreviewPanel;
@@ -205,9 +201,6 @@ namespace AICam.UI
         private Button lastClickedSlotButton;
         private float lastSlotClickTime;
 
-        // Issue #73: スロット別プログレス要素の管理
-        private Dictionary<Button, CircularProgressElement> slotProgressMap = new Dictionary<Button, CircularProgressElement>();
-
         /// <summary>
         /// スロットのファイルタイプ
         /// </summary>
@@ -334,20 +327,10 @@ namespace AICam.UI
             viewerOverlay = root.Q<VisualElement>("viewerOverlay");
             viewerImage = root.Q<Image>("viewerImage");
 
-            // アラートバー要素の取得
-            alertBar = root.Q<VisualElement>("alertBar");
-            alertMessage = root.Q<Label>("alertMessage");
-            alertClose = root.Q<Button>("alertClose");
-
-            // バージョン表示ラベルの取得と設定
-            versionLabel = root.Q<Label>("versionLabel");
-            if (versionLabel != null)
-            {
-                string version = Application.version;
-                string buildNumber = GetBuildNumber();
-                versionLabel.text = $"v{version} ({buildNumber})";
-                if (enableDebugLogging) Debug.Log($"✅ Version label set: v{version} ({buildNumber})");
-            }
+            // Phase 01: サービス初期化
+            alertService = new AlertService(root);
+            slotProgressService = new SlotProgressService(root);
+            new VersionInfoService(root);
 
             // アイコンプレビューパネル要素の取得
             iconPreviewPanel = root.Q<VisualElement>("iconPreviewPanel");
@@ -452,13 +435,6 @@ namespace AICam.UI
             {
                 viewerOverlay.RegisterCallback<ClickEvent>(evt => CloseViewer());
                 if (enableDebugLogging) Debug.Log("✅ Viewer overlay events registered");
-            }
-
-            // アラートバーのイベント登録
-            if (alertClose != null)
-            {
-                alertClose.RegisterCallback<ClickEvent>(evt => HideAlert());
-                if (enableDebugLogging) Debug.Log("✅ Alert close button events registered");
             }
 
             // アイコンプレビューパネルのイベント登録
@@ -1983,9 +1959,8 @@ namespace AICam.UI
             }
 
             // アラートバーのチェック
-            if (alertBar != null && alertBar.ClassListContains("visible") && alertBar.worldBound.Contains(panelPosition))
+            if (alertService != null && alertService.IsAlertVisible && alertService.AlertWorldBound.Contains(panelPosition))
             {
-                Debug.Log($"[#71] Touch over alertBar");
                 return true;
             }
 
@@ -4407,41 +4382,7 @@ namespace AICam.UI
         /// Issue #407: 情報アラートを表示（水色）
         /// </summary>
         public void ShowInfo(string code, string message, float autoDismissSeconds = 3f)
-        {
-            if (alertBar == null || alertMessage == null)
-            {
-                Debug.LogWarning("⚠️ AlertBar elements not found");
-                return;
-            }
-
-            // メッセージを設定
-            alertMessage.text = $"{code}:{message}";
-
-            // スタイルを設定（info = 水色）
-            alertBar.RemoveFromClassList("warning");
-            alertBar.RemoveFromClassList("error");
-            alertBar.RemoveFromClassList("info");
-            alertBar.AddToClassList("info");
-
-            // フェードイン表示
-            alertBar.style.display = DisplayStyle.Flex;
-            alertBar.style.opacity = 0;
-
-            // 次のフレームでopacity:1に変更してCSSトランジションを発火
-            alertBar.schedule.Execute(() =>
-            {
-                alertBar.AddToClassList("visible");
-                alertBar.style.opacity = 1;
-            }).StartingIn(10);
-
-            Debug.Log($"ℹ️ Info shown: {code}:{message}");
-
-            // 自動非表示
-            if (autoDismissSeconds > 0)
-            {
-                alertBar.schedule.Execute(() => HideAlert()).StartingIn((long)(autoDismissSeconds * 1000));
-            }
-        }
+            => alertService?.ShowInfo(code, message, autoDismissSeconds);
 
         /// <summary>
         /// Issue #120: ライティングパネルを表示
@@ -4796,205 +4737,29 @@ namespace AICam.UI
         /// <param name="message">警告メッセージ</param>
         /// <param name="autoDismissSeconds">自動非表示までの秒数（0の場合は自動非表示しない）</param>
         public void ShowWarning(string code, string message, float autoDismissSeconds = 5f)
-        {
-            ShowAlertInternal(code, message, false, autoDismissSeconds);
-        }
+            => alertService?.ShowWarning(code, message, autoDismissSeconds);
 
-        /// <summary>
-        /// エラーアラートを表示（フェードイン）
-        /// </summary>
-        /// <param name="code">エラーコード（例: E001）</param>
-        /// <param name="message">エラーメッセージ</param>
-        /// <param name="autoDismissSeconds">自動非表示までの秒数（0の場合は自動非表示しない）</param>
         public void ShowError(string code, string message, float autoDismissSeconds = 0f)
-        {
-            ShowAlertInternal(code, message, true, autoDismissSeconds);
-        }
+            => alertService?.ShowError(code, message, autoDismissSeconds);
 
-        private void ShowAlertInternal(string code, string message, bool isError, float autoDismissSeconds)
-        {
-            if (alertBar == null || alertMessage == null)
-            {
-                Debug.LogWarning("⚠️ AlertBar elements not found");
-                return;
-            }
-
-            // メッセージを設定
-            alertMessage.text = $"[{code}] {message}";
-
-            // スタイルを設定（warning/error）
-            alertBar.RemoveFromClassList("warning");
-            alertBar.RemoveFromClassList("error");
-            alertBar.AddToClassList(isError ? "error" : "warning");
-
-            // フェードイン表示
-            alertBar.style.display = DisplayStyle.Flex;
-            alertBar.style.opacity = 0;
-
-            // 次のフレームでopacity:1に変更してCSSトランジションを発火
-            alertBar.schedule.Execute(() =>
-            {
-                alertBar.AddToClassList("visible");
-                alertBar.style.opacity = 1;
-            }).StartingIn(10);
-
-            Debug.Log($"⚠️ Alert shown: [{code}] {message} (isError: {isError})");
-
-            // Haptic feedback
-            TapticEngine.Impact(isError ? TapticEngine.ImpactStyle.Heavy : TapticEngine.ImpactStyle.Medium);
-
-            // 自動非表示
-            if (autoDismissSeconds > 0)
-            {
-                alertBar.schedule.Execute(() => HideAlert()).StartingIn((long)(autoDismissSeconds * 1000));
-            }
-        }
-
-        /// <summary>
-        /// アラートを非表示（フェードアウト）
-        /// </summary>
         public void HideAlert()
-        {
-            if (alertBar == null) return;
-
-            alertBar.RemoveFromClassList("visible");
-            alertBar.style.opacity = 0;
-
-            // フェードアウト完了後に非表示
-            alertBar.schedule.Execute(() =>
-            {
-                alertBar.style.display = DisplayStyle.None;
-            }).StartingIn(300);
-
-            Debug.Log("✅ Alert hidden");
-        }
+            => alertService?.HideAlert();
 
         #endregion
 
         #region Issue #73: Circular Progress Methods
 
-        /// <summary>
-        /// スロットボタンにプログレス要素を作成
-        /// </summary>
-        private CircularProgressElement CreateProgressForSlot(Button slotButton)
-        {
-            if (slotButton == null || root == null) return null;
-
-            // 既存のプログレス要素があれば返す
-            if (slotProgressMap.TryGetValue(slotButton, out var existingProgress))
-            {
-                return existingProgress;
-            }
-
-            // 新しいプログレス要素を作成
-            var progress = new CircularProgressElement();
-            progress.name = $"progress_{slotButton.name}";
-            progress.RingWidth = 3f;
-            progress.ProgressColor = new Color(0.3f, 0.7f, 1f, 1f); // Light blue
-            progress.ShowBackground = false; // 背景なし、プログレス弧のみ
-
-            // スタイル設定
-            progress.style.position = Position.Absolute;
-            progress.style.display = DisplayStyle.None; // 初期状態は非表示
-
-            // rootに追加（最前面に配置）
-            root.Add(progress);
-
-            // マップに登録
-            slotProgressMap[slotButton] = progress;
-
-            Debug.Log($"[#73] Created progress element for {slotButton.name}");
-
-            return progress;
-        }
-
-        /// <summary>
-        /// スロットのプログレス要素を位置更新
-        /// </summary>
-        private void UpdateProgressPosition(Button slotButton)
-        {
-            if (!slotProgressMap.TryGetValue(slotButton, out var progress)) return;
-
-            var bounds = slotButton.worldBound;
-            float padding = 4f;
-            float size = Mathf.Max(bounds.width, bounds.height) + padding * 2;
-
-            progress.style.width = size;
-            progress.style.height = size;
-            progress.style.left = bounds.x - padding;
-            progress.style.top = bounds.y - padding;
-        }
-
-        /// <summary>
-        /// スロットのロード開始（プログレス表示開始）
-        /// </summary>
         private void StartSlotLoading(Button slotButton)
-        {
-            var progress = CreateProgressForSlot(slotButton);
-            if (progress == null) return;
+            => slotProgressService?.StartSlotLoading(slotButton);
 
-            // 位置を更新
-            UpdateProgressPosition(slotButton);
-
-            // 表示開始
-            progress.Progress = 0.01f; // 0より大きい値で開始
-            progress.style.display = DisplayStyle.Flex;
-
-            // ★ ボタンのアイコンを薄くする（ロード中表示）
-            slotButton.style.opacity = 0.4f;
-
-            Debug.Log($"[#73] Loading started for {slotButton.name}");
-        }
-
-        /// <summary>
-        /// スロットのロード進捗を更新
-        /// </summary>
         private void UpdateSlotProgress(Button slotButton, float progress01)
-        {
-            if (!slotProgressMap.TryGetValue(slotButton, out var progress)) return;
+            => slotProgressService?.UpdateSlotProgress(slotButton, progress01);
 
-            progress.Progress = progress01;
-
-            Debug.Log($"[#73] Progress updated for {slotButton.name}: {progress01 * 100:F0}%");
-        }
-
-        /// <summary>
-        /// スロットのロード完了（プログレス非表示）
-        /// </summary>
         private void CompleteSlotLoading(Button slotButton)
-        {
-            if (!slotProgressMap.TryGetValue(slotButton, out var progress)) return;
+            => slotProgressService?.CompleteSlotLoading(slotButton);
 
-            progress.Progress = 1f;
-
-            // ★ ボタンのアイコンを通常表示に戻す
-            slotButton.style.opacity = 1f;
-
-            // 少し遅延してから非表示（完了を視覚的に確認できるように）
-            progress.schedule.Execute(() =>
-            {
-                progress.style.display = DisplayStyle.None;
-                progress.Progress = 0f;
-            }).StartingIn(300);
-
-            Debug.Log($"[#73] Loading completed for {slotButton.name}");
-        }
-
-        /// <summary>
-        /// スロットのロードキャンセル（プログレス非表示）
-        /// </summary>
         private void CancelSlotLoading(Button slotButton)
-        {
-            if (!slotProgressMap.TryGetValue(slotButton, out var progress)) return;
-
-            progress.style.display = DisplayStyle.None;
-            progress.Progress = 0f;
-
-            // ★ ボタンのアイコンを通常表示に戻す
-            slotButton.style.opacity = 1f;
-
-            Debug.Log($"[#73] Loading cancelled for {slotButton.name}");
-        }
+            => slotProgressService?.CancelSlotLoading(slotButton);
 
         #endregion
 
@@ -5092,52 +4857,5 @@ namespace AICam.UI
 
         #endregion
 
-        #region Version Info
-
-        /// <summary>
-        /// ビルド番号を取得
-        /// 実機: PlayerSettingsのビルド番号（iOS: CFBundleVersion, Android: bundleVersionCode）
-        /// Editor: 日付ベースの識別子
-        /// </summary>
-        private string GetBuildNumber()
-        {
-#if UNITY_EDITOR
-            // エディタでは日付ベースのビルド番号
-            return System.DateTime.Now.ToString("yyMMdd");
-#elif UNITY_ANDROID
-            // AndroidではpackageInfoからversionCodeを取得
-            try
-            {
-                using (var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
-                using (var activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity"))
-                using (var packageManager = activity.Call<AndroidJavaObject>("getPackageManager"))
-                using (var packageInfo = packageManager.Call<AndroidJavaObject>("getPackageInfo",
-                    activity.Call<string>("getPackageName"), 0))
-                {
-                    var versionCode = packageInfo.Get<int>("versionCode");
-                    return versionCode.ToString();
-                }
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogWarning($"[VersionInfo] Failed to get Android versionCode: {e.Message}");
-                return "1";
-            }
-#elif UNITY_IOS
-            // iOSではビルド時に設定されたバージョンを使用
-            // PlayerSettings.iOS.buildNumberはビルド時にInfo.plistに埋め込まれる
-            // ランタイムでは直接アクセスできないため、ビルドGUIDの一部を使用
-            string buildGuid = Application.buildGUID;
-            if (!string.IsNullOrEmpty(buildGuid) && buildGuid.Length >= 8)
-            {
-                return buildGuid.Substring(0, 8);
-            }
-            return "1";
-#else
-            return "1";
-#endif
-        }
-
-        #endregion
     }
 }
