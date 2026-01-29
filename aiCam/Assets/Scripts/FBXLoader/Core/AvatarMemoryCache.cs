@@ -400,6 +400,9 @@ namespace AICam.FBXLoader
 
             Debug.Log($"[AvatarMemoryCache] === SwitchToSlotAsync: {activeSlotIndex} -> {targetSlotIndex} ===");
 
+            // UIの応答性を維持するためにYield（Issue #426）
+            await UniTask.Yield();
+
             // 1. 現在のアバターを保存・非アクティブ化
             if (activeSlotIndex >= 0 && activeSlotIndex != targetSlotIndex)
             {
@@ -458,6 +461,9 @@ namespace AICam.FBXLoader
 
             // 4. キャッシュミス → ローダー経由でロード
             Debug.Log($"[AvatarMemoryCache] CACHE MISS for slot {targetSlotIndex}, loading from file");
+
+            // ロード前にYield（Issue #426）
+            await UniTask.Yield();
 
             if (avatarLoader == null)
             {

@@ -25,6 +25,9 @@ namespace AICam.Editor.UaaL
         private bool dataFolderExists = false;
         private bool xcodeConfigured = false;
 
+        // ビルドオプション
+        private bool compressAfterBuild = false;
+
         // Version config
         private UaaLVersionConfig versionConfig;
         private List<string> availableMilestones = new List<string>();
@@ -495,14 +498,27 @@ namespace AICam.Editor.UaaL
             // Step 1: Build Unity
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("1. Build Unity for iOS", GUILayout.Width(200));
-            if (GUILayout.Button("Build iOS", GUILayout.Width(100)))
+            GUI.backgroundColor = new Color(0.4f, 0.7f, 1.0f);
+            if (GUILayout.Button("Release", GUILayout.Width(70)))
             {
-                BuildUnityForiOS();
+                BuildUnityForiOS(isDebug: false);
             }
+            GUI.backgroundColor = new Color(1.0f, 0.7f, 0.4f);
+            if (GUILayout.Button("Debug", GUILayout.Width(70)))
+            {
+                BuildUnityForiOS(isDebug: true);
+            }
+            GUI.backgroundColor = Color.white;
             if (GUILayout.Button("Settings", GUILayout.Width(60)))
             {
                 EditorWindow.GetWindow(System.Type.GetType("UnityEditor.BuildPlayerWindow,UnityEditor"));
             }
+            EditorGUILayout.EndHorizontal();
+
+            // Zip compression option
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Space(204);
+            compressAfterBuild = EditorGUILayout.ToggleLeft("ビルド後にZip圧縮する", compressAfterBuild);
             EditorGUILayout.EndHorizontal();
 
             // Step 2: Build UnityFramework
@@ -603,7 +619,7 @@ namespace AICam.Editor.UaaL
             Repaint();
         }
 
-        private void BuildUnityForiOS()
+        private void BuildUnityForiOS(bool isDebug = false)
         {
             // ビルドパスを確認
             if (string.IsNullOrEmpty(unityBuildPath))
@@ -627,16 +643,21 @@ namespace AICam.Editor.UaaL
                 return;
             }
 
+            string buildType = isDebug ? "Debug" : "Release";
+
             // バージョン情報を表示
             string versionInfo = versionConfig != null
                 ? $"Version: {versionConfig.version}\nBuild: {versionConfig.buildNumber} → {versionConfig.buildNumber + 1}"
                 : "";
 
+            string zipInfo = compressAfterBuild ? "\n✅ ビルド後にZip圧縮します" : "";
+
             // ビルド確認
-            if (!EditorUtility.DisplayDialog("Build iOS",
+            if (!EditorUtility.DisplayDialog($"Build iOS ({buildType})",
                 $"Build Unity project for iOS?\n\n" +
+                $"Configuration: {buildType}\n" +
                 $"Output: {unityBuildPath}\n" +
-                $"{versionInfo}\n\n" +
+                $"{versionInfo}{zipInfo}\n\n" +
                 "⚠️ Unity Editor will freeze during build.\n" +
                 "This may take 5-10 minutes.",
                 "Build", "Cancel"))
@@ -660,15 +681,22 @@ namespace AICam.Editor.UaaL
                 Directory.CreateDirectory(unityBuildPath);
             }
 
-            UnityEngine.Debug.Log($"[UaaL] Starting iOS build: {unityBuildPath}");
+            UnityEngine.Debug.Log($"[UaaL] Starting iOS build ({buildType}): {unityBuildPath}");
 
             // ビルドオプション
+            BuildOptions options = BuildOptions.ShowBuiltPlayer;
+            if (isDebug)
+            {
+                options |= BuildOptions.Development;
+                options |= BuildOptions.AllowDebugging;
+            }
+
             BuildPlayerOptions buildOptions = new BuildPlayerOptions
             {
                 scenes = GetEnabledScenes(),
                 locationPathName = unityBuildPath,
                 target = BuildTarget.iOS,
-                options = BuildOptions.ShowBuiltPlayer // ビルド後にフォルダを開く
+                options = options
             };
 
             // ビルド実行（同期処理、Editorはフリーズする）
@@ -676,11 +704,19 @@ namespace AICam.Editor.UaaL
 
             if (report.summary.result == BuildResult.Succeeded)
             {
-                UnityEngine.Debug.Log($"[UaaL] iOS build succeeded: {unityBuildPath}");
+                UnityEngine.Debug.Log($"[UaaL] iOS build succeeded ({buildType}): {unityBuildPath}");
                 RefreshStatus();
 
+                // Zip圧縮
+                string zipPath = null;
+                if (compressAfterBuild)
+                {
+                    zipPath = CompressBuildFolder(buildType);
+                }
+
+                string zipMessage = zipPath != null ? $"\n\nZip: {zipPath}" : "";
                 EditorUtility.DisplayDialog("Build Succeeded",
-                    $"iOS build completed!\n\nOutput: {unityBuildPath}\n\n" +
+                    $"iOS build completed! ({buildType})\n\nOutput: {unityBuildPath}{zipMessage}\n\n" +
                     "You can now proceed with Step 2 (Build UnityFramework).",
                     "OK");
             }
@@ -691,6 +727,47 @@ namespace AICam.Editor.UaaL
                     $"iOS build failed.\n\nResult: {report.summary.result}\n\n" +
                     "Check Console for details.",
                     "OK");
+            }
+        }
+
+        private string CompressBuildFolder(string buildType)
+        {
+            try
+            {
+                EditorUtility.DisplayProgressBar("Compressing", "Creating zip archive...", 0.5f);
+
+                string timestamp = System.DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                string version = versionConfig != null ? versionConfig.GetFullVersionString() : "unknown";
+                string zipFileName = $"iOS_{buildType}_{version}_{timestamp}.zip";
+                string zipPath = Path.Combine(Path.GetDirectoryName(unityBuildPath), zipFileName);
+
+                // zipコマンドを使用（macOS）
+                string script = $@"
+cd ""{Path.GetDirectoryName(unityBuildPath)}""
+zip -r -q ""{zipFileName}"" ""{Path.GetFileName(unityBuildPath)}""
+";
+                ExecuteShellCommand(script);
+
+                if (File.Exists(zipPath))
+                {
+                    var fileInfo = new FileInfo(zipPath);
+                    UnityEngine.Debug.Log($"[UaaL] Created zip: {zipPath} ({FormatFileSize(fileInfo.Length)})");
+                    return zipPath;
+                }
+                else
+                {
+                    UnityEngine.Debug.LogWarning("[UaaL] Zip file was not created");
+                    return null;
+                }
+            }
+            catch (System.Exception e)
+            {
+                UnityEngine.Debug.LogError($"[UaaL] Failed to compress: {e.Message}");
+                return null;
+            }
+            finally
+            {
+                EditorUtility.ClearProgressBar();
             }
         }
 
@@ -710,7 +787,7 @@ namespace AICam.Editor.UaaL
         /// <summary>
         /// 確認ダイアログなしでiOSビルド（Full Integration用）
         /// </summary>
-        private bool BuildUnityForiOSSilent()
+        private bool BuildUnityForiOSSilent(bool isDebug = false)
         {
             if (string.IsNullOrEmpty(unityBuildPath))
             {
@@ -729,6 +806,8 @@ namespace AICam.Editor.UaaL
                 return false;
             }
 
+            string buildType = isDebug ? "Debug" : "Release";
+
             // ビルド番号をインクリメント
             if (versionConfig != null)
             {
@@ -743,21 +822,35 @@ namespace AICam.Editor.UaaL
                 Directory.CreateDirectory(unityBuildPath);
             }
 
-            UnityEngine.Debug.Log($"[UaaL] Starting iOS build (silent): {unityBuildPath}");
+            UnityEngine.Debug.Log($"[UaaL] Starting iOS build (silent, {buildType}): {unityBuildPath}");
+
+            BuildOptions options = BuildOptions.None;
+            if (isDebug)
+            {
+                options |= BuildOptions.Development;
+                options |= BuildOptions.AllowDebugging;
+            }
 
             BuildPlayerOptions buildOptions = new BuildPlayerOptions
             {
                 scenes = GetEnabledScenes(),
                 locationPathName = unityBuildPath,
                 target = BuildTarget.iOS,
-                options = BuildOptions.None
+                options = options
             };
 
             var report = BuildPipeline.BuildPlayer(buildOptions);
 
             if (report.summary.result == BuildResult.Succeeded)
             {
-                UnityEngine.Debug.Log($"[UaaL] iOS build succeeded: {unityBuildPath}");
+                UnityEngine.Debug.Log($"[UaaL] iOS build succeeded ({buildType}): {unityBuildPath}");
+
+                // Zip圧縮
+                if (compressAfterBuild)
+                {
+                    CompressBuildFolder(buildType);
+                }
+
                 return true;
             }
             else

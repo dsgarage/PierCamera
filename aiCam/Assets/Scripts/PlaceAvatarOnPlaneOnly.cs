@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
+using PierCamera.Analytics;
 
 [RequireComponent(typeof(ARRaycastManager))]
 public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
@@ -142,6 +143,18 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         // ARカメラ未指定なら自動取得
         if (!arCamera) arCamera = Camera.main;
 
+        // Issue #473: LiDARなし端末ではオクルージョンを無効化
+        bool hasLiDAR = DeviceAnalytics.HasLiDAR();
+        if (!hasLiDAR)
+        {
+            desiredOcclusionOn = false;
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] Device does NOT have LiDAR - disabling occlusion features");
+        }
+        else
+        {
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] Device has LiDAR - occlusion features enabled");
+        }
+
         // オクルージョンの初期設定（ARFoundation 6.3 仕様: enabled は触らず requested のみ制御）
         if (occlusionManager)
         {
@@ -159,9 +172,67 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         if (planeManager)
         {
             planeManager.planesChanged += OnPlanesChanged;
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] ARPlaneManager found - enabled: {planeManager.enabled}, detectionMode: {planeManager.requestedDetectionMode}");
+        }
+        else
+        {
+            Debug.LogError("[PlaceAvatarOnPlaneOnly] ARPlaneManager NOT FOUND! Plane detection will not work.");
         }
 
         Debug.Log($"[PlaceAvatarOnPlaneOnly] Initialized - FollowMode: {enableFollowMode}, Distance: {followDistance}m");
+    }
+
+    void Start()
+    {
+        // Issue #473: 平面検知の状態を定期的にログ出力
+        StartCoroutine(LogPlaneDetectionStatus());
+    }
+
+    System.Collections.IEnumerator LogPlaneDetectionStatus()
+    {
+        // ARSession起動を待つ
+        yield return new WaitForSeconds(1.0f);
+
+        // 初回ログ
+        LogPlaneManagerState("Initial check (1s after start)");
+
+        // 3秒後に再度チェック
+        yield return new WaitForSeconds(2.0f);
+        LogPlaneManagerState("Second check (3s after start)");
+
+        // 5秒後に再度チェック
+        yield return new WaitForSeconds(2.0f);
+        LogPlaneManagerState("Third check (5s after start)");
+    }
+
+    void LogPlaneManagerState(string context)
+    {
+        // ARSessionの状態を確認
+        var arSession = FindFirstObjectByType<ARSession>();
+        string sessionState = arSession != null ? ARSession.state.ToString() : "ARSession not found";
+
+        if (!planeManager)
+        {
+            Debug.LogError($"[PlaceAvatarOnPlaneOnly] {context}: ARPlaneManager is NULL! ARSession.state={sessionState}");
+            return;
+        }
+
+        int planeCount = 0;
+        foreach (var _ in planeManager.trackables)
+        {
+            planeCount++;
+        }
+
+        // ARPlaneManagerのサブシステム状態も確認
+        bool hasSubsystem = planeManager.subsystem != null;
+        bool subsystemRunning = hasSubsystem && planeManager.subsystem.running;
+
+        Debug.Log($"[PlaceAvatarOnPlaneOnly] {context}: " +
+                  $"ARSession.state={sessionState}, " +
+                  $"ARPlaneManager.enabled={planeManager.enabled}, " +
+                  $"subsystem={hasSubsystem}, running={subsystemRunning}, " +
+                  $"detectionMode={planeManager.requestedDetectionMode}, " +
+                  $"trackedPlanes={planeCount}");
     }
 
     void OnEnable()
@@ -744,6 +815,13 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
             case TouchPhase.Moved:
                 if (!isSwipeActive) return;
 
+                // [紫]CameraLockedモードで長押しドラッグ中は回転処理をスキップ（位置調整中）
+                if (currentFollowMode == FollowMode.CameraLocked && isLongPressActive)
+                {
+                    swipeStartPosition = touch.position; // 位置だけ更新
+                    return;
+                }
+
                 Vector2 delta = touch.position - swipeStartPosition;
 
                 // Issue #429: 上下スワイプ: 距離調整（[橙]PlaneLockedモードのみ有効、[紫]CameraLockedモードでは無効）
@@ -755,7 +833,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
 
                     Debug.Log($"[PlaceAvatarOnPlaneOnly] Swipe distance adjust: {followDistance:F2}m (delta: {distanceDelta:F2}m)");
                 }
-                // 左右スワイプ: 回転（[橙][紫]両方で有効）
+                // 左右スワイプ: 回転（[橙][紫]両方で有効、ただし[紫]長押し中は除く）
                 else if (enableSwipeRotation && Mathf.Abs(delta.x) > Mathf.Abs(delta.y))
                 {
                     float rotationDelta = -delta.x * swipeRotationSensitivity;
@@ -852,32 +930,44 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
             case TouchPhase.Moved:
                 if (isLongPressActive)
                 {
-                    // ドラッグ量を計算
-                    Vector2 dragDelta = touch.position - longPressStartPosition;
+                    // ドラッグ量を計算（デルタを直接使用）
+                    Vector2 dragDelta = touch.deltaPosition;
 
-                    // カメラの右方向と上方向を基準に移動
-                    Vector3 right = arCamera.transform.right;
-                    Vector3 up = arCamera.transform.up;
+                    // スクリーン座標をカメラローカル座標に変換
+                    // X: カメラの右方向（水平のみ）
+                    // Y: カメラの前方向（水平、画面上方向=前進）
+                    Vector3 camForward = arCamera.transform.forward;
+                    camForward.y = 0;
+                    camForward.Normalize();
 
-                    // Y成分を除去して水平移動に限定（オプション）
-                    right.y = 0;
-                    right.Normalize();
+                    Vector3 camRight = arCamera.transform.right;
+                    camRight.y = 0;
+                    camRight.Normalize();
 
-                    // オフセットを更新
-                    Vector3 offsetDelta = (right * dragDelta.x + up * dragDelta.y) * dragPositionSensitivity;
-                    cameraLocalOffset += Quaternion.Inverse(arCamera.transform.rotation) * offsetDelta;
+                    // スクリーン座標のY（上下）を前後移動に、X（左右）を左右移動に
+                    Vector3 worldDelta = (camRight * dragDelta.x + camForward * dragDelta.y) * dragPositionSensitivity;
 
-                    if (enableDebugLog && offsetDelta.magnitude > 0.001f)
+                    // cameraLocalOffsetに加算（カメラローカル空間に変換）
+                    Vector3 localDelta = Quaternion.Inverse(arCamera.transform.rotation) * worldDelta;
+                    cameraLocalOffset += localDelta;
+
+                    // オフセットを制限（暴走防止）
+                    float maxOffset = 5f; // 最大5m
+                    if (cameraLocalOffset.magnitude > maxOffset)
                     {
-                        Debug.Log($"[PlaceAvatarOnPlaneOnly] Drag position: offset={cameraLocalOffset}, delta={offsetDelta.magnitude:F3}");
+                        cameraLocalOffset = cameraLocalOffset.normalized * maxOffset;
                     }
 
-                    longPressStartPosition = touch.position;
+                    if (enableDebugLog && worldDelta.magnitude > 0.001f)
+                    {
+                        Debug.Log($"[PlaceAvatarOnPlaneOnly] Drag position: offset={cameraLocalOffset}, worldDelta={worldDelta.magnitude:F3}");
+                    }
                 }
                 else if (Time.time - touchStartTime >= longPressThreshold)
                 {
                     // 移動中に長押し時間が経過した場合も有効化
                     isLongPressActive = true;
+                    Debug.Log("[PlaceAvatarOnPlaneOnly] Long press activated during move");
                 }
                 break;
 
@@ -1110,5 +1200,139 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         }
 
         Debug.Log($"[PlaceAvatarOnPlaneOnly] Requested: {occlusionManager.requestedEnvironmentDepthMode}, Current: {occlusionManager.currentEnvironmentDepthMode}");
+    }
+
+    // ========== Issue #425: アバター初期配置 ==========
+
+    /// <summary>
+    /// Issue #425: ロードされたアバターをカメラの1m前方に配置
+    /// 平面が検出されていればその上に、なければカメラ高さで配置
+    /// </summary>
+    /// <param name="loadedAvatar">ロード済みアバター</param>
+    /// <param name="distanceAhead">カメラからの距離（メートル）</param>
+    /// <returns>配置成功した場合true</returns>
+    public bool PlaceAvatarAhead(GameObject loadedAvatar, float distanceAhead = 1.0f)
+    {
+        if (loadedAvatar == null)
+        {
+            Debug.LogWarning("[PlaceAvatarOnPlaneOnly] PlaceAvatarAhead: avatar is null");
+            return false;
+        }
+
+        if (arCamera == null)
+        {
+            arCamera = Camera.main;
+            if (arCamera == null)
+            {
+                Debug.LogWarning("[PlaceAvatarOnPlaneOnly] PlaceAvatarAhead: No camera found");
+                return false;
+            }
+        }
+
+        // カメラの前方方向（水平のみ）
+        Vector3 camPos = arCamera.transform.position;
+        Vector3 camForward = arCamera.transform.forward;
+        camForward.y = 0;
+        camForward.Normalize();
+
+        if (camForward.sqrMagnitude < 0.01f)
+        {
+            camForward = Vector3.forward;
+        }
+
+        // 1m前方の位置を計算
+        Vector3 targetPosition = camPos + camForward * distanceAhead;
+
+        // 平面を検索してY座標を調整
+        bool foundPlane = false;
+        ARPlane hitPlane = null;
+
+        if (rcMgr != null)
+        {
+            // カメラ位置から下方向にレイキャスト
+            Vector3 rayOrigin = new Vector3(targetPosition.x, camPos.y + 1f, targetPosition.z);
+            Ray ray = new Ray(rayOrigin, Vector3.down);
+
+            // スクリーン座標に変換してレイキャスト
+            Vector3 screenPoint = arCamera.WorldToScreenPoint(targetPosition);
+            if (rcMgr.Raycast(screenPoint, s_Hits, TrackableType.PlaneWithinPolygon))
+            {
+                var hit = s_Hits[0];
+                hitPlane = planeManager?.GetPlane(hit.trackableId) ?? hit.trackable as ARPlane;
+
+                if (hitPlane != null)
+                {
+                    // 水平面フィルター
+                    if (!onlyHorizontal || hitPlane.alignment == PlaneAlignment.HorizontalUp || hitPlane.alignment == PlaneAlignment.HorizontalDown)
+                    {
+                        targetPosition = hit.pose.position;
+                        foundPlane = true;
+                        Debug.Log($"[PlaceAvatarOnPlaneOnly] PlaceAvatarAhead: Found plane at {targetPosition}, alignment: {hitPlane.alignment}");
+                    }
+                }
+            }
+        }
+
+        // 平面が見つからなかった場合、検出済み平面から最も近いものを使用
+        if (!foundPlane && planeManager != null)
+        {
+            float closestDist = float.MaxValue;
+            ARPlane closestPlane = null;
+
+            foreach (var plane in planeManager.trackables)
+            {
+                if (onlyHorizontal && plane.alignment != PlaneAlignment.HorizontalUp && plane.alignment != PlaneAlignment.HorizontalDown)
+                    continue;
+
+                // 平面の中心からターゲット位置までの水平距離
+                Vector3 planeCenter = plane.center;
+                float dist = Vector3.Distance(
+                    new Vector3(targetPosition.x, 0, targetPosition.z),
+                    new Vector3(planeCenter.x, 0, planeCenter.z)
+                );
+
+                if (dist < closestDist)
+                {
+                    closestDist = dist;
+                    closestPlane = plane;
+                }
+            }
+
+            // 最も近い平面が3m以内なら使用
+            if (closestPlane != null && closestDist < 3f)
+            {
+                hitPlane = closestPlane;
+                // 平面上に投影
+                Vector3 planeNormal = closestPlane.normal;
+                float d = Vector3.Dot(planeNormal, targetPosition - closestPlane.center);
+                targetPosition = targetPosition - planeNormal * d;
+                foundPlane = true;
+                Debug.Log($"[PlaceAvatarOnPlaneOnly] PlaceAvatarAhead: Using closest plane at distance {closestDist:F2}m");
+            }
+        }
+
+        // 平面が見つからなかった場合、カメラより少し下に配置
+        if (!foundPlane)
+        {
+            targetPosition.y = camPos.y - 1.5f; // カメラの1.5m下（おおよそ床の高さ）
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] PlaceAvatarAhead: No plane found, using estimated floor height");
+        }
+
+        // アバターを配置
+        Quaternion rotation = GetFaceCameraRotation(targetPosition, hitPlane?.alignment ?? PlaneAlignment.HorizontalUp);
+        loadedAvatar.transform.SetPositionAndRotation(targetPosition, rotation);
+        loadedAvatar.SetActive(true);
+
+        // 内部状態を更新
+        avatar = loadedAvatar;
+        avatarPlane = hitPlane;
+        currentFollowMode = FollowMode.Off;
+        currentAvatarScale = loadedAvatar.transform.localScale.x;
+
+        // FaceControllerとAnimatorをバインド
+        BindAvatarFaceController();
+
+        Debug.Log($"[PlaceAvatarOnPlaneOnly] PlaceAvatarAhead: Avatar placed at {targetPosition}, foundPlane: {foundPlane}");
+        return true;
     }
 }

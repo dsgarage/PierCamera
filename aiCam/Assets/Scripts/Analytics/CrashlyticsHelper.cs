@@ -5,8 +5,11 @@ using UnityEngine;
 namespace AICam.Analytics
 {
     /// <summary>
-    /// Firebase Crashlytics連携ヘルパー
+    /// Crashlytics連携ヘルパー
     /// アバターロード時のファイル情報をクラッシュレポートに付加する
+    ///
+    /// 注: Firebase SDKを直接使用せず、AnalyticsBridge経由で親アプリに情報を送信
+    /// 親アプリ側でFirebase Crashlytics SDKを使用して実際の送信を行う
     /// </summary>
     public static class CrashlyticsHelper
     {
@@ -51,30 +54,18 @@ namespace AICam.Analytics
         /// <param name="fileSize">ファイルサイズ（バイト）</param>
         public static void SetAvatarInfo(string fileName, long fileSize)
         {
-#if FIREBASE_CRASHLYTICS
             try
             {
-                Firebase.Crashlytics.Crashlytics.SetCustomKey("avatar_filename", fileName ?? "unknown");
-                Firebase.Crashlytics.Crashlytics.SetCustomKey("avatar_filesize_bytes", fileSize.ToString());
+                // AnalyticsBridge経由で親アプリに送信
+                AnalyticsBridge.SetAvatarInfo(fileName, fileSize);
 
-                // MBでも記録（見やすさのため）
                 float fileSizeMB = fileSize / 1024f / 1024f;
-                Firebase.Crashlytics.Crashlytics.SetCustomKey("avatar_filesize_mb", fileSizeMB.ToString("F2"));
-
-                // ログも記録
-                Firebase.Crashlytics.Crashlytics.Log($"Avatar loaded: {fileName} ({fileSize} bytes, {fileSizeMB:F2} MB)");
-
-                Debug.Log($"{TAG} ✅ Set avatar info - Name: {fileName}, Size: {fileSize} bytes ({fileSizeMB:F2} MB)");
+                Debug.Log($"{TAG} Set avatar info - Name: {fileName}, Size: {fileSize} bytes ({fileSizeMB:F2} MB)");
             }
             catch (Exception e)
             {
-                Debug.LogError($"{TAG} Failed to set custom keys: {e.Message}");
+                Debug.LogError($"{TAG} Failed to set avatar info: {e.Message}");
             }
-#else
-            // Firebase未導入時はログのみ
-            float fileSizeMB = fileSize / 1024f / 1024f;
-            Debug.Log($"{TAG} (Firebase not configured) Avatar info - Name: {fileName}, Size: {fileSize} bytes ({fileSizeMB:F2} MB)");
-#endif
         }
 
         /// <summary>
@@ -84,26 +75,19 @@ namespace AICam.Analytics
         /// <param name="errorMessage">エラーメッセージ</param>
         public static void LogAvatarLoadError(string filePath, string errorMessage)
         {
-#if FIREBASE_CRASHLYTICS
             try
             {
                 string fileName = !string.IsNullOrEmpty(filePath) ? Path.GetFileName(filePath) : "unknown";
-                Firebase.Crashlytics.Crashlytics.SetCustomKey("avatar_load_error_file", fileName);
-                Firebase.Crashlytics.Crashlytics.Log($"Avatar load error: {fileName} - {errorMessage}");
 
-                // 非致命的エラーとして記録
-                Firebase.Crashlytics.Crashlytics.LogException(new Exception($"AvatarLoadError: {errorMessage}"));
+                // AnalyticsBridge経由で親アプリに送信
+                AnalyticsBridge.LogAvatarLoadError(fileName, errorMessage);
 
-                Debug.Log($"{TAG} ⚠️ Logged avatar load error: {fileName} - {errorMessage}");
+                Debug.Log($"{TAG} Logged avatar load error: {fileName} - {errorMessage}");
             }
             catch (Exception e)
             {
                 Debug.LogError($"{TAG} Failed to log error: {e.Message}");
             }
-#else
-            string fileName = !string.IsNullOrEmpty(filePath) ? Path.GetFileName(filePath) : "unknown";
-            Debug.Log($"{TAG} (Firebase not configured) Avatar load error - File: {fileName}, Error: {errorMessage}");
-#endif
         }
 
         /// <summary>
@@ -112,19 +96,17 @@ namespace AICam.Analytics
         /// <param name="slotIndex">スロットインデックス</param>
         public static void SetSlotInfo(int slotIndex)
         {
-#if FIREBASE_CRASHLYTICS
             try
             {
-                Firebase.Crashlytics.Crashlytics.SetCustomKey("avatar_slot_index", slotIndex.ToString());
-                Debug.Log($"{TAG} ✅ Set slot info - Index: {slotIndex}");
+                // AnalyticsBridge経由で親アプリに送信
+                AnalyticsBridge.SetSlotInfo(slotIndex);
+
+                Debug.Log($"{TAG} Set slot info - Index: {slotIndex}");
             }
             catch (Exception e)
             {
                 Debug.LogError($"{TAG} Failed to set slot info: {e.Message}");
             }
-#else
-            Debug.Log($"{TAG} (Firebase not configured) Slot info - Index: {slotIndex}");
-#endif
         }
     }
 }

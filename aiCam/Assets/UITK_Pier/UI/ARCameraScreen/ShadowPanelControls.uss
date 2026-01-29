@@ -1,0 +1,203 @@
+@import url("../Styles/tokens.uss");
+
+/* ================================
+   シャドウパネルスタイル
+================================ */
+
+/* フルスクリーンバックドロップ（パネル外クリックで閉じる用） : ユーザーの見た目の調整を損なわないように背景カラーは完全透明*/
+.shadow-panel-backdrop {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0);
+    display: none;
+}
+
+.shadow-panel-backdrop.visible {
+    display: flex;
+}
+
+/* オーバーレイ（パネルコンテナ） */
+.shadow-panel-overlay {
+    position: absolute;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+
+    height: 334px;
+    background-color: transparent;
+    display: none;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+.shadow-panel-overlay.visible {
+    display: flex;
+}
+
+/* メインパネル */
+.shadow-panel {
+    position: absolute;
+    left: 0px;
+    right: 0px;
+    bottom: 4px;
+
+    height: 286px;
+    flex-direction: column;
+    flex-shrink: 0;
+    padding-top: 8px;
+
+    border-radius: 16px;
+    background-color: rgba(32,31,31,.95);
+}
+
+/* ヘッダー */
+.shadow-panel-header {
+    padding-left: 16px;
+    padding-right: 8px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    height: 44px;
+    flex-shrink: 0;
+}
+
+.shadow-panel-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin-top: 0px;
+    margin-bottom: 0px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+    line-height: 20px;
+    color: rgba(255,255,255,1);
+}
+
+.shadow-panel-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 9999px;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-width: 0;
+    color: white;
+    font-size: 16px;
+    -unity-text-align: middle-center;
+}
+
+.shadow-panel-close:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+.shadow-panel-close:active {
+    background-color: rgba(76, 175, 255, 0.5);
+}
+
+/* セクション */
+.shadow-section {
+    margin-bottom: 8px;
+    flex-shrink: 0;
+}
+
+#shadowEnableDivider{
+  margin-left: 16px;
+  margin-right: 16px;
+  margin-bottom: 8px;
+}
+
+/* Intensity Control */
+#shadowIntensityControl{
+    padding-right: 16px;
+    padding-left: 16px;
+}
+
+/* シャドウスライダー */
+.shadow-slider {
+    margin-top: 2px;
+    margin-bottom: 2px;
+    height: 16px;
+}
+
+.shadow-slider > .unity-base-slider__dragger {
+    width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    background-color: white;
+    border-width: 2px;
+    border-color: rgba(76, 175, 255, 1);
+    margin-top: -5px;
+}
+
+.shadow-slider > .unity-base-slider__tracker {
+    height: 4px;
+    border-radius: 2px;
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ノブ周り：dragger / border / image 全部丸める */
+.shadow-slider .unity-base-slider__dragger,
+.shadow-slider .unity-base-slider__dragger-border,
+.shadow-slider .unity-base-slider__checkmark-image {
+    border-radius: 6px;
+    background-image: none;
+}
+
+/* SoftnessControl */
+#shadowSoftnessControl{
+    padding-right: 16px;
+    padding-left: 16px;
+}
+
+/* ソフトネスボタン */
+.softness-buttons {
+    flex-direction: row;
+    justify-content: flex-between;
+    margin-top: 4px;
+    height: 22px;
+    flex-shrink: 0;
+}
+
+.softness-button {
+    flex-grow: 1;
+    height: 24px;
+    border-radius: 12px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 8px;
+}
+
+.softness-button:last-child {
+    margin-right: 0;
+}
+
+.softness-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.softness-button:active {
+    background-color: rgba(1,168,212,1);
+    border-color: rgba(76, 175, 255, 0.8);
+}
+
+.softness-button.softness-selected {
+    background-color: rgba(1,168,212,1);
+    border-color: rgba(76, 175, 255, 1);
+    color: white;
+    -unity-font-style: bold;
+}
+
+
+/* ================================
+   DEV ONLY (最終コミット前に削除します)
+================================ */
+/* rootに dev-force-show を付けたら強制表示 */
+/* .dev-force-show #shadowPanelOverlay {
+    display: flex;
+}
+.dev-force-show #shadowPanel {
+    display: flex;
+}
+.dev-force-show #shadowPanelBackdrop { display: flex; } */

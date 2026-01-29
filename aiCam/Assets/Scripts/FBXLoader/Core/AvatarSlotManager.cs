@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading;
 using UnityEngine;
 using Cysharp.Threading.Tasks;
+using AICam.Core.IO;
 
 namespace AICam.FBXLoader
 {
@@ -524,6 +525,9 @@ namespace AICam.FBXLoader
             isProcessing = true;
             Debug.Log($"[AvatarSlotManager] Opening file picker for slot {slotIndex}");
 
+            // UIの応答性を維持するためにYield（Issue #426）
+            await UniTask.Yield();
+
             try
             {
                 var tcs = new UniTaskCompletionSource<(bool success, string path)>();
@@ -719,7 +723,8 @@ namespace AICam.FBXLoader
         {
             try
             {
-                byte[] bytes = await File.ReadAllBytesAsync(vrmFilePath);
+                // Issue #440: チャンク化ファイル読み込み
+                byte[] bytes = await ChunkedFileReader.ReadAllBytesAsync(vrmFilePath);
 
                 if (bytes.Length < 20) return "Unknown";
 

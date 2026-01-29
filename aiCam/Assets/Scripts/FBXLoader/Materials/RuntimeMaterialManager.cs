@@ -24,10 +24,9 @@ namespace AICam.FBXLoader
         }
 
         private MaterialCacheDatabase materialCacheDatabase;
-#if DEVELOPMENT_BUILD || UNITY_EDITOR
+        // ログ用StringBuilder - Release/Dev両方で存在するが、Releaseでは空のまま使用される
         private System.Text.StringBuilder materialSearchLog = new System.Text.StringBuilder();
         private System.Text.StringBuilder meshDiagnosticsLog = new System.Text.StringBuilder();
-#endif
 
         // UniSIL Manifest support
         private Dictionary<string, MaterialManifest> loadedMaterialManifests = new Dictionary<string, MaterialManifest>();
@@ -1845,12 +1844,14 @@ namespace AICam.FBXLoader
         /// <param name="gameObject">診断対象のGameObject</param>
         private void DiagnoseMeshState(GameObject gameObject)
         {
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
             meshDiagnosticsLog.Clear();
             meshDiagnosticsLog.AppendLine("=== Mesh Diagnostics Log ===");
             meshDiagnosticsLog.AppendLine($"GameObject: {gameObject.name}");
             meshDiagnosticsLog.AppendLine();
 
             DiagnoseMeshStateInternal(gameObject);
+#endif
         }
 
         /// <summary>

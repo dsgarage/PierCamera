@@ -1,0 +1,26 @@
+@import url("../Styles/tokens.uss");
+
+/* =========================
+   Capture Guide (Layer: AspectGuide)
+   ========================= */
+
+.capture-guide {
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+
+  /* ジェスチャーを絶対に邪魔しない */
+  pointer-events: none;
+}
+
+/* 上下の黒帯 */
+.guide-top-overlay,
+.guide-bottom-overlay {
+  background-color: var(--cg-overlay);
+}
+
+/* 撮影範囲（中央） */
+.guide-image-aspect {
+  flex-shrink: 0;
+  align-self: center;
+}

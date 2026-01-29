@@ -1,0 +1,253 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UITK_Pier/UI/ARCameraScreen/CaptureControls.uss?fileID=7433441132597879392&amp;guid=78c45720fca43424480f939c0fb740d0&amp;type=3#CaptureControls" />
+    <Style src="project://database/Assets/UITK_Pier/UI/ARCameraScreen/LightingPanelControls.uss?fileID=7433441132597879392&amp;guid=a7baa510441284b7b8a4949257750885&amp;type=3#LightingPanelControls" />
+    <Style src="project://database/Assets/UITK_Pier/UI/ARCameraScreen/ShadowPanelControls.uss?fileID=7433441132597879392&amp;guid=465abdd1ed2564114aae4fa83bf8e52c&amp;type=3#ShadowPanelControls" />
+    <!-- ======================================
+           メインのUI（撮影画面）
+         ====================================== -->
+    <ui:VisualElement picking-mode="Ignore" class="root"> 
+        <!-- キャプチャー時のガイドマスクの設定：もともとCaptureGuideで分離して管理する予定だったが、aiCam本体のC#側にも変更を要求するため、既存の枠組みを継承 -->
+        <ui:VisualElement name="topMask" picking-mode="Ignore" class="aspect-mask" />
+        <ui:VisualElement name="bottomMask" picking-mode="Ignore" class="aspect-mask" />
+        <ui:VisualElement name="leftMask" picking-mode="Ignore" class="aspect-mask" />
+        <ui:VisualElement name="rightMask" picking-mode="Ignore" class="aspect-mask" />
+        <!-- アラートバー系、aiCamから変更なし -->
+        <ui:VisualElement name="alertBar" class="alert-bar">
+            <ui:Label name="alertMessage" text="[W001] sample Warning" class="alert-bar-message" />
+            <ui:Button name="alertClose" text="×" class="alert-bar-close" />
+        </ui:VisualElement>
+        <!-- トップパネル：画面いっぱいの横長で、右寄せ。現在はPlaneの可視/不可視の切り替えボタンのみ持つ -->
+        <ui:VisualElement name="topPanel" picking-mode="Ignore" class="top-panel">
+            <ui:Button name="topButton5" class="top-panel-button plane-button" />
+        </ui:VisualElement>
+        <!-- サイドパネル：混乱を避けるために元々の構造を継承して、uss側で少しだけスタイルを調整 -->
+        <ui:VisualElement name="sidePanel" picking-mode="Ignore" class="side-panel">
+            <!-- <ui:Button name="sideButton1" class="side-panel-button" /> -->
+            <ui:Button name="sideButton2" class="side-panel-button" />
+            <ui:Button name="sideButton3" class="side-panel-button" />
+            <ui:Button name="sideButtonBugReport" class="side-panel-button bug-report-button" />
+        </ui:VisualElement>
+        <!-- ギャラリーサムネイル：aiCamのこれまでの構造を踏襲。変更なし(最新のバージョンでは非表示) -->
+        <!-- <ui:VisualElement name="galleryThumbnail" class="gallery-thumbnail" /> -->
+        <!-- 画面下側の操作系を一括で束ねるUIフィールドを追加 -->
+        <ui:VisualElement name="bottomNavField" class="controls-interactive controls-bottom">
+            <!-- アバタースロット系はC#での操作が多いので、これまでの構造を踏襲。見た目だけussで少し変更 -->
+            <ui:VisualElement name="bottomPanel" class="bottom-panel">
+                <ui:ScrollView name="bottomScrollView" mode="Horizontal" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden" class="bottom-scroll-view">
+                    <ui:VisualElement name="bottomButtonContainer" class="bottom-button-container">
+                        <ui:Button name="bottomButton1" class="bottom-panel-button" />
+                        <ui:Button name="bottomButtonAdd" text="+" class="bottom-panel-button bottom-panel-button-add" />
+                    </ui:VisualElement>
+                </ui:ScrollView>
+            </ui:VisualElement>
+            <!-- 撮影操作関連のボタンを束ねるバーを追加。もともとtopButtonに設定されていた４つのボタンを移植して、これまでのNameとclassが変わらないようにしている -->
+            <ui:VisualElement name="captureSettingBar" class="capture-setting-bar">
+                <ui:Button name="topButton2" class="icon-text-btn">
+                    <ui:VisualElement name="shadowIcon" class="icon-m icon-shadow" />
+                    <ui:Label text="Shadow" class="label" />
+                </ui:Button>
+                <ui:Button name="topButton1" class="icon-text-btn">
+                    <ui:VisualElement name="lightingIcon" class="icon-m icon-lighting" />
+                    <ui:Label text="Lighting" class="label" />
+                </ui:Button>
+                <ui:Button name="topButton4" class="icon-text-btn">
+                    <ui:VisualElement name="posingIcon" class="icon-m icon-posings" />
+                    <ui:Label text="Posing" class="label" />
+                </ui:Button>
+                <ui:Button name="topButton3" class="icon-text-btn">
+                    <ui:VisualElement name="expressionIcon" class="icon-m icon-expressions" />
+                    <ui:Label text="Expressions" class="label" />
+                </ui:Button>
+            </ui:VisualElement>
+            <!-- キャプチャーボタン: 構造とプログレス管理などは既存の制御系のコードを考慮して、aiCamの構造を踏襲 -->
+            <ui:VisualElement name="captureButtonBar" class="capture-button-bar">
+                <ui:VisualElement name="captureButton" class="capture-button">
+                    <ui:VisualElement name="outerRing" picking-mode="Ignore" class="outer-ring" />
+                    <ui:VisualElement name="innerCircle" picking-mode="Ignore" class="inner-circle" />
+                    <ui:VisualElement name="progressRing" picking-mode="Ignore" class="progress-ring">
+                        <ui:VisualElement name="progressRingBg" picking-mode="Ignore" class="progress-ring-bg" />
+                        <ui:VisualElement name="progressArc" picking-mode="Ignore" class="progress-arc" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <!-- フラッシュ時のオーバーレイ：元々のaiCamの構造を踏襲 -->
+        <ui:VisualElement name="flashOverlay" picking-mode="Ignore" class="flash-overlay" />
+        <!-- プレビューの全画面表示用のオーバーレイ：元々のaiCamの構造を踏襲 -->
+        <ui:VisualElement name="viewerOverlay" class="viewer-overlay">
+            <ui:Image name="viewerImage" picking-mode="Ignore" class="viewer-image" />
+        </ui:VisualElement>
+        <ui:VisualElement name="iconPreviewPanel" class="icon-preview-panel">
+            <ui:VisualElement name="iconPreviewImage" class="icon-preview-image" />
+            <ui:VisualElement class="icon-preview-button-container">
+                <ui:Button name="iconPreviewRetake" text="撮り直す" class="icon-preview-button retake" />
+                <ui:Button name="iconPreviewConfirm" text="確定" class="icon-preview-button confirm" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- =========================================================
+              ライティングパネル全体 ：　🔴uxmlはそのまま維持しているが、ussのファイルを分割したためもしかしたら元のC#に影響があるかもしれない。
+             ========================================================= -->
+        <ui:VisualElement name="settingsPanelBackdrop" class="lighting-panel-backdrop" />
+
+        <ui:VisualElement name="lightingPanelOverlay" class="lighting-panel-overlay">
+            <ui:VisualElement name="lightingPanel" class="lighting-panel">
+                <!-- ヘッダー-->
+                <ui:VisualElement class="lighting-panel-header">
+                    <ui:Label text="Lighting" class="lighting-panel-title" />
+                    <ui:Button name="lightingPanelClose" text="×" class="lighting-panel-close" />
+                </ui:VisualElement>
+
+                <!-- Auto Lighting Sync : true / falseでコントロールする構造で、
+                既存のC#からコントロールしていると想定。そのままの構造を維持。また、
+                UI側のc#でAuto SynceのValueの付け外しの制御を考えていたが、既存システムへの影響を考慮して現状維持-->
+                <ui:VisualElement class="lighting-section">
+                    <ui:VisualElement class="toggle-row">
+                        <ui:Label text="Auto Light Sync" class="toggle-label" />
+                        <ui:Toggle name="arSyncToggle" value="true" class="ar-sync-toggle" />
+                    </ui:VisualElement>
+                    <!-- <ui:Label text="Automatically match scene lighting" class="ar-sync-description" /> -->
+                </ui:VisualElement>
+
+                <ui:VisualElement name="autoSyncDivider" class="divider" /> <!-- Diver追加 -->
+
+                <!-- Tab 選択バー：Tab機能を追加したことにより、セクションを新規追加：🔴TabControl用のC#スクリプトを残す -->
+                <ui:VisualElement name="tabBar" class="tab-bar">
+
+                    <ui:VisualElement name="tabContainer" class="tab-container">
+                        <ui:VisualElement name="tabMood" class="tab is-selected">
+                            <ui:Label text="Mood" class="tab-label" />
+                        </ui:VisualElement>
+
+                        <ui:VisualElement name="tabDirection" class="tab">
+                            <ui:Label text="Direction" class="tab-label" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+
+                </ui:VisualElement>
+
+                <!-- Mood Tab: タブを２つに分けたことで、タブをまとめるセクションを追加 : 🔴同上、TabControl用のC#を残す-->
+                <ui:VisualElement name="lightingPanelMood" class="tab-content is-active">
+                    <ui:VisualElement name="lightingMoodContainer" class="mood-root">
+                        
+                        
+                        <!-- Presetセクション ：　標準搭載のScrollViewを追加した以外は、元の形を維持-->
+                        <ui:VisualElement class="lighting-section">
+                            <ui:Label text="Preset" class="section-label" />
+
+                            <ui:ScrollView name="presetSelections" class="preset-selections" mode="Horizontal" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden">
+                                <ui:VisualElement name="presetContainer" class="preset-container" >
+                                    <ui:Button name="presetAuto" text="Auto" class="preset-button preset-selected" />
+                                    <ui:Button name="presetSunny" text="Sunny" class="preset-button" />
+                                    <ui:Button name="presetCloudy" text="Cloudy" class="preset-button" />
+                                    <ui:Button name="presetIndoor" text="Indoor" class="preset-button" />
+                                    <ui:Button name="presetWarm" text="Warm" class="preset-button" />
+                                    <ui:Button name="presetSunset" text="Sunset" class="preset-button" />
+                                </ui:VisualElement>
+                            </ui:ScrollView>
+                        </ui:VisualElement>
+
+
+                        <!-- 色温度の調整スライダー：スタイダーの見た目の変更のみ、元々の構造を維持 -->
+                        <ui:VisualElement class="lighting-section">
+                            <ui:VisualElement class="slider-header">
+                                <ui:Label text="Color Temperature" class="section-label" />
+                                <ui:Label name="colorTempValue" text="5500K" class="slider-value" />
+                            </ui:VisualElement>
+                            <ui:Slider name="colorTempSlider" low-value="2000" high-value="10000" value="5500" class="lighting-slider" />
+                        </ui:VisualElement>
+
+                        <!-- 輝度の調整スライダー：スタイダーの見た目の変更のみ、元々の構造を維持-->
+                        <ui:VisualElement class="lighting-section">
+                            <ui:VisualElement class="slider-header">
+                                <ui:Label text="Brightness" class="section-label" />
+                                <ui:Label name="brightnessValue" text="1.0" class="slider-value" />
+                            </ui:VisualElement>
+                            <ui:Slider name="brightnessSlider" low-value="0.1" high-value="2.0" value="1.0" class="lighting-slider" />
+                        </ui:VisualElement>
+
+                    </ui:VisualElement>
+
+                </ui:VisualElement>
+
+                <!-- Direction Tab: タブを２つに分けたことで、タブをまとめるセクションを追加 : 🔴同上、TabControl用のC#を残す-->
+                <ui:VisualElement name="lightingPanelDirection" class="tab-content">
+                    <ui:VisualElement name="lightingDirectionContainer" class="direction-root">
+                       
+                        <!-- <ui:Label text="Light Direction" class="section-label" /> -->
+                        
+                        <ui:VisualElement name="DirectionControl" class="direction-control">
+                            <ui:Label text="Direction" class="section-label" />
+                            <!-- ライト方向コントロールパッド ：　パッドの構造はそのまま維持。大きさを変更したため、もしかしたら大元のコードの計算がズレるかもしれない-->
+                            <ui:VisualElement name="lightDirectionBackground" class="light-direction-background">
+                                <ui:Label text="N" class="direction-label direction-n" />
+                                <ui:Label text="S" class="direction-label direction-s" />
+                                <ui:Label text="E" class="direction-label direction-e" />
+                                <ui:Label text="W" class="direction-label direction-w" />
+                                <ui:VisualElement name="lightDirectionKnob" class="light-direction-knob" />
+                            </ui:VisualElement>
+
+                        </ui:VisualElement>
+
+                        <!-- ライトの高さコントロールスライダー：元々の構造を維持。見た目だけ変更を追加 -->
+                        <ui:VisualElement class="elevation-control">
+                            <ui:VisualElement class="elev-title-bar">
+                                <ui:Label text="Elevation" class="section-label" />
+                                <ui:Label name="elevationValue" text="50°" class="elevation-value" />
+                            </ui:VisualElement>
+
+                            <ui:Slider name="elevationSlider" low-value="10" high-value="90" value="50" direction="Vertical" class="elevation-slider" />
+                        </ui:VisualElement>
+                            
+                        
+
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- ======================================
+               シャドウパネル全体 🔴uxmlはそのまま維持しているが、ussのファイルを分割したためもしかしたら元のC#に影響があるかもしれない。
+             ====================================== -->
+        <!-- <ui:VisualElement name="shadowPanelBackdrop" class="shadow-panel-backdrop" /> --> <!-- バックドロップが効いてなかったため、追加 -->
+
+        <ui:VisualElement name="shadowPanelOverlay" class="shadow-panel-overlay">
+            <ui:VisualElement name="shadowPanel" class="shadow-panel">
+                <!-- ヘッダー -->
+                <ui:VisualElement class="shadow-panel-header">
+                    <ui:Label text="Shadow" class="shadow-panel-title" />
+                    <ui:Button name="shadowPanelClose" text="×" class="shadow-panel-close" />
+                </ui:VisualElement>
+                <!-- シャドウON/OFFの切り替え : 見た目をussで変更、元々の構造を維持-->
+                <ui:VisualElement class="shadow-section">
+                    <ui:VisualElement class="toggle-row">
+                        <ui:Label text="Enable Shadow" class="toggle-label" />
+                        <ui:Toggle name="shadowToggle" value="true" class="shadow-toggle" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+                <ui:VisualElement name="shadowEnableDivider" class="divider" /> <!-- Diver追加 -->
+
+                <!-- Intensityの調整スライダー : 見た目の調整、元々の構造を維持-->
+                <ui:VisualElement name="shadowIntensityControl" class="shadow-section">
+                    <ui:VisualElement class="slider-header">
+                        <ui:Label text="Intensity" class="section-label" />
+                        <ui:Label name="shadowIntensityValue" text="0.6" class="slider-value" />
+                    </ui:VisualElement>
+                    <ui:Slider name="shadowIntensitySlider" low-value="0" high-value="1" value="0.6" class="shadow-slider" />
+                </ui:VisualElement>
+                <!-- ソフトネスの選択セクション : 見た目の調整、元々の構造を維持-->
+                <ui:VisualElement name="shadowSoftnessControl" class="shadow-section">
+                    <ui:Label text="Softness" class="section-label" />
+                    <ui:VisualElement class="softness-buttons">
+                        <ui:Button name="softHard" text="Hard" class="softness-button" />
+                        <ui:Button name="softMedium" text="Medium" class="softness-button softness-selected" />
+                        <ui:Button name="softSoft" text="Soft" class="softness-button" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <!-- バージョン表示（右下） -->
+        <ui:Label name="versionLabel" text="v0.0.0 (0)" picking-mode="Ignore" class="version-label" />
+    </ui:VisualElement>
+</ui:UXML>

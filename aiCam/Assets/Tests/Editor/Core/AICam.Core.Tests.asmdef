@@ -1,0 +1,31 @@
+{
+    "name": "AICam.Core.Tests",
+    "rootNamespace": "AICam.Core.Tests",
+    "references": [
+        "UniTask",
+        "AICam.Core",
+        "AICam.VRMLoader",
+        "UniGLTF"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.dsgarage.runtime-texture-compressor",
+            "expression": "",
+            "define": "RUNTIME_TEXTURE_COMPRESSOR"
+        }
+    ],
+    "noEngineReferences": false
+}

@@ -1,11 +1,18 @@
 using UnityEngine;
 using System;
 using System.Text;
+using System.Diagnostics;
 using Cysharp.Threading.Tasks;
 using AICam.AvatarBuilder;
+using AICam.Core;
+using AICam.Core.IO;
+using AICam.Core.Texture;
+using AICam.Analytics;
+using AICam.Analytics.DTOs;
 using UniGLTF;
 using VRM;
 using UniVRM10;
+using Debug = UnityEngine.Debug;
 
 namespace AICam.FBXLoader
 {
@@ -40,12 +47,20 @@ namespace AICam.FBXLoader
         // 読み込まれたVRMのバージョン
         private VrmVersion loadedVrmVersion = VrmVersion.Unknown;
 
+        // Issue #440: 圧縮テクスチャデシリアライザ (VRMテクスチャメモリ約89%削減)
+        private static readonly CompressedTextureDeserializer _textureDeserializer = new CompressedTextureDeserializer();
+
         private GameObject currentModel;
 
         // スロット連携用
         private int currentSlotIndex = -1;
         private bool shouldCaptureIcon = false;
         private string pendingIconPath = null;
+
+        // テレメトリ用
+        private Stopwatch _loadStopwatch;
+        private string _currentFilePath;
+        private long _currentFileSize;
 
         /// <summary>
         /// 現在読み込まれているモデルを取得
@@ -326,11 +341,16 @@ namespace AICam.FBXLoader
             {
                 Debug.Log($"[RuntimeFBXLoaderBridge] Starting VRM load: {browser.SelectedPath}");
 
-                onProgress?.Invoke(20f);
-
-                // ファイル読み込み
-                byte[] bytes = await System.IO.File.ReadAllBytesAsync(browser.SelectedPath);
+                // Issue #440: チャンク化ファイル読み込み（0-40%をファイル読み込みに割り当て）
+                byte[] bytes = await ChunkedFileReader.ReadAllBytesAsync(
+                    browser.SelectedPath,
+                    onProgress,
+                    progressStart: 0f,
+                    progressEnd: 40f);
                 Debug.Log($"[RuntimeFBXLoaderBridge] Read {bytes.Length} bytes from file");
+
+                // テレメトリ計測開始
+                StartTelemetryMeasurement(browser.SelectedPath, bytes.Length);
 
                 onProgress?.Invoke(40f);
 
@@ -343,11 +363,13 @@ namespace AICam.FBXLoader
                     Debug.Log("[RuntimeFBXLoaderBridge] Loading as VRM 1.0 using Vrm10.LoadBytesAsync...");
                     // ControlRigGenerationOption.None: ControlRigがAnimator.avatarを上書きするのを防ぐ
                     // これにより、AnimatorOverrideControllerでのポーズ切り替えが正常に動作する
+                    // Issue #440: 圧縮テクスチャデシリアライザを使用
                     currentVrm10Instance = await Vrm10.LoadBytesAsync(
                         bytes: bytes,
                         canLoadVrm0X: false,
                         showMeshes: true,
                         awaitCaller: new RuntimeOnlyAwaitCaller(),
+                        textureDeserializer: _textureDeserializer,
                         controlRigGenerationOption: ControlRigGenerationOption.None
                     );
 
@@ -372,7 +394,7 @@ namespace AICam.FBXLoader
                         awaitCaller: new RuntimeOnlyAwaitCaller(),
                         materialGeneratorCallback: null,
                         metaCallback: null,
-                        textureDeserializer: null,
+                        textureDeserializer: _textureDeserializer,
                         loadAnimation: false,
                         springboneRuntime: null
                     );
@@ -428,6 +450,9 @@ namespace AICam.FBXLoader
                 // アニメーションの設定（スクリーンショット撮影後）
                 SetupAnimator(currentModel);
 
+                // Blob Shadow（足元の丸影）にアバターを設定
+                SetupBlobShadow(currentModel.transform);
+
                 onProgress?.Invoke(100f);
 
                 onComplete?.Invoke(true);
@@ -459,10 +484,16 @@ namespace AICam.FBXLoader
             {
                 Debug.Log($"[RuntimeFBXLoaderBridge] Starting VRM load from path: {filePath}");
 
-                onProgress?.Invoke(20f);
-
-                byte[] bytes = await System.IO.File.ReadAllBytesAsync(filePath);
+                // Issue #440: チャンク化ファイル読み込み（0-40%をファイル読み込みに割り当て）
+                byte[] bytes = await ChunkedFileReader.ReadAllBytesAsync(
+                    filePath,
+                    onProgress,
+                    progressStart: 0f,
+                    progressEnd: 40f);
                 Debug.Log($"[RuntimeFBXLoaderBridge] Read {bytes.Length} bytes from file");
+
+                // テレメトリ計測開始
+                StartTelemetryMeasurement(filePath, bytes.Length);
 
                 onProgress?.Invoke(40f);
 
@@ -472,11 +503,13 @@ namespace AICam.FBXLoader
                 {
                     Debug.Log("[RuntimeFBXLoaderBridge] Loading as VRM 1.0...");
                     // ControlRigGenerationOption.None: ControlRigがAnimator.avatarを上書きするのを防ぐ
+                    // Issue #440: 圧縮テクスチャデシリアライザを使用
                     currentVrm10Instance = await Vrm10.LoadBytesAsync(
                         bytes: bytes,
                         canLoadVrm0X: false,
                         showMeshes: true,
                         awaitCaller: new RuntimeOnlyAwaitCaller(),
+                        textureDeserializer: _textureDeserializer,
                         controlRigGenerationOption: ControlRigGenerationOption.None
                     );
 
@@ -500,7 +533,7 @@ namespace AICam.FBXLoader
                         awaitCaller: new RuntimeOnlyAwaitCaller(),
                         materialGeneratorCallback: null,
                         metaCallback: null,
-                        textureDeserializer: null,
+                        textureDeserializer: _textureDeserializer,
                         loadAnimation: false,
                         springboneRuntime: null
                     );
@@ -540,8 +573,17 @@ namespace AICam.FBXLoader
 
                 SetupAnimator(currentModel);
 
+                // Blob Shadow（足元の丸影）にアバターを設定
+                SetupBlobShadow(currentModel.transform);
+
                 // アイコン撮影
                 await CaptureIconIfNeeded();
+
+                // テレメトリ送信
+                if (loadedVrmVersion == VrmVersion.VRM_1_0)
+                    SendVrm10SuccessTelemetry();
+                else
+                    SendVrm0xSuccessTelemetry();
 
                 onProgress?.Invoke(100f);
                 onComplete?.Invoke(true);
@@ -551,6 +593,12 @@ namespace AICam.FBXLoader
                 Debug.LogError($"[RuntimeFBXLoaderBridge] VRM load failed: {e.Message}");
                 AlertBarController.ErrorVrmLoadFailed(e.Message);
                 FBXImportLogger.StopCaptureAndSave(takeScreenshot: false);
+
+                // テレメトリ送信（失敗）
+                SendFailureTelemetry(
+                    loadedVrmVersion == VrmVersion.VRM_1_0 ? "VRM_1_0" : "VRM_0_x",
+                    e.Message);
+
                 ResetSlotState();
                 onComplete?.Invoke(false);
             }
@@ -566,6 +614,11 @@ namespace AICam.FBXLoader
                 FBXImportLogger.StartCapture();
 
                 Debug.Log($"[RuntimeFBXLoaderBridge] Starting FBX load from path: {filePath}");
+
+                // テレメトリ計測開始
+                long fileSize = 0;
+                try { fileSize = new System.IO.FileInfo(filePath).Length; } catch { }
+                StartTelemetryMeasurement(filePath, fileSize);
 
                 onProgress?.Invoke(20f);
 
@@ -636,6 +689,9 @@ namespace AICam.FBXLoader
 
                     SetupAnimator(currentModel);
 
+                    // Blob Shadow（足元の丸影）にアバターを設定
+                    SetupBlobShadow(currentModel.transform);
+
                     // アイコン撮影
                     await CaptureIconIfNeeded();
 
@@ -655,10 +711,17 @@ namespace AICam.FBXLoader
                 {
                     FBXImportLogger.CaptureMultiAngleScreenshot(currentModel);
                     FBXImportLogger.StopCaptureAndSave(takeScreenshot: true);
+
+                    // テレメトリ送信（成功）
+                    SendFbxSuccessTelemetry();
                 }
                 else
                 {
                     FBXImportLogger.StopCaptureAndSave(takeScreenshot: false);
+
+                    // テレメトリ送信（失敗）
+                    SendFailureTelemetry("FBX", "Avatar creation failed");
+
                     ResetSlotState();
                 }
 
@@ -669,6 +732,10 @@ namespace AICam.FBXLoader
                 Debug.LogError($"[RuntimeFBXLoaderBridge] FBX load failed: {e.Message}");
                 AlertBarController.ErrorFbxLoadFailed(e.Message);
                 FBXImportLogger.StopCaptureAndSave(takeScreenshot: false);
+
+                // テレメトリ送信（失敗）
+                SendFailureTelemetry("FBX", e.Message);
+
                 ResetSlotState();
                 onComplete?.Invoke(false);
             }
@@ -685,6 +752,10 @@ namespace AICam.FBXLoader
                 FBXImportLogger.StartCapture();
 
                 Debug.Log($"[RuntimeFBXLoaderBridge] Starting Assimp FBX load: {browser.SelectedPath}");
+
+                // テレメトリ計測開始
+                var fileInfo = new System.IO.FileInfo(browser.SelectedPath);
+                StartTelemetryMeasurement(browser.SelectedPath, fileInfo.Length);
 
                 onProgress?.Invoke(20f);
 
@@ -772,6 +843,9 @@ namespace AICam.FBXLoader
                     // アニメーションの設定
                     SetupAnimator(currentModel);
 
+                    // Blob Shadow（足元の丸影）にアバターを設定
+                    SetupBlobShadow(currentModel.transform);
+
                     onProgress?.Invoke(100f);
                     loadSuccess = true;
                 }
@@ -819,6 +893,8 @@ namespace AICam.FBXLoader
 
         /// <summary>
         /// モデルを配置
+        /// Issue #425: アバターロード後にカメラの1m前方に表示するよう初期位置を調整
+        /// Issue #433: マテリアルキャッシュをクリアしてライティング設定を正しく反映
         /// </summary>
         private void PlaceModel(GameObject model)
         {
@@ -826,14 +902,77 @@ namespace AICam.FBXLoader
 
             Transform parent = modelParent != null ? modelParent : transform;
             model.transform.SetParent(parent, false);
-            model.transform.localPosition = modelPosition;
-            model.transform.localRotation = Quaternion.Euler(modelRotation);
+
+            // Issue #425: カメラの1m前方に配置（デバイス位置からアバター内部が見える問題を回避）
+            Camera mainCamera = Camera.main;
+            Debug.Log($"[RuntimeFBXLoaderBridge] Issue #425: Camera.main = {(mainCamera != null ? mainCamera.name : "null")}");
+
+            if (mainCamera != null)
+            {
+                // カメラの前方1mの位置を計算（Y軸は0=地面レベル）
+                Vector3 cameraPosition = mainCamera.transform.position;
+                Vector3 cameraForward = mainCamera.transform.forward;
+                Debug.Log($"[RuntimeFBXLoaderBridge] Issue #425: Camera position = {cameraPosition}, forward = {cameraForward}");
+
+                // 水平面上の前方ベクトルを計算（Y成分を0に）
+                Vector3 horizontalForward = new Vector3(cameraForward.x, 0f, cameraForward.z);
+                float horizontalMagnitude = horizontalForward.magnitude;
+                Debug.Log($"[RuntimeFBXLoaderBridge] Issue #425: horizontalForward = {horizontalForward}, magnitude = {horizontalMagnitude}");
+
+                Vector3 spawnPosition;
+
+                // 水平方向成分が十分にある場合のみ使用（カメラが真上/真下を向いている場合は使えない）
+                if (horizontalMagnitude > 0.1f)
+                {
+                    horizontalForward = horizontalForward / horizontalMagnitude; // 正規化
+                    // カメラの水平前方1mの位置、地面レベルに配置
+                    spawnPosition = new Vector3(
+                        cameraPosition.x + horizontalForward.x * 1.0f,
+                        0f, // 地面レベル
+                        cameraPosition.z + horizontalForward.z * 1.0f
+                    );
+                    Debug.Log($"[RuntimeFBXLoaderBridge] Issue #425: Using camera-relative position");
+                }
+                else
+                {
+                    // カメラが真上/真下を向いている場合はカメラのZ方向に1m前に配置
+                    spawnPosition = new Vector3(cameraPosition.x, 0f, cameraPosition.z + 1.0f);
+                    Debug.Log($"[RuntimeFBXLoaderBridge] Issue #425: Camera pointing up/down, using fallback Z+1m");
+                }
+
+                model.transform.position = spawnPosition;
+
+                // カメラの方を向かせる（Y軸のみ回転）
+                Vector3 lookDirection = new Vector3(cameraPosition.x - spawnPosition.x, 0f, cameraPosition.z - spawnPosition.z);
+                if (lookDirection.sqrMagnitude > 0.001f)
+                {
+                    model.transform.rotation = Quaternion.LookRotation(lookDirection);
+                }
+                else
+                {
+                    // lookDirectionがゼロに近い場合はデフォルトの向き
+                    model.transform.rotation = Quaternion.identity;
+                }
+
+                Debug.Log($"[RuntimeFBXLoaderBridge] Issue #425: Avatar placed at {spawnPosition}, rotation = {model.transform.rotation.eulerAngles}");
+            }
+            else
+            {
+                // フォールバック: カメラが見つからない場合は従来の位置を使用
+                model.transform.localPosition = modelPosition;
+                model.transform.localRotation = Quaternion.Euler(modelRotation);
+                Debug.Log($"[RuntimeFBXLoaderBridge] Issue #425 Fallback: Camera not found, using default position {modelPosition}");
+            }
+
             model.transform.localScale = modelScale;
 
             Debug.Log($"[RuntimeFBXLoaderBridge] Model placed at World Position: {model.transform.position}");
             Debug.Log($"[RuntimeFBXLoaderBridge] Model Rotation: {model.transform.rotation.eulerAngles}");
             Debug.Log($"[RuntimeFBXLoaderBridge] Model Scale: {model.transform.lossyScale}");
             Debug.Log($"[RuntimeFBXLoaderBridge] Parent: {(parent != null ? parent.name : "null")}");
+
+            // Issue #433/#442: LightingPanelControllerのライティング・シャドウ設定を再適用
+            ReapplyLightingSettings();
 
             // レンダラーの確認
             var renderers = model.GetComponentsInChildren<Renderer>();
@@ -845,7 +984,30 @@ namespace AICam.FBXLoader
         }
 
         /// <summary>
+        /// Issue #433/#442: LightingPanelControllerのライティング・シャドウ設定を再適用
+        /// 新しいアバターがロードされた時に呼び出す
+        ///
+        /// 修正: FindFirstObjectByType<LightingPanelController> ではなく
+        /// CameraCaptureController.ReapplyLightingSettings() を使用
+        /// LightingPanelController は遅延初期化されるため、直接検索すると null になる
+        /// </summary>
+        private void ReapplyLightingSettings()
+        {
+            var cameraController = FindFirstObjectByType<AICam.UI.CameraCaptureController>();
+            if (cameraController != null)
+            {
+                cameraController.ReapplyLightingSettings();
+                Debug.Log("[RuntimeFBXLoaderBridge] Issue #442: Delegated to CameraCaptureController.ReapplyLightingSettings()");
+            }
+            else
+            {
+                Debug.LogWarning("[RuntimeFBXLoaderBridge] CameraCaptureController not found");
+            }
+        }
+
+        /// <summary>
         /// Animatorの設定
+        /// Issue #430: 診断ログを強化して問題特定を容易に
         /// </summary>
         private void SetupAnimator(GameObject model)
         {
@@ -868,18 +1030,101 @@ namespace AICam.FBXLoader
                 Debug.Log($"[RuntimeFBXLoaderBridge] Found existing Animator component. Current controller: {(animator.runtimeAnimatorController != null ? animator.runtimeAnimatorController.name : "null")}");
             }
 
-            // Avatarのチェック
+            // Issue #430: Avatarの詳細な診断ログ
             if (animator.avatar != null)
             {
                 Debug.Log($"[RuntimeFBXLoaderBridge] Avatar is assigned: {animator.avatar.name}, IsValid: {animator.avatar.isValid}, IsHuman: {animator.avatar.isHuman}");
+
+                // Humanoid Avatarの場合、ボーンマッピングを検証
+                if (animator.avatar.isHuman)
+                {
+                    ValidateHumanoidBones(animator, model.name);
+                }
+                else
+                {
+                    Debug.LogWarning($"[RuntimeFBXLoaderBridge] Issue #430: Avatar '{animator.avatar.name}' is NOT Humanoid. Pose playback will not work correctly.");
+                    AlertBarController.ShowWarning($"アバター '{model.name}' はHumanoidではありません。ポーズが正常に動作しない可能性があります。");
+                }
             }
             else
             {
                 Debug.LogWarning("[RuntimeFBXLoaderBridge] ⚠ Avatar is NOT assigned! Humanoid animation will not work.");
+                AlertBarController.ShowWarning($"アバター '{model.name}' のAvatarが未設定です。ポーズが動作しません。");
             }
 
             // Issue #407: AnimatorControllerはCameraCaptureController.ApplyDefaultAOCで設定するため、ここでは設定しない
             Debug.Log($"[RuntimeFBXLoaderBridge] Animator setup complete. Controller will be assigned by CameraCaptureController.ApplyDefaultAOC()");
+        }
+
+        /// <summary>
+        /// Issue #430: Humanoidボーンマッピングを検証
+        /// 必須ボーンが正しくマッピングされているかチェック
+        /// </summary>
+        private void ValidateHumanoidBones(Animator animator, string modelName)
+        {
+            // 必須ボーンのリスト
+            HumanBodyBones[] requiredBones = new HumanBodyBones[]
+            {
+                HumanBodyBones.Hips,
+                HumanBodyBones.Spine,
+                HumanBodyBones.Head,
+                HumanBodyBones.LeftUpperArm,
+                HumanBodyBones.LeftLowerArm,
+                HumanBodyBones.RightUpperArm,
+                HumanBodyBones.RightLowerArm,
+                HumanBodyBones.LeftUpperLeg,
+                HumanBodyBones.LeftLowerLeg,
+                HumanBodyBones.RightUpperLeg,
+                HumanBodyBones.RightLowerLeg
+            };
+
+            int missingCount = 0;
+            System.Text.StringBuilder missingBones = new System.Text.StringBuilder();
+
+            foreach (var bone in requiredBones)
+            {
+                Transform boneTransform = animator.GetBoneTransform(bone);
+                if (boneTransform == null)
+                {
+                    missingCount++;
+                    if (missingBones.Length > 0) missingBones.Append(", ");
+                    missingBones.Append(bone.ToString());
+                }
+            }
+
+            if (missingCount > 0)
+            {
+                Debug.LogWarning($"[RuntimeFBXLoaderBridge] Issue #430: Model '{modelName}' is missing {missingCount} required bones: {missingBones}");
+                AlertBarController.ShowWarning($"アバター '{modelName}' に必須ボーンが不足しています。ポーズが正常に動作しない可能性があります。");
+            }
+            else
+            {
+                Debug.Log($"[RuntimeFBXLoaderBridge] Issue #430: All required Humanoid bones are present for '{modelName}'");
+            }
+        }
+
+        /// <summary>
+        /// Blob Shadow（足元の丸影）を設定
+        /// BlobShadowControllerが存在しなければ作成する
+        /// </summary>
+        private void SetupBlobShadow(Transform avatarRoot)
+        {
+            if (avatarRoot == null) return;
+
+            var blobShadow = AICam.AR.BlobShadowController.Instance;
+
+            // BlobShadowControllerが存在しなければ作成
+            if (blobShadow == null)
+            {
+                var shadowObj = new GameObject("BlobShadow");
+                blobShadow = shadowObj.AddComponent<AICam.AR.BlobShadowController>();
+                Debug.Log("[RuntimeFBXLoaderBridge] Created BlobShadowController");
+            }
+
+            // アバターを設定して有効化
+            blobShadow.SetAvatar(avatarRoot);
+            blobShadow.SetEnabled(true);
+            Debug.Log($"[RuntimeFBXLoaderBridge] BlobShadow set for avatar: {avatarRoot.name}");
         }
 
         /// <summary>
@@ -983,6 +1228,14 @@ namespace AICam.FBXLoader
             // モデルをアクティブ化
             model.SetActive(true);
 
+            // Issue #436: キャッシュから復元時にレンダラーが無効のままになる問題を修正
+            // すべてのレンダラーを有効化
+            var renderers = model.GetComponentsInChildren<Renderer>(true);
+            foreach (var renderer in renderers)
+            {
+                renderer.enabled = true;
+            }
+
             // VRMバージョンを検出
             var vrm10 = model.GetComponent<Vrm10Instance>();
             if (vrm10 != null)
@@ -995,6 +1248,9 @@ namespace AICam.FBXLoader
                 // VRM 0.xの場合はRuntimeGltfInstanceは再取得できないので Unknown のまま
                 loadedVrmVersion = VrmVersion.Unknown;
             }
+
+            // Blob Shadow（足元の丸影）にアバターを設定
+            SetupBlobShadow(model.transform);
 
             Debug.Log($"[RuntimeFBXLoaderBridge] Set current model from cache: {model.name}, slot: {slotIndex}");
         }
@@ -1076,6 +1332,9 @@ namespace AICam.FBXLoader
                     loadedVrmVersion = VrmVersion.Unknown;
                 }
             }
+
+            // Blob Shadow（足元の丸影）にアバターを設定
+            SetupBlobShadow(model.transform);
 
             Debug.Log($"[RuntimeFBXLoaderBridge] Restored model from cache: {model.name}, slot: {slotIndex}");
             Debug.Log($"[RuntimeFBXLoaderBridge] Final Position: {model.transform.position}, Parent: {model.transform.parent?.name ?? "null"}");
@@ -1428,9 +1687,15 @@ namespace AICam.FBXLoader
             string fileName = System.IO.Path.GetFileNameWithoutExtension(filePath);
 
             Debug.Log($"[RuntimeFBXLoaderBridge] LoadVrmAsync: {filePath}");
-            onProgress?.Invoke(10f);
 
-            byte[] bytes = await System.IO.File.ReadAllBytesAsync(filePath);
+            // Issue #440: チャンク化ファイル読み込み（10-30%をファイル読み込みに割り当て）
+            // ChunkedFileReaderは内部でYieldするのでSwitchToThreadPoolは不要
+            byte[] bytes = await ChunkedFileReader.ReadAllBytesAsync(
+                filePath,
+                onProgress,
+                progressStart: 10f,
+                progressEnd: 30f);
+
             onProgress?.Invoke(30f);
 
             var version = DetectVrmVersion(bytes);
@@ -1439,12 +1704,17 @@ namespace AICam.FBXLoader
 
             if (version == VrmVersion.VRM_1_0)
             {
+                // パース前にYield（重い処理の前）
+                await UniTask.Yield();
+
                 // ControlRigGenerationOption.None: ControlRigがAnimator.avatarを上書きするのを防ぐ
+                // Issue #440: 圧縮テクスチャデシリアライザを使用
                 var vrm10 = await Vrm10.LoadBytesAsync(
                     bytes: bytes,
                     canLoadVrm0X: false,
                     showMeshes: true,
                     awaitCaller: new RuntimeOnlyAwaitCaller(),
+                    textureDeserializer: _textureDeserializer,
                     controlRigGenerationOption: ControlRigGenerationOption.None
                 );
 
@@ -1457,13 +1727,16 @@ namespace AICam.FBXLoader
             }
             else if (version == VrmVersion.VRM_0_x)
             {
+                // パース前にYield（重い処理の前）
+                await UniTask.Yield();
+
                 var gltfInstance = await VrmUtility.LoadBytesAsync(
                     path: fileName,
                     bytes: bytes,
                     awaitCaller: new RuntimeOnlyAwaitCaller(),
                     materialGeneratorCallback: null,
                     metaCallback: null,
-                    textureDeserializer: null,
+                    textureDeserializer: _textureDeserializer,
                     loadAnimation: false,
                     springboneRuntime: null
                 );
@@ -1481,6 +1754,9 @@ namespace AICam.FBXLoader
             {
                 return AvatarLoadResult.Failed("Unknown VRM version");
             }
+
+            // パース完了後にYield（UIの更新機会を与える）
+            await UniTask.Yield();
 
             onProgress?.Invoke(70f);
 
@@ -1513,6 +1789,9 @@ namespace AICam.FBXLoader
             Debug.Log($"[RuntimeFBXLoaderBridge] LoadFbxAsync: {filePath}");
             onProgress?.Invoke(10f);
 
+            // UIの応答性を維持するためにYield
+            await UniTask.Yield();
+
             var loader = new RuntimeAssimpFBXLoader();
             var avatar = await loader.LoadBoneHierarchy(filePath);
 
@@ -1520,6 +1799,9 @@ namespace AICam.FBXLoader
             {
                 return AvatarLoadResult.Failed("Failed to load FBX skeleton");
             }
+
+            // ボーン読み込み後にYield
+            await UniTask.Yield();
 
             onProgress?.Invoke(30f);
 
@@ -1532,11 +1814,21 @@ namespace AICam.FBXLoader
 
             onProgress?.Invoke(40f);
 
+            // メッシュロード前にYield
+            await UniTask.Yield();
+
             await loader.LoadMeshes(avatar);
+
+            // メッシュロード後にYield
+            await UniTask.Yield();
+
             onProgress?.Invoke(50f);
 
             var boneMap = loader.MapHumanoidBones(avatar.transform);
             onProgress?.Invoke(60f);
+
+            // Avatar生成前にYield
+            await UniTask.Yield();
 
             var avatarBuilder = new RuntimeHumanoidAvatarBuilder();
             UnityEngine.Avatar newAvatar;
@@ -1565,10 +1857,15 @@ namespace AICam.FBXLoader
 
             onProgress?.Invoke(80f);
 
-            // マテリアル割り当て
+            // マテリアル割り当て前にYield
+            await UniTask.Yield();
+
             var materialManager = new RuntimeMaterialManager();
             var meshNodeToMaterialNames = loader.GetMeshNodeToMaterialNames();
             await materialManager.AssignMaterials(avatar, filePath, meshNodeToMaterialNames);
+
+            // マテリアル割り当て後にYield
+            await UniTask.Yield();
 
             onProgress?.Invoke(90f);
 
@@ -1580,6 +1877,145 @@ namespace AICam.FBXLoader
             Debug.Log($"[RuntimeFBXLoaderBridge] FBX loaded successfully: {avatar.name}");
             return AvatarLoadResult.Succeeded(avatar, "FBX");
         }
+
+        #region Telemetry
+
+        /// <summary>
+        /// テレメトリ計測を開始
+        /// </summary>
+        private void StartTelemetryMeasurement(string filePath, long fileSize)
+        {
+            _currentFilePath = filePath;
+            _currentFileSize = fileSize;
+            _loadStopwatch = Stopwatch.StartNew();
+        }
+
+        /// <summary>
+        /// VRM 0.x ロード成功時のテレメトリを送信
+        /// </summary>
+        private void SendVrm0xSuccessTelemetry()
+        {
+            if (_loadStopwatch == null) return;
+            _loadStopwatch.Stop();
+
+            var dto = AvatarTelemetryCollector.CollectFromVrm0x(
+                currentModel,
+                _currentFilePath,
+                _currentFileSize,
+                (float)_loadStopwatch.Elapsed.TotalSeconds,
+                success: true,
+                slotIndex: currentSlotIndex
+            );
+
+            SendTelemetry(dto);
+        }
+
+        /// <summary>
+        /// VRM 1.0 ロード成功時のテレメトリを送信
+        /// </summary>
+        private void SendVrm10SuccessTelemetry()
+        {
+            if (_loadStopwatch == null) return;
+            _loadStopwatch.Stop();
+
+            var dto = AvatarTelemetryCollector.CollectFromVrm10(
+                currentModel,
+                _currentFilePath,
+                _currentFileSize,
+                (float)_loadStopwatch.Elapsed.TotalSeconds,
+                success: true,
+                slotIndex: currentSlotIndex
+            );
+
+            SendTelemetry(dto);
+        }
+
+        /// <summary>
+        /// FBX ロード成功時のテレメトリを送信
+        /// </summary>
+        private void SendFbxSuccessTelemetry()
+        {
+            if (_loadStopwatch == null) return;
+            _loadStopwatch.Stop();
+
+            var dto = AvatarTelemetryCollector.CollectFromFBX(
+                currentModel,
+                _currentFilePath,
+                _currentFileSize,
+                (float)_loadStopwatch.Elapsed.TotalSeconds,
+                success: true,
+                slotIndex: currentSlotIndex
+            );
+
+            SendTelemetry(dto);
+        }
+
+        /// <summary>
+        /// ロード失敗時のテレメトリを送信
+        /// </summary>
+        private void SendFailureTelemetry(string vrmVersion, string errorMessage)
+        {
+            if (_loadStopwatch == null) return;
+            _loadStopwatch.Stop();
+
+            AvatarLoadTelemetryDTO dto;
+
+            switch (vrmVersion)
+            {
+                case "VRM_0_x":
+                    dto = AvatarTelemetryCollector.CollectFromVrm0x(
+                        null, _currentFilePath, _currentFileSize,
+                        (float)_loadStopwatch.Elapsed.TotalSeconds,
+                        success: false, errorMessage: errorMessage, slotIndex: currentSlotIndex);
+                    break;
+                case "VRM_1_0":
+                    dto = AvatarTelemetryCollector.CollectFromVrm10(
+                        null, _currentFilePath, _currentFileSize,
+                        (float)_loadStopwatch.Elapsed.TotalSeconds,
+                        success: false, errorMessage: errorMessage, slotIndex: currentSlotIndex);
+                    break;
+                default:
+                    dto = AvatarTelemetryCollector.CollectFromFBX(
+                        null, _currentFilePath, _currentFileSize,
+                        (float)_loadStopwatch.Elapsed.TotalSeconds,
+                        success: false, errorMessage: errorMessage, slotIndex: currentSlotIndex);
+                    break;
+            }
+
+            SendTelemetry(dto);
+        }
+
+        /// <summary>
+        /// テレメトリをサーバーに送信
+        /// </summary>
+        private void SendTelemetry(AvatarLoadTelemetryDTO dto)
+        {
+            Debug.Log($"[Telemetry Debug] SendTelemetry called, dto={dto != null}");
+
+            if (dto == null)
+            {
+                Debug.LogWarning("[Telemetry Debug] dto is null, skipping");
+                return;
+            }
+
+            var client = TelemetryClient.Instance;
+            Debug.Log($"[Telemetry Debug] TelemetryClient.Instance={client != null}, IsEnabled={client?.IsEnabled}");
+            if (client != null && client.IsEnabled)
+            {
+                client.SendAvatarLoadTelemetry(dto, success =>
+                {
+                    AICamLogger.Log(AICamLogger.Category.Telemetry,
+                        $"Avatar telemetry sent: {dto.fileName}, success={dto.success}, sent={success}");
+                });
+            }
+            else
+            {
+                AICamLogger.Log(AICamLogger.Category.Telemetry,
+                    $"TelemetryClient not available, skipping: {dto.fileName}");
+            }
+        }
+
+        #endregion
 
         /// <summary>
         /// アバターを破棄（IAvatarLoader実装）

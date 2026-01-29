@@ -1,6 +1,6 @@
 /* ================================
-   Issue #120/#74: ライティングパネルスタイル
-   コンパクト版 - スクロール不要
+   Issue #120/#74/#432: ライティングパネルスタイル
+   Issue #432: サイズを拡大して操作しやすく調整
 ================================ */
 
 /* フルスクリーンバックドロップ（パネル外クリックで閉じる用） */
@@ -37,12 +37,14 @@
 }
 
 /* メインパネル：コンテナ内に収まるよう自動調整、スクロール対応 */
+/* Issue #432: パディングを増やしてサイズを拡大 */
 .lighting-panel {
     width: 100%;
     max-height: 100%;  /* オーバーレイ内に収まる範囲で最大化 */
     background-color: rgba(20, 20, 20, 0.95);
-    border-radius: 10px;
-    padding: 10px;
+    border-radius: 16px;
+    padding: 16px;
+    padding-bottom: 28px; /* Issue #432: 下部に余白を追加 */
     border-width: 1px;
     border-color: rgba(255, 255, 255, 0.2);
     flex-direction: column;
@@ -50,33 +52,33 @@
     flex-shrink: 1;    /* 必要に応じて縮小 */
 }
 
-/* ヘッダー */
+/* ヘッダー - Issue #432: サイズ拡大 */
 .lighting-panel-header {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 6px;
-    padding-bottom: 6px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
     border-bottom-width: 1px;
     border-bottom-color: rgba(255, 255, 255, 0.15);
     flex-shrink: 0;
-    height: 20px;
+    height: 36px;
 }
 
 .lighting-panel-title {
-    font-size: 12px;
+    font-size: 18px;
     color: white;
     -unity-font-style: bold;
 }
 
 .lighting-panel-close {
-    width: 22px;
-    height: 22px;
-    border-radius: 11px;
+    width: 32px;
+    height: 32px;
+    border-radius: 16px;
     background-color: rgba(255, 255, 255, 0.15);
     border-width: 0;
     color: white;
-    font-size: 12px;
+    font-size: 18px;
     -unity-text-align: middle-center;
 }
 
@@ -88,44 +90,44 @@
     background-color: rgba(76, 175, 255, 0.5);
 }
 
-/* セクション - コンパクト */
+/* セクション - Issue #432: サイズ拡大 */
 .lighting-section {
-    margin-bottom: 6px;
+    margin-bottom: 12px;
     flex-shrink: 0;
 }
 
 .section-label {
-    font-size: 9px;
+    font-size: 14px;
     color: rgba(255, 255, 255, 0.6);
-    margin-bottom: 2px;
+    margin-bottom: 6px;
     -unity-font-style: bold;
 }
 
 .section-label-small {
-    font-size: 8px;
+    font-size: 12px;
     color: rgba(255, 255, 255, 0.5);
-    margin-bottom: 2px;
+    margin-bottom: 4px;
 }
 
-/* プリセットボタン - コンパクト */
+/* プリセットボタン - Issue #432: サイズ拡大 */
 .preset-container {
     flex-direction: row;
     flex-wrap: wrap;
-    margin: -1px;
+    margin: -2px;
     flex-shrink: 0;
 }
 
 .preset-button {
     flex-grow: 0;
-    width: 48px;
-    height: 22px;
-    margin: 1px;
-    border-radius: 5px;
+    width: 80px;
+    height: 36px;
+    margin: 3px;
+    border-radius: 8px;
     background-color: rgba(255, 255, 255, 0.1);
     border-width: 1px;
     border-color: rgba(255, 255, 255, 0.15);
     color: rgba(255, 255, 255, 0.8);
-    font-size: 8px;
+    font-size: 13px;
     -unity-text-align: middle-center;
 }
 
@@ -145,42 +147,42 @@
     -unity-font-style: bold;
 }
 
-/* スライダー共通 - コンパクト */
+/* スライダー共通 - Issue #432: サイズ拡大 */
 .slider-header {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1px;
-    height: 14px;
+    margin-bottom: 4px;
+    height: 24px;
     flex-shrink: 0;
 }
 
 .slider-value {
-    font-size: 9px;
+    font-size: 14px;
     color: rgba(76, 175, 255, 1);
     -unity-font-style: bold;
 }
 
 .lighting-slider {
-    margin-top: 1px;
-    margin-bottom: 2px;
-    height: 16px;
+    margin-top: 4px;
+    margin-bottom: 6px;
+    height: 28px;
     flex-shrink: 0;
 }
 
 .lighting-slider > .unity-base-slider__dragger {
-    width: 14px;
-    height: 14px;
-    border-radius: 7px;
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
     background-color: white;
-    border-width: 2px;
+    border-width: 3px;
     border-color: rgba(76, 175, 255, 1);
-    margin-top: -5px;
+    margin-top: -8px;
 }
 
 .lighting-slider > .unity-base-slider__tracker {
-    height: 4px;
-    border-radius: 2px;
+    height: 8px;
+    border-radius: 4px;
     background-color: rgba(255, 255, 255, 0.2);
 }
 
@@ -188,168 +190,168 @@
     display: none;
 }
 
-/* 色温度グラデーション - コンパクト */
+/* 色温度グラデーション - Issue #432: サイズ拡大 */
 .color-temp-gradient {
-    height: 4px;
-    border-radius: 2px;
-    margin-bottom: 1px;
+    height: 8px;
+    border-radius: 4px;
+    margin-bottom: 4px;
     background: linear-gradient(to right, #ff9500, #ffcc00, #ffffff, #aaccff, #6699ff);
     flex-shrink: 0;
 }
 
-/* ライト方向コントロール - コンパクト版 */
+/* ライト方向コントロール - Issue #432: サイズ拡大 */
 .light-direction-control {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
     flex-shrink: 0;
-    height: 70px;
+    height: 120px;
 }
 
 .light-direction-background {
-    width: 65px;
-    height: 65px;
-    border-radius: 32px;
+    width: 110px;
+    height: 110px;
+    border-radius: 55px;
     background-color: rgba(255, 255, 255, 0.1);
     border-width: 1px;
     border-color: rgba(255, 255, 255, 0.2);
     position: relative;
 }
 
-/* Issue #74: EWSN方向ラベル
-   親: 65x65px, border: 1px → 内部(contentRect): 63x63px
-   ラベル: 8x8px (フォントサイズ7pxに合わせる)
-   水平中央: (63-8)/2 = 27.5 ≈ 27px
-   垂直中央: (63-8)/2 = 27.5 ≈ 27px
+/* Issue #74/#432: EWSN方向ラベル - サイズ拡大
+   親: 110x110px, border: 1px → 内部(contentRect): 108x108px
+   ラベル: 14x14px (フォントサイズ12pxに合わせる)
+   水平中央: (108-14)/2 = 47px
+   垂直中央: (108-14)/2 = 47px
 */
 .direction-label {
     position: absolute;
-    font-size: 7px;
+    font-size: 12px;
     color: rgba(255, 255, 255, 0.5);
     -unity-text-align: middle-center;
-    width: 8px;
-    height: 8px;
+    width: 14px;
+    height: 14px;
 }
 
 .direction-n {
-    top: 1px;
-    left: 27px;
+    top: 2px;
+    left: 47px;
 }
 
 .direction-s {
-    bottom: 1px;
-    left: 27px;
+    bottom: 2px;
+    left: 47px;
 }
 
 .direction-e {
-    right: 1px;
-    top: 27px;
+    right: 2px;
+    top: 47px;
 }
 
 .direction-w {
-    left: 1px;
-    top: 27px;
+    left: 2px;
+    top: 47px;
 }
 
-/* Issue #74: ノブの初期位置
+/* Issue #74/#432: ノブの初期位置 - サイズ拡大
    contentRect基準で計算:
-   - background: 65x65px, border: 1px → contentRect: 63x63px
-   - contentRect中心: 31.5px
-   - ノブ半径: 7px
-   - 有効半径: min(31.5, 31.5) - 12 = 19.5px
-   - 北方向（上）初期位置: left=31.5-7=24.5px, top=31.5-19.5-7=5px
+   - background: 110x110px, border: 1px → contentRect: 108x108px
+   - contentRect中心: 54px
+   - ノブ半径: 12px
+   - 有効半径: min(54, 54) - 18 = 36px
+   - 北方向（上）初期位置: left=54-12=42px, top=54-36-12=6px
 */
 .light-direction-knob {
     position: absolute;
-    width: 14px;
-    height: 14px;
-    border-radius: 7px;
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
     background-color: rgba(255, 200, 50, 1);
-    border-width: 2px;
+    border-width: 3px;
     border-color: white;
-    left: 24px;
-    top: 5px;
+    left: 42px;
+    top: 6px;
 }
 
 .light-direction-knob:hover {
     scale: 1.1;
 }
 
-/* Elevation コントロール - コンパクト */
+/* Elevation コントロール - Issue #432: サイズ拡大 */
 .elevation-control {
     flex-direction: column;
     align-items: center;
-    width: 40px;
+    width: 60px;
 }
 
 .elevation-label {
-    font-size: 7px;
+    font-size: 12px;
     color: rgba(255, 255, 255, 0.5);
-    margin-bottom: 1px;
+    margin-bottom: 4px;
 }
 
 .elevation-slider {
-    height: 50px;
-    width: 20px;
+    height: 80px;
+    width: 32px;
 }
 
 .elevation-slider > .unity-base-slider__dragger {
-    width: 10px;
-    height: 10px;
-    border-radius: 5px;
+    width: 18px;
+    height: 18px;
+    border-radius: 9px;
     background-color: white;
-    border-width: 2px;
+    border-width: 3px;
     border-color: rgba(76, 175, 255, 1);
-    margin-left: -3px;
+    margin-left: -5px;
 }
 
 .elevation-slider > .unity-base-slider__tracker {
-    width: 4px;
-    border-radius: 2px;
+    width: 8px;
+    border-radius: 4px;
     background-color: rgba(255, 255, 255, 0.2);
 }
 
 .elevation-value {
-    font-size: 8px;
+    font-size: 14px;
     color: rgba(76, 175, 255, 1);
-    margin-top: 1px;
+    margin-top: 4px;
 }
 
-/* トグル行 - コンパクト */
+/* トグル行 - Issue #432: サイズ拡大 */
 .toggle-row {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 4px;
-    height: 44px;
+    margin-bottom: 8px;
+    height: 56px;
     flex-shrink: 0;
 }
 
-/* トグル行 - コンパクト版（上下パディング付き） */
+/* トグル行 - Issue #432: サイズ拡大 */
 .toggle-row-compact {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 4px;
-    padding-top: 8px;
-    padding-bottom: 8px;
-    min-height: 28px;
+    margin-bottom: 8px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    min-height: 44px;
     flex-shrink: 0;
 }
 
 .toggle-label {
-    font-size: 9px;
+    font-size: 14px;
     color: rgba(255, 255, 255, 0.8);
     flex-grow: 1;
     flex-shrink: 1;
 }
 
-/* Toggle の枠(40px)は compact 行に合わせる */
+/* Toggle の枠 - Issue #432: サイズ拡大 */
 .toggle-row > Toggle,
 .toggle-row-compact > Toggle {
-    width: 40px;
-    min-width: 40px;
-    max-width: 40px;
+    width: 60px;
+    min-width: 60px;
+    max-width: 60px;
     flex-grow: 0;
     flex-shrink: 0;
     justify-content: center;
@@ -357,15 +359,15 @@
     overflow: hidden;
 }
 
-/* Toggle 本体：スイッチの全体サイズ */
+/* Toggle 本体 - Issue #432: サイズ拡大 */
 .shadow-toggle,
 .ar-sync-toggle {
-    width: 20px;
-    height: 10px;
-    min-width: 20px;
-    min-height: 10px;
-    max-width: 20px;
-    max-height: 10px;
+    width: 40px;
+    height: 22px;
+    min-width: 40px;
+    min-height: 22px;
+    max-width: 40px;
+    max-height: 22px;
     padding: 0;
     margin: 0;
     flex-grow: 0;
@@ -380,15 +382,15 @@
     display: none;
 }
 
-/* input は子孫指定で確実に当てる */
+/* input - Issue #432: サイズ拡大 */
 .shadow-toggle .unity-toggle__input,
 .ar-sync-toggle .unity-toggle__input {
-    width: 20px;
-    height: 10px;
-    min-width: 20px;
-    min-height: 10px;
-    max-width: 20px;
-    max-height: 10px;
+    width: 40px;
+    height: 22px;
+    min-width: 40px;
+    min-height: 22px;
+    max-width: 40px;
+    max-height: 22px;
     padding: 0;
     margin: 0;
     flex-grow: 0;
@@ -396,18 +398,18 @@
     overflow: hidden;
 }
 
-/* checkmark = トラック（背景の帯） */
+/* checkmark = トラック（背景の帯） - Issue #432: サイズ拡大 */
 .shadow-toggle .unity-toggle__checkmark,
 .ar-sync-toggle .unity-toggle__checkmark {
-    width: 20px;
-    height: 10px;
-    min-width: 20px;
-    min-height: 10px;
-    max-width: 20px;
-    max-height: 10px;
+    width: 40px;
+    height: 22px;
+    min-width: 40px;
+    min-height: 22px;
+    max-width: 40px;
+    max-height: 22px;
     padding: 0;
     margin: 0;
-    border-radius: 5px;
+    border-radius: 11px;
     /* デフォ画像は消す（帯だけにする） */
     background-image: none;
     border-width: 0;
@@ -416,16 +418,16 @@
     overflow: hidden;
 }
 
-/* checkmark-image = ノブとして再利用 */
+/* checkmark-image = ノブ - Issue #432: サイズ拡大 */
 .shadow-toggle .unity-toggle__checkmark-image,
 .ar-sync-toggle .unity-toggle__checkmark-image {
     display: flex;
     position: absolute;
-    left: 1px;
-    top: 1px;
-    width: 8px;
-    height: 8px;
-    border-radius: 4px;
+    left: 2px;
+    top: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 9px;
     background-color: white;
 }
 
@@ -437,37 +439,37 @@
     background-color: rgba(76, 175, 255, 1);
 }
 
-/* ON のときノブを右へ */
+/* ON のときノブを右へ - Issue #432: サイズ拡大 */
 .shadow-toggle.unity-toggle--checked .unity-toggle__checkmark-image,
 .ar-sync-toggle.unity-toggle--checked .unity-toggle__checkmark-image,
 .shadow-toggle:checked .unity-toggle__checkmark-image,
 .ar-sync-toggle:checked .unity-toggle__checkmark-image {
-    left: 11px;
+    left: 20px;
 }
 
-/* ソフトネスボタン - コンパクト */
+/* ソフトネスボタン - Issue #432: サイズ拡大 */
 .softness-container {
-    margin-top: 2px;
+    margin-top: 6px;
     flex-shrink: 0;
 }
 
 .softness-buttons {
     flex-direction: row;
-    margin-top: 1px;
-    height: 22px;
+    margin-top: 4px;
+    height: 36px;
     flex-shrink: 0;
 }
 
 .softness-button {
     flex-grow: 1;
-    height: 20px;
-    margin-right: 3px;
-    border-radius: 4px;
+    height: 32px;
+    margin-right: 6px;
+    border-radius: 8px;
     background-color: rgba(255, 255, 255, 0.1);
     border-width: 1px;
     border-color: rgba(255, 255, 255, 0.15);
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 8px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 13px;
 }
 
 .softness-button:last-child {
@@ -513,7 +515,7 @@
 }
 
 /* ================================
-   シャドウパネルスタイル
+   シャドウパネルスタイル - Issue #432: サイズ拡大
 ================================ */
 
 /* オーバーレイ（パネルコンテナ） */
@@ -521,7 +523,7 @@
     position: absolute;
     left: 8px;
     right: 8px;
-    bottom: 80px;
+    bottom: 100px;
     background-color: transparent;
     display: none;
     flex-direction: column;
@@ -533,43 +535,44 @@
     display: flex;
 }
 
-/* メインパネル */
+/* メインパネル - Issue #432: サイズ拡大 */
 .shadow-panel {
     width: 100%;
     background-color: rgba(20, 20, 20, 0.95);
-    border-radius: 10px;
-    padding: 10px;
+    border-radius: 16px;
+    padding: 16px;
+    padding-bottom: 24px;
     border-width: 1px;
     border-color: rgba(255, 255, 255, 0.2);
     flex-direction: column;
 }
 
-/* ヘッダー */
+/* ヘッダー - Issue #432: サイズ拡大 */
 .shadow-panel-header {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
-    padding-bottom: 6px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
     border-bottom-width: 1px;
     border-bottom-color: rgba(255, 255, 255, 0.15);
-    height: 20px;
+    height: 36px;
 }
 
 .shadow-panel-title {
-    font-size: 12px;
+    font-size: 18px;
     color: white;
     -unity-font-style: bold;
 }
 
 .shadow-panel-close {
-    width: 22px;
-    height: 22px;
-    border-radius: 11px;
+    width: 32px;
+    height: 32px;
+    border-radius: 16px;
     background-color: rgba(255, 255, 255, 0.15);
     border-width: 0;
     color: white;
-    font-size: 12px;
+    font-size: 18px;
     -unity-text-align: middle-center;
 }
 
@@ -581,30 +584,30 @@
     background-color: rgba(76, 175, 255, 0.5);
 }
 
-/* セクション */
+/* セクション - Issue #432: サイズ拡大 */
 .shadow-section {
-    margin-bottom: 8px;
+    margin-bottom: 12px;
 }
 
-/* シャドウスライダー */
+/* シャドウスライダー - Issue #432: サイズ拡大 */
 .shadow-slider {
-    margin-top: 2px;
-    margin-bottom: 2px;
-    height: 16px;
+    margin-top: 4px;
+    margin-bottom: 6px;
+    height: 28px;
 }
 
 .shadow-slider > .unity-base-slider__dragger {
-    width: 14px;
-    height: 14px;
-    border-radius: 7px;
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
     background-color: white;
-    border-width: 2px;
+    border-width: 3px;
     border-color: rgba(76, 175, 255, 1);
-    margin-top: -5px;
+    margin-top: -8px;
 }
 
 .shadow-slider > .unity-base-slider__tracker {
-    height: 4px;
-    border-radius: 2px;
+    height: 8px;
+    border-radius: 4px;
     background-color: rgba(255, 255, 255, 0.2);
 }

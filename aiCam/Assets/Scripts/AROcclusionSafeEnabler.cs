@@ -3,6 +3,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
+using PierCamera.Analytics;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -133,7 +134,18 @@ public class AROcclusionSafeEnabler : MonoBehaviour
             yield break;
         }
 
-        Debug.Log("[AROcclusionSafeEnabler] Starting EnableWhenReady coroutine...");
+        // Issue #473: LiDARなし端末では早期リターン（無駄な待機とリトライをスキップ）
+        bool hasLiDAR = DeviceAnalytics.HasLiDAR();
+        if (!hasLiDAR)
+        {
+            Debug.Log("[AROcclusionSafeEnabler] Device does NOT have LiDAR - skipping occlusion initialization");
+            SetAllModesDisabled();
+            occlusion.enabled = false;
+            isOcclusionEnabled = false;
+            yield break;
+        }
+
+        Debug.Log("[AROcclusionSafeEnabler] Device has LiDAR - starting occlusion initialization...");
 
         // ARSessionの初期化を十分に待つ
         yield return new WaitForSeconds(0.5f);

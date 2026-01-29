@@ -1,0 +1,23 @@
+{
+    "name": "AICam.Core",
+    "rootNamespace": "AICam.Core",
+    "references": [
+        "UniTask",
+        "UniGLTF"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.dsgarage.runtime-texture-compressor",
+            "expression": "",
+            "define": "RUNTIME_TEXTURE_COMPRESSOR"
+        }
+    ],
+    "noEngineReferences": false
+}

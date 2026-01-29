@@ -1,0 +1,106 @@
+digraph IDMapping {
+    // Graph settings
+    rankdir=LR;
+    node [shape=box, style="filled", fontname="Helvetica", fontsize=9];
+    edge [fontname="Helvetica", fontsize=8, color="#666666"];
+
+    // Legend
+    subgraph cluster_legend {
+        label="Legend";
+        style=filled;
+        color="#F5F5F5";
+        leg_uitk [label="UITK_Pier (Current)", fillcolor="#FFCDD2"];
+        leg_req [label="Required ID", fillcolor="#C8E6C9"];
+        leg_new [label="New (Add)", fillcolor="#BBDEFB"];
+        leg_uitk -> leg_req [style=invis];
+        leg_req -> leg_new [style=invis];
+    }
+
+    // Capture Button
+    subgraph cluster_capture {
+        label="Capture Button";
+        style=filled;
+        color="#FFF3E0";
+        shootingBtn [label="shootingBtn", fillcolor="#FFCDD2"];
+        captureButton [label="captureButton", fillcolor="#C8E6C9"];
+        ellipse [label="ellipse", fillcolor="#FFCDD2"];
+        innerCircle [label="innerCircle", fillcolor="#C8E6C9"];
+        outerRing [label="outerRing", fillcolor="#BBDEFB"];
+        progressRing [label="progressRing", fillcolor="#BBDEFB"];
+        progressArc [label="progressArc", fillcolor="#BBDEFB"];
+
+        shootingBtn -> captureButton [label="rename"];
+        ellipse -> innerCircle [label="rename"];
+    }
+
+    // Top Panel
+    subgraph cluster_top {
+        label="Top Panel";
+        style=filled;
+        color="#E8F5E9";
+        topNavBar [label="topNavBar", fillcolor="#FFCDD2"];
+        topPanel [label="topPanel", fillcolor="#C8E6C9"];
+        flashBtn [label="flashBtn", fillcolor="#FFCDD2"];
+        flatVisualBtn [label="flatVisualBtn", fillcolor="#FFCDD2"];
+        topButton1 [label="topButton1", fillcolor="#C8E6C9"];
+        topButton5 [label="topButton5", fillcolor="#C8E6C9"];
+
+        topNavBar -> topPanel [label="rename"];
+        flashBtn -> topButton1 [label="move to side", style=dashed];
+        flatVisualBtn -> topButton5 [label="rename"];
+    }
+
+    // Side Panel
+    subgraph cluster_side {
+        label="Side Panel";
+        style=filled;
+        color="#E3F2FD";
+        sideMenu [label="sideMenu", fillcolor="#FFCDD2"];
+        sidePanel_r [label="sidePanel", fillcolor="#C8E6C9"];
+        aspectBtn [label="aspectBtn", fillcolor="#FFCDD2"];
+        sideButton2 [label="sideButton2", fillcolor="#C8E6C9"];
+        bugRepoBtn [label="bugRepoBtn", fillcolor="#FFCDD2"];
+        sideButtonBugReport [label="sideButtonBugReport", fillcolor="#C8E6C9"];
+
+        sideMenu -> sidePanel_r [label="rename"];
+        aspectBtn -> sideButton2 [label="rename"];
+        bugRepoBtn -> sideButtonBugReport [label="rename"];
+    }
+
+    // Avatar Slots
+    subgraph cluster_avatar {
+        label="Avatar Slots";
+        style=filled;
+        color="#F3E5F5";
+        avatarSlotBar [label="avatarSlotBar", fillcolor="#FFCDD2"];
+        bottomScrollView [label="bottomScrollView", fillcolor="#C8E6C9"];
+        avatarSlotRow [label="avatarSlotRow", fillcolor="#FFCDD2"];
+        bottomButtonContainer [label="bottomButtonContainer", fillcolor="#C8E6C9"];
+        slotAddBtn [label="slotAddBtn", fillcolor="#FFCDD2"];
+        bottomButtonAdd [label="bottomButtonAdd", fillcolor="#C8E6C9"];
+
+        avatarSlotBar -> bottomScrollView [label="rename"];
+        avatarSlotRow -> bottomButtonContainer [label="rename"];
+        slotAddBtn -> bottomButtonAdd [label="rename"];
+    }
+
+    // Lighting Panel
+    subgraph cluster_lighting {
+        label="Lighting Panel";
+        style=filled;
+        color="#FFF8E1";
+        lightingPanel_c [label="lightingPanel", fillcolor="#FFCDD2"];
+        lightingPanelOverlay [label="lightingPanelOverlay", fillcolor="#C8E6C9"];
+        lightingCloseBtn [label="lightingCloseBtn", fillcolor="#FFCDD2"];
+        lightingPanelClose [label="lightingPanelClose", fillcolor="#C8E6C9"];
+        autoSyncToggle [label="autoSyncToggle", fillcolor="#FFCDD2"];
+        arSyncToggle [label="arSyncToggle", fillcolor="#C8E6C9"];
+        presetBtnAuto [label="presetBtnAuto", fillcolor="#FFCDD2"];
+        presetAuto [label="presetAuto", fillcolor="#C8E6C9"];
+
+        lightingPanel_c -> lightingPanelOverlay [label="wrap"];
+        lightingCloseBtn -> lightingPanelClose [label="rename\n+type"];
+        autoSyncToggle -> arSyncToggle [label="rename\n+type"];
+        presetBtnAuto -> presetAuto [label="rename\n+type"];
+    }
+}

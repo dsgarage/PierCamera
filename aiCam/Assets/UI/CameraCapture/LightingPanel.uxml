@@ -14,7 +14,7 @@
             <!-- AR同期トグル（ヘッダー直下） -->
             <ui:VisualElement class="lighting-section ar-sync-section-top">
                 <ui:VisualElement class="toggle-row-compact">
-                    <ui:Label text="AR Light Sync" class="toggle-label" />
+                    <ui:Label text="Auto sync" class="toggle-label" />
                     <ui:Toggle name="arSyncToggle" value="true" class="ar-sync-toggle" />
                 </ui:VisualElement>
                 <ui:Label text="Automatically match scene lighting" class="ar-sync-description" />

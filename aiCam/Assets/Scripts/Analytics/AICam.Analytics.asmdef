@@ -1,0 +1,19 @@
+{
+    "name": "AICam.Analytics",
+    "rootNamespace": "AICam.Analytics",
+    "references": [
+        "AICam.Core",
+        "UniGLTF",
+        "VRM",
+        "VRM10"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

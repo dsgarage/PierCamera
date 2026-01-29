@@ -31,17 +31,69 @@ public class ARPlaneVisibilityController : MonoBehaviour
         if (!planeManager)
         {
             planeManager = FindFirstObjectByType<ARPlaneManager>(FindObjectsInactive.Include);
+            Debug.Log($"[ARPlaneVisibilityController] ARPlaneManager auto-detected: {(planeManager != null ? planeManager.name : "NULL")}");
+        }
+        else
+        {
+            Debug.Log($"[ARPlaneVisibilityController] ARPlaneManager was set in Inspector: {planeManager.name}");
         }
 
         if (!planeManager)
         {
-            Debug.LogError("[ARPlaneVisibilityController] ARPlaneManager not found!");
+            Debug.LogError("[ARPlaneVisibilityController] ARPlaneManager not found! Plane visualization will not work.");
             enabled = false;
             return;
         }
 
+        // Issue #473: ARPlaneManagerの状態を確認
+        Debug.Log($"[ARPlaneVisibilityController] ARPlaneManager.enabled={planeManager.enabled}, detectionMode={planeManager.requestedDetectionMode}");
+
         // 初期状態を設定
         isVisible = showPlanesOnStart;
+        Debug.Log($"[ARPlaneVisibilityController] Initial visibility set to: {isVisible}");
+    }
+
+    void Start()
+    {
+        // Issue #473: 起動後の状態を確認
+        StartCoroutine(CheckPlaneDetectionAfterStartup());
+    }
+
+    System.Collections.IEnumerator CheckPlaneDetectionAfterStartup()
+    {
+        // ARSession起動を待つ
+        yield return new WaitForSeconds(2.0f);
+
+        if (!planeManager)
+        {
+            Debug.LogError("[ARPlaneVisibilityController] ARPlaneManager is NULL after startup!");
+            yield break;
+        }
+
+        int planeCount = 0;
+        foreach (var plane in planeManager.trackables)
+        {
+            planeCount++;
+        }
+
+        bool hasSubsystem = planeManager.subsystem != null;
+        bool subsystemRunning = hasSubsystem && planeManager.subsystem.running;
+
+        Debug.Log($"[ARPlaneVisibilityController] Status after 2s: " +
+                  $"enabled={planeManager.enabled}, " +
+                  $"subsystem={hasSubsystem}, running={subsystemRunning}, " +
+                  $"trackedPlanes={planeCount}, isVisible={isVisible}");
+
+        // 5秒後に再チェック
+        yield return new WaitForSeconds(3.0f);
+
+        planeCount = 0;
+        foreach (var plane in planeManager.trackables)
+        {
+            planeCount++;
+        }
+
+        Debug.Log($"[ARPlaneVisibilityController] Status after 5s: trackedPlanes={planeCount}");
     }
 
     void OnEnable()

@@ -3,6 +3,12 @@ using VRM;
 using UniGLTF;
 using Cysharp.Threading.Tasks;
 using System;
+using System.Diagnostics;
+using AICam.Core.IO;
+using AICam.Core.Texture;
+using AICam.Analytics;
+using AICam.Analytics.DTOs;
+using Debug = UnityEngine.Debug;
 
 namespace AICam.VRM
 {
@@ -22,6 +28,9 @@ namespace AICam.VRM
 
         private RuntimeGltfInstance currentInstance;
         private GameObject currentAvatarRoot;
+
+        // Issue #440: 圧縮テクスチャデシリアライザ (VRMテクスチャメモリ約89%削減)
+        private static readonly CompressedTextureDeserializer _textureDeserializer = new CompressedTextureDeserializer();
 
         /// <summary>
         /// 現在読み込まれているアバターのGameObject
@@ -131,6 +140,10 @@ namespace AICam.VRM
 
             Debug.Log($"[RuntimeAvatarLoader] Loading VRM from: {filePath}");
 
+            // テレメトリ計測用
+            Stopwatch loadStopwatch = null;
+            long fileSize = 0;
+
             try
             {
                 // 既存のアバターを削除
@@ -155,18 +168,23 @@ namespace AICam.VRM
                     return null;
                 }
 
-                // ファイル読み込み
-                byte[] bytes = await System.IO.File.ReadAllBytesAsync(filePath);
+                // Issue #440: チャンク化ファイル読み込み
+                byte[] bytes = await ChunkedFileReader.ReadAllBytesAsync(filePath);
                 Debug.Log($"[RuntimeAvatarLoader] Read {bytes.Length} bytes from file");
 
+                // テレメトリ計測開始
+                fileSize = bytes.Length;
+                loadStopwatch = Stopwatch.StartNew();
+
                 // VRMをパース
+                // Issue #440: 圧縮テクスチャデシリアライザを使用
                 currentInstance = await VrmUtility.LoadBytesAsync(
                     path: System.IO.Path.GetFileName(filePath),
                     bytes: bytes,
                     awaitCaller: new RuntimeOnlyAwaitCaller(),
                     materialGeneratorCallback: null,
                     metaCallback: null,
-                    textureDeserializer: null,
+                    textureDeserializer: _textureDeserializer,
                     loadAnimation: false,
                     springboneRuntime: null
                 );
@@ -174,6 +192,8 @@ namespace AICam.VRM
                 if (currentInstance == null)
                 {
                     Debug.LogError("[RuntimeAvatarLoader] Failed to load VRM");
+                    loadStopwatch?.Stop();
+                    SendTelemetry(filePath, fileSize, loadStopwatch?.Elapsed.TotalSeconds ?? 0, null, "Failed to load VRM instance");
                     return null;
                 }
 
@@ -193,6 +213,10 @@ namespace AICam.VRM
                 // アニメーションの設定（ファイルタイプに応じて）
                 SetupAnimator(currentAvatarRoot, filePath);
 
+                // テレメトリ送信（成功）
+                loadStopwatch?.Stop();
+                SendTelemetry(filePath, fileSize, loadStopwatch?.Elapsed.TotalSeconds ?? 0, currentAvatarRoot, null);
+
                 Debug.Log("[RuntimeAvatarLoader] VRM loaded successfully. Ready to be placed on AR plane.");
                 return currentAvatarRoot;
             }
@@ -200,7 +224,53 @@ namespace AICam.VRM
             {
                 Debug.LogError($"[RuntimeAvatarLoader] Error loading VRM: {e.Message}");
                 Debug.LogException(e);
+
+                // テレメトリ送信（失敗）
+                loadStopwatch?.Stop();
+                SendTelemetry(filePath, fileSize, loadStopwatch?.Elapsed.TotalSeconds ?? 0, null, e.Message);
+
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// テレメトリを送信
+        /// </summary>
+        private void SendTelemetry(string filePath, long fileSize, double loadTimeSeconds, GameObject model, string errorMessage)
+        {
+            Debug.Log($"[Telemetry Debug] RuntimeAvatarLoader.SendTelemetry called");
+
+            bool success = model != null && string.IsNullOrEmpty(errorMessage);
+
+            var dto = AvatarTelemetryCollector.CollectFromVrm0x(
+                model,
+                filePath,
+                fileSize,
+                (float)loadTimeSeconds,
+                success,
+                errorMessage,
+                slotIndex: -1
+            );
+
+            if (dto == null)
+            {
+                Debug.LogWarning("[Telemetry Debug] dto is null, skipping");
+                return;
+            }
+
+            var client = TelemetryClient.Instance;
+            Debug.Log($"[Telemetry Debug] TelemetryClient.Instance={client != null}, IsEnabled={client?.IsEnabled}");
+
+            if (client != null && client.IsEnabled)
+            {
+                client.SendAvatarLoadTelemetry(dto, sent =>
+                {
+                    Debug.Log($"[Telemetry] Avatar telemetry sent: {dto.fileName}, success={dto.success}, sent={sent}");
+                });
+            }
+            else
+            {
+                Debug.Log($"[Telemetry] TelemetryClient not available, skipping: {dto.fileName}");
             }
         }
 
