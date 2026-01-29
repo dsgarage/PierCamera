@@ -32,6 +32,8 @@ namespace PierCamera.Analytics
             "iPhone16,1", "iPhone16,2",
             // iPhone 16 Pro / Pro Max
             "iPhone17,1", "iPhone17,2",
+            // iPhone 17 Pro / Pro Max
+            "iPhone18,1", "iPhone18,2", "iPhone18,3", "iPhone18,4",
             // iPad Pro (2020以降)
             "iPad8,9", "iPad8,10", "iPad8,11", "iPad8,12",
             "iPad13,4", "iPad13,5", "iPad13,6", "iPad13,7",
@@ -127,12 +129,15 @@ namespace PierCamera.Analytics
             // iPhone識別子からカテゴリを判定
             if (deviceModel.StartsWith("iPhone"))
             {
+                // iPhone18,x = iPhone 17シリーズ
                 // iPhone17,x = iPhone 16シリーズ
                 // iPhone16,x = iPhone 15シリーズ
-                if (deviceModel.StartsWith("iPhone17,1") || deviceModel.StartsWith("iPhone17,2") ||
+                if (deviceModel.StartsWith("iPhone18,1") || deviceModel.StartsWith("iPhone18,2") ||
+                    deviceModel.StartsWith("iPhone18,3") || deviceModel.StartsWith("iPhone18,4") ||
+                    deviceModel.StartsWith("iPhone17,1") || deviceModel.StartsWith("iPhone17,2") ||
                     deviceModel.StartsWith("iPhone16,1") || deviceModel.StartsWith("iPhone16,2"))
                 {
-                    return DeviceCategory.HighEnd; // iPhone 15/16 Pro/Max
+                    return DeviceCategory.HighEnd; // iPhone 15/16/17 Pro/Max
                 }
 
                 // iPhone15,2/3 = iPhone 14 Pro/Max
@@ -145,12 +150,14 @@ namespace PierCamera.Analytics
                     return DeviceCategory.MidRange; // iPhone 12-14 Pro/Max
                 }
 
+                // iPhone18,5/6 = iPhone 17/Plus (推定)
                 // iPhone17,3/4/5 = iPhone 16/Plus
                 // iPhone16,3/4 = iPhone 15/Plus
                 // iPhone15,4/5 = iPhone 14/Plus
                 // iPhone14,4/5/7/8 = iPhone 13/mini
                 // iPhone13,1/2 = iPhone 12/mini
-                if (deviceModel.StartsWith("iPhone17,") ||
+                if (deviceModel.StartsWith("iPhone18,5") || deviceModel.StartsWith("iPhone18,6") ||
+                    deviceModel.StartsWith("iPhone17,") ||
                     deviceModel.StartsWith("iPhone16,") ||
                     deviceModel.StartsWith("iPhone15,4") || deviceModel.StartsWith("iPhone15,5") ||
                     deviceModel.StartsWith("iPhone14,4") || deviceModel.StartsWith("iPhone14,5") ||
@@ -179,6 +186,13 @@ namespace PierCamera.Analytics
 
             var nameMap = new Dictionary<string, string>
             {
+                // iPhone 17
+                {"iPhone18,1", "iPhone 17 Pro"},
+                {"iPhone18,2", "iPhone 17 Pro Max"},
+                {"iPhone18,3", "iPhone 17 Pro"},
+                {"iPhone18,4", "iPhone 17 Pro Max"},
+                {"iPhone18,5", "iPhone 17"},
+                {"iPhone18,6", "iPhone 17 Plus"},
                 // iPhone 16
                 {"iPhone17,1", "iPhone 16 Pro"},
                 {"iPhone17,2", "iPhone 16 Pro Max"},
