@@ -173,7 +173,7 @@ PlayerSettings:
   buildNumber:
     Standalone: 0
     VisionOS: 0
-    iPhone: 34
+    iPhone: 36
     tvOS: 0
   overrideDefaultApplicationIdentifier: 1
   AndroidBundleVersionCode: 1
@@ -831,7 +831,7 @@ PlayerSettings:
   webWasm2023: 0
   webEnableSubmoduleStrippingCompatibility: 0
   scriptingDefineSymbols:
-    Android: DOTWEEN
+    Android: DOTWEEN;BLENDSHAPE_CONTROLLER
     EmbeddedLinux: DOTWEEN
     GameCoreScarlett: DOTWEEN
     GameCoreXboxOne: DOTWEEN
@@ -842,12 +842,12 @@ PlayerSettings:
     PS5: DOTWEEN
     QNX: DOTWEEN
     ReservedCFE: DOTWEEN
-    Standalone: DOTWEEN;MAGICACLOTH2
+    Standalone: DOTWEEN;MAGICACLOTH2;BLENDSHAPE_CONTROLLER
     VisionOS: DOTWEEN
     WebGL: DOTWEEN
     Windows Store Apps: DOTWEEN
     XboxOne: DOTWEEN
-    iPhone: UNITY_XR_ARKIT_LOADER_ENABLED;MAGICACLOTH2;DOTWEEN
+    iPhone: UNITY_XR_ARKIT_LOADER_ENABLED;MAGICACLOTH2;DOTWEEN;BLENDSHAPE_CONTROLLER
     tvOS: DOTWEEN
   additionalCompilerArguments: {}
   platformArchitecture: {}

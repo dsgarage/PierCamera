@@ -1240,15 +1240,26 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
             }
         }
 
-        // 平面が見つからなかった場合、カメラより少し下に配置
+        // 平面が見つからなかった場合の高さ推定
         if (!foundPlane)
         {
-            targetPosition.y = camPos.y - 1.5f; // カメラの1.5m下（おおよそ床の高さ）
-            Debug.Log($"[PlaceAvatarOnPlaneOnly] PlaceAvatarAhead: No plane found, using estimated floor height");
+            if (camPos.y < 0.5f)
+            {
+                // Editor mode: カメラが原点付近→アバター中心がカメラ高さに来るように配置
+                targetPosition.y = -0.8f;
+                Debug.Log($"[PlaceAvatarOnPlaneOnly] PlaceAvatarAhead: Editor mode, centering avatar in view (y={targetPosition.y:F1})");
+            }
+            else
+            {
+                // AR mode: カメラが頭の高さ→床面を推定
+                targetPosition.y = camPos.y - 1.5f;
+                Debug.Log($"[PlaceAvatarOnPlaneOnly] PlaceAvatarAhead: AR mode, estimated floor height (y={targetPosition.y:F1})");
+            }
         }
 
         // アバターを配置
         Quaternion rotation = GetFaceCameraRotation(targetPosition, hitPlane?.alignment ?? PlaneAlignment.HorizontalUp);
+        Debug.Log($"[PlaceAvatarOnPlaneOnly] PlaceAvatarAhead: GetFaceCameraRotation returned {rotation.eulerAngles}, arCamera={arCamera?.name ?? "null"}");
         loadedAvatar.transform.SetPositionAndRotation(targetPosition, rotation);
         loadedAvatar.SetActive(true);
 

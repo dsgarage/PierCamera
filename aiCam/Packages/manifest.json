@@ -2,6 +2,7 @@
   "dependencies": {
     "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
     "com.dolami.pier-uaal-bridge": "https://github.com/dolami-inc/pier.git#upm/uaal-bridge",
+    "com.dsgarage.blendshapecontroller": "https://github.com/dsgarage/BlendshapeController.git",
     "com.dsgarage.poseslotcontroller": "https://github.com/dsgarage/PoseSlotController.git",
     "com.dsgarage.runtime-texture-compressor": "git@github.com:dsgaragejp/RuntimeTextureCompressor.git?path=Unity/Packages/RuntimeTextureCompressor",
     "com.dsgarage.unisil": "git@github.com:dsgarage/UniSIL.git?path=/Packages/com.dsgarage.unisil",

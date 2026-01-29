@@ -10,6 +10,7 @@ using AICam.Core.Texture;
 using AICam.Analytics;
 using AICam.Analytics.DTOs;
 using PierCamera.Analytics;
+using AICam.AvatarCache;
 using UniGLTF;
 using VRM;
 using UniVRM10;

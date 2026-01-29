@@ -1,0 +1,19 @@
+{
+    "name": "AICam.AvatarCache",
+    "rootNamespace": "AICam.AvatarCache",
+    "references": [
+        "UniTask",
+        "VRM",
+        "UniGLTF",
+        "UniHumanoid"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
