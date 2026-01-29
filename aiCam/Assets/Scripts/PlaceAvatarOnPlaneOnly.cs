@@ -4,6 +4,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
 using AICam.Core;
+using Cysharp.Threading.Tasks;
 using PierCamera.Analytics;
 
 [RequireComponent(typeof(ARRaycastManager))]
@@ -1350,5 +1351,83 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour, IAvatarPlacer
 
         Debug.Log($"[PlaceAvatarOnPlaneOnly] PlaceAvatarAhead: Avatar placed at {targetPosition}, foundPlane: {foundPlane}");
         return true;
+    }
+
+    /// <summary>
+    /// Issue #474: アバターをカメラ前方に配置（平面検知待機版）
+    /// 平面が見つからない場合は最大で指定秒数待機し、平面上に配置する
+    /// </summary>
+    /// <param name="loadedAvatar">配置するアバター</param>
+    /// <param name="distanceAhead">カメラからの距離（メートル）</param>
+    /// <param name="maxWaitSeconds">平面検知の最大待機時間（秒）</param>
+    /// <returns>配置成功した場合はtrue</returns>
+    public async UniTask<bool> PlaceAvatarAheadAsync(GameObject loadedAvatar, float distanceAhead = 1.5f, float maxWaitSeconds = 3.0f)
+    {
+        if (loadedAvatar == null)
+        {
+            Debug.LogWarning("[PlaceAvatarOnPlaneOnly] PlaceAvatarAheadAsync: avatar is null");
+            return false;
+        }
+
+        if (arCamera == null)
+        {
+            arCamera = Camera.main;
+            if (arCamera == null)
+            {
+                Debug.LogWarning("[PlaceAvatarOnPlaneOnly] PlaceAvatarAheadAsync: No camera found");
+                return false;
+            }
+        }
+
+        // まず同期版を試す
+        bool hasPlane = HasAnyDetectedPlane();
+
+        if (hasPlane)
+        {
+            Debug.Log("[PlaceAvatarOnPlaneOnly] PlaceAvatarAheadAsync: Plane already detected, using sync placement");
+            return PlaceAvatarAhead(loadedAvatar, distanceAhead);
+        }
+
+        // 平面検知を待機
+        Debug.Log($"[PlaceAvatarOnPlaneOnly] PlaceAvatarAheadAsync: Waiting for plane detection (max {maxWaitSeconds}s)...");
+
+        float waitTime = 0f;
+        float checkInterval = 0.2f; // 200ms間隔でチェック
+
+        while (waitTime < maxWaitSeconds)
+        {
+            await UniTask.Delay((int)(checkInterval * 1000));
+            waitTime += checkInterval;
+
+            if (HasAnyDetectedPlane())
+            {
+                Debug.Log($"[PlaceAvatarOnPlaneOnly] PlaceAvatarAheadAsync: Plane detected after {waitTime:F1}s");
+                return PlaceAvatarAhead(loadedAvatar, distanceAhead);
+            }
+        }
+
+        // タイムアウト - 平面が見つからなかったが、推定位置で配置する
+        Debug.LogWarning($"[PlaceAvatarOnPlaneOnly] PlaceAvatarAheadAsync: Timeout after {maxWaitSeconds}s, using estimated position");
+        return PlaceAvatarAhead(loadedAvatar, distanceAhead);
+    }
+
+    /// <summary>
+    /// 検知済みの平面があるかどうかをチェック
+    /// </summary>
+    /// <returns>水平面が1つ以上検知されている場合はtrue</returns>
+    public bool HasAnyDetectedPlane()
+    {
+        if (planeManager == null) return false;
+
+        foreach (var plane in planeManager.trackables)
+        {
+            if (!onlyHorizontal)
+                return true;
+
+            if (plane.alignment == PlaneAlignment.HorizontalUp || plane.alignment == PlaneAlignment.HorizontalDown)
+                return true;
+        }
+
+        return false;
     }
 }

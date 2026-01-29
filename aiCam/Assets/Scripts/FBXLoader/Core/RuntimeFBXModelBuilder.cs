@@ -215,6 +215,13 @@ namespace AICam.FBXLoader
             if (norms.Count == verts.Count) mesh.SetNormals(norms);
             if (uvs.Count == verts.Count) mesh.SetUVs(0, uvs);
             mesh.RecalculateBounds();
+
+            // Issue #456: 一時リスト即時解放（メモリピーク削減）
+            verts.Clear(); verts.TrimExcess();
+            norms.Clear(); norms.TrimExcess();
+            uvs.Clear(); uvs.TrimExcess();
+            tris.Clear(); tris.TrimExcess();
+
             return mesh;
         }
 
@@ -324,6 +331,16 @@ namespace AICam.FBXLoader
             if (norms.Count == verts.Count) mesh.SetNormals(norms);
             if (uvs.Count == verts.Count) mesh.SetUVs(0, uvs);
             mesh.RecalculateBounds();
+
+            // Issue #456: 一時リスト即時解放（メモリピーク削減）
+            // 特に influences は入れ子リストで大量のメモリを使用するため重要
+            verts.Clear(); verts.TrimExcess();
+            norms.Clear(); norms.TrimExcess();
+            uvs.Clear(); uvs.TrimExcess();
+            tris.Clear(); tris.TrimExcess();
+            foreach (var inf in influences) { inf.Clear(); inf.TrimExcess(); }
+            influences.Clear(); influences.TrimExcess();
+
             return mesh;
         }
 

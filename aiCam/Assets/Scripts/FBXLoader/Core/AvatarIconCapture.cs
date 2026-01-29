@@ -2,12 +2,14 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.Rendering;
 using Cysharp.Threading.Tasks;
 
 namespace AICam.FBXLoader
 {
     /// <summary>
     /// アバターの顔アイコンを撮影するユーティリティ
+    /// Issue #440: シェーダー/テクスチャ準備完了を待ってから撮影
     /// </summary>
     public class AvatarIconCapture : MonoBehaviour
     {
@@ -15,6 +17,17 @@ namespace AICam.FBXLoader
         public const float CAMERA_DISTANCE_MULTIPLIER = 6.0f;  // 少し近づく
         public const float CAMERA_FOV = 15f;  // FOVを狭くして望遠効果
         public const float MIN_CAMERA_DISTANCE = 0.8f;  // 最小距離
+
+        /// <summary>
+        /// シェーダー準備完了を待つ最大フレーム数
+        /// URPではシェーダーコンパイルに数フレームかかることがある
+        /// </summary>
+        private const int MAX_SHADER_WARMUP_FRAMES = 10;
+
+        /// <summary>
+        /// シェーダー準備完了を待つ最小フレーム数
+        /// </summary>
+        private const int MIN_SHADER_WARMUP_FRAMES = 3;
 
         private static AvatarIconCapture _instance;
         public static AvatarIconCapture Instance
@@ -76,9 +89,10 @@ namespace AICam.FBXLoader
                     head = avatar.transform;
                 }
 
-                // レンダリングが安定するまで待機
-                await UniTask.Yield();
-                await UniTask.WaitForEndOfFrame(this);
+                // Issue #440: シェーダー/テクスチャの準備完了を待機
+                // URPではシェーダーコンパイルに数フレームかかり、
+                // 準備完了前に撮影すると水色（フォールバック）になる
+                await WaitForMaterialsReady(avatar);
 
                 // 撮影
                 Texture2D icon = CaptureHeadIcon(avatar, head);
@@ -130,8 +144,8 @@ namespace AICam.FBXLoader
                     head = avatar.transform;
                 }
 
-                // 1フレーム待ってレンダリングを安定させる
-                await UniTask.Yield();
+                // Issue #440: シェーダー/テクスチャの準備完了を待機
+                await WaitForMaterialsReady(avatar);
 
                 // 撮影
                 Texture2D icon = CaptureHeadIcon(avatar, head);
@@ -164,6 +178,177 @@ namespace AICam.FBXLoader
                 Debug.LogException(e);
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Issue #440: マテリアル/シェーダーの準備完了を待機
+        /// URPではシェーダーコンパイルに数フレームかかることがある
+        /// </summary>
+        private async UniTask WaitForMaterialsReady(GameObject avatar)
+        {
+            var renderers = avatar.GetComponentsInChildren<Renderer>(true);
+            if (renderers.Length == 0)
+            {
+                Debug.LogWarning("[AvatarIconCapture] No renderers found on avatar");
+                await UniTask.Yield();
+                return;
+            }
+
+            Debug.Log($"[AvatarIconCapture] Waiting for {renderers.Length} renderers to be ready...");
+
+            int frameCount = 0;
+            bool allReady = false;
+
+            // 最低フレーム数は必ず待つ
+            for (int i = 0; i < MIN_SHADER_WARMUP_FRAMES; i++)
+            {
+                await UniTask.Yield();
+                await UniTask.WaitForEndOfFrame(this);
+                frameCount++;
+            }
+
+            // マテリアルが準備完了するまで待機（最大フレーム数まで）
+            while (frameCount < MAX_SHADER_WARMUP_FRAMES && !allReady)
+            {
+                allReady = true;
+
+                foreach (var renderer in renderers)
+                {
+                    if (renderer == null || !renderer.enabled) continue;
+
+                    var materials = renderer.sharedMaterials;
+                    foreach (var mat in materials)
+                    {
+                        if (mat == null) continue;
+
+                        // シェーダーが無効またはエラーシェーダーの場合は未準備
+                        if (mat.shader == null ||
+                            mat.shader.name == "Hidden/InternalErrorShader" ||
+                            mat.shader.name.Contains("Error"))
+                        {
+                            allReady = false;
+                            break;
+                        }
+
+                        // メインテクスチャがある場合、ロード完了を確認
+                        if (mat.HasProperty("_MainTex"))
+                        {
+                            var tex = mat.GetTexture("_MainTex") as Texture2D;
+                            if (tex != null && !tex.isReadable && tex.width == 0)
+                            {
+                                allReady = false;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!allReady) break;
+                }
+
+                if (!allReady)
+                {
+                    await UniTask.Yield();
+                    await UniTask.WaitForEndOfFrame(this);
+                    frameCount++;
+                }
+            }
+
+            // ダミーレンダリングでシェーダーをウォームアップ
+            // （カメラでレンダリングすることでシェーダーコンパイルを強制）
+            await PerformWarmupRender(avatar, renderers);
+
+            Debug.Log($"[AvatarIconCapture] Materials ready after {frameCount} frames (allReady={allReady})");
+        }
+
+        /// <summary>
+        /// Issue #455: AsyncGPUReadback を使用してシェーダーウォームアップ完了を確実に検知
+        /// ダミーレンダリング後、GPU処理完了をコールバックで待機
+        /// </summary>
+        private async UniTask PerformWarmupRender(GameObject avatar, Renderer[] renderers)
+        {
+            // 小さいRenderTextureでダミーレンダリング
+            RenderTexture warmupRT = RenderTexture.GetTemporary(64, 64, 16, RenderTextureFormat.ARGB32);
+            GameObject warmupCamObj = null;
+
+            try
+            {
+                warmupCamObj = new GameObject("WarmupCamera");
+                var warmupCam = warmupCamObj.AddComponent<Camera>();
+                warmupCam.targetTexture = warmupRT;
+                warmupCam.clearFlags = CameraClearFlags.SolidColor;
+                warmupCam.backgroundColor = Color.clear;
+                warmupCam.cullingMask = ~0;
+
+                // アバターの中心を向く
+                Bounds bounds = CalculateBounds(renderers);
+                warmupCamObj.transform.position = bounds.center + Vector3.forward * 2f;
+                warmupCamObj.transform.LookAt(bounds.center);
+
+                // レンダリング実行（シェーダーコンパイルをトリガー）
+                warmupCam.Render();
+
+                // Issue #455: AsyncGPUReadback でGPU処理完了を待機
+                // これにより、シェーダーコンパイルとテクスチャアップロードの完了を確実に検知
+                var completionSource = new UniTaskCompletionSource<bool>();
+
+                AsyncGPUReadback.Request(warmupRT, 0, request =>
+                {
+                    if (request.hasError)
+                    {
+                        Debug.LogWarning("[AvatarIconCapture] AsyncGPUReadback error, falling back to frame wait");
+                        completionSource.TrySetResult(false);
+                    }
+                    else
+                    {
+                        Debug.Log("[AvatarIconCapture] GPU warmup render completed via AsyncGPUReadback");
+                        completionSource.TrySetResult(true);
+                    }
+                });
+
+                // タイムアウト付きで待機（最大500ms）
+                // WhenAny は (bool leftWon, (T1, T2)) を返す
+                var result = await UniTask.WhenAny(completionSource.Task, UniTask.Delay(500));
+
+                // result.Item1 (hasResultLeft) が false の場合、右側（タイムアウト）が先に完了
+                if (!result.Item1)
+                {
+                    Debug.LogWarning("[AvatarIconCapture] AsyncGPUReadback timeout, proceeding anyway");
+                }
+            }
+            finally
+            {
+                if (warmupCamObj != null) DestroyImmediate(warmupCamObj);
+                if (warmupRT != null) RenderTexture.ReleaseTemporary(warmupRT);
+            }
+        }
+
+        /// <summary>
+        /// レンダラーのバウンディングボックスを計算
+        /// </summary>
+        private Bounds CalculateBounds(Renderer[] renderers)
+        {
+            if (renderers == null || renderers.Length == 0)
+                return new Bounds(Vector3.zero, Vector3.one);
+
+            Bounds bounds = new Bounds();
+            bool initialized = false;
+
+            foreach (var renderer in renderers)
+            {
+                if (renderer == null || !renderer.enabled) continue;
+
+                if (!initialized)
+                {
+                    bounds = renderer.bounds;
+                    initialized = true;
+                }
+                else
+                {
+                    bounds.Encapsulate(renderer.bounds);
+                }
+            }
+
+            return bounds;
         }
 
         /// <summary>
