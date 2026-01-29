@@ -1,5 +1,11 @@
 # CLAUDE.md - AI Assistant Instructions for arCam Project
 
+## 言語設定
+
+- 結果の報告・サマリー・説明はすべて日本語で行うこと
+
+---
+
 ## 絶対禁止事項（ABSOLUTELY FORBIDDEN - NO EXCEPTIONS）
 
 ### Editor スクリプトによる Inspector 設定は完全に禁止

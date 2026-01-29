@@ -10267,6 +10267,11 @@ GameObject:
   - component: {fileID: 1662580359}
   - component: {fileID: 1662580358}
   - component: {fileID: 1662580361}
+  - component: {fileID: 1662580362}
+  - component: {fileID: 1662580364}
+  - component: {fileID: 1662580363}
+  - component: {fileID: 1662580365}
+  - component: {fileID: 1662580366}
   m_Layer: 0
   m_Name: RuntimeManager
   m_TagString: Untagged
@@ -10334,6 +10339,83 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 618fe01b9590b46aaab19bb475b6e240, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DeviceScreenAdapter
+--- !u!114 &1662580362
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1662580357}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 98f042b677d0d48c18fa56232863aa81, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AICam.FBXLoader.AvatarSlotManager
+  maxSlots: 6
+  fileBrowserController: {fileID: 1662580359}
+  loaderBridge: {fileID: 1662580358}
+  iconPreviewPanel: {fileID: 0}
+  avatarSlots: []
+  memoryCache: {fileID: 1662580364}
+  operationQueue: {fileID: 0}
+--- !u!114 &1662580363
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1662580357}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af44ac855b874099be336928d5f6276c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AICam.FBXLoader.AvatarIconCapture
+--- !u!114 &1662580364
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1662580357}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b80117430e5c143c0b07e9bb16513c99, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: AICam.AvatarCache::AICam.AvatarCache.AvatarMemoryCache
+  maxCachedAvatars: 6
+  deactivateCachedAvatars: 1
+  showDebugInfo: 1
+  avatarLoaderComponent: {fileID: 0}
+  defaultParent: {fileID: 0}
+--- !u!114 &1662580365
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1662580357}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87f608f4b2ce42738745bd946441b15c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AICam.FBXLoader.AvatarLoadHandler
+  fbxLoaderBridge: {fileID: 1662580358}
+  memoryCache: {fileID: 1662580364}
+  slotManager: {fileID: 1662580362}
+  iconCapture: {fileID: 1662580363}
+--- !u!114 &1662580366
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1662580357}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b5d0b0ddcf774dfc97fde291c7f7e53, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AICam.FBXLoader.ExportPopup
+  exportDirectory: AvatarExports
 --- !u!1 &1677303369
 GameObject:
   m_ObjectHideFlags: 0

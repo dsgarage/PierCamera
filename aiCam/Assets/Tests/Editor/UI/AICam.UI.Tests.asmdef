@@ -1,0 +1,42 @@
+{
+    "name": "AICam.UI.Tests",
+    "rootNamespace": "AICam.UI.Tests",
+    "references": [
+        "AICam.UI",
+        "AICam.Core",
+        "AICam.AR",
+        "AICam.Expression",
+        "AICam.FBXLoader",
+        "AICam.AvatarBuilder",
+        "AICam.AvatarCache",
+        "AICam.VRMLoader",
+        "AICam.BugReport",
+        "AICam.UaaL"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.dsgarage.blendshapecontroller",
+            "expression": "",
+            "define": "BLENDSHAPE_CONTROLLER"
+        },
+        {
+            "name": "com.vrmc.vrm",
+            "expression": "",
+            "define": "VRM10_AVAILABLE"
+        }
+    ],
+    "noEngineReferences": false
+}

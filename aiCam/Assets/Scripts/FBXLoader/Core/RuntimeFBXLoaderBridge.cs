@@ -9,6 +9,7 @@ using AICam.Core.IO;
 using AICam.Core.Texture;
 using AICam.Analytics;
 using AICam.Analytics.DTOs;
+using AICam.AvatarCache;
 using UniGLTF;
 using VRM;
 using UniVRM10;
@@ -993,15 +994,24 @@ namespace AICam.FBXLoader
         /// </summary>
         private void ReapplyLightingSettings()
         {
-            var cameraController = FindFirstObjectByType<AICam.UI.CameraCaptureController>();
-            if (cameraController != null)
+            ILightingSettingsProvider lightingProvider = null;
+            foreach (var mb in FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None))
             {
-                cameraController.ReapplyLightingSettings();
-                Debug.Log("[RuntimeFBXLoaderBridge] Issue #442: Delegated to CameraCaptureController.ReapplyLightingSettings()");
+                if (mb is ILightingSettingsProvider provider)
+                {
+                    lightingProvider = provider;
+                    break;
+                }
+            }
+
+            if (lightingProvider != null)
+            {
+                lightingProvider.ReapplyLightingSettings();
+                Debug.Log("[RuntimeFBXLoaderBridge] Issue #442: Delegated to ILightingSettingsProvider.ReapplyLightingSettings()");
             }
             else
             {
-                Debug.LogWarning("[RuntimeFBXLoaderBridge] CameraCaptureController not found");
+                Debug.LogWarning("[RuntimeFBXLoaderBridge] ILightingSettingsProvider not found");
             }
         }
 

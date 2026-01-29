@@ -1,0 +1,25 @@
+{
+    "name": "AICam.Expression",
+    "rootNamespace": "AICam.Expression",
+    "references": [
+        "VRM",
+        "VRM10",
+        "UniGLTF",
+        "UniHumanoid"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.vrmc.vrm",
+            "expression": "",
+            "define": "VRM10_AVAILABLE"
+        }
+    ],
+    "noEngineReferences": false
+}

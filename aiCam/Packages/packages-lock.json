@@ -14,6 +14,13 @@
       "dependencies": {},
       "hash": "807c1f05919b3c1febd0abc457c8bf9cc2f1556f"
     },
+    "com.dsgarage.blendshapecontroller": {
+      "version": "https://github.com/dsgarage/BlendshapeController.git",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "7f5c00babd25850d6f6c6a09685c2fd3c5b482d2"
+    },
     "com.dsgarage.poseslotcontroller": {
       "version": "https://github.com/dsgarage/PoseSlotController.git",
       "depth": 0,
@@ -413,7 +420,7 @@
       "depth": 0,
       "source": "git",
       "dependencies": {},
-      "hash": "8442e4175f2e782adeb50f5519f6258f84fb9214"
+      "hash": "9bda42a656e261eb5149d5296eed398d561fbaec"
     },
     "jp.lilxyzw.liltoon": {
       "version": "file:jp.lilxyzw.liltoon",

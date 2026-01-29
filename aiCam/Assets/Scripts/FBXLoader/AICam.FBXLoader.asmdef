@@ -1,0 +1,34 @@
+{
+    "name": "AICam.FBXLoader",
+    "rootNamespace": "AICam.FBXLoader",
+    "references": [
+        "UniTask",
+        "AICam.Core",
+        "AICam.AR",
+        "AICam.Analytics",
+        "AICam.AvatarCache",
+        "AICam.AvatarBuilder",
+        "VRM",
+        "VRM10",
+        "UniGLTF",
+        "UniHumanoid",
+        "UniSIL.ShaderInference",
+        "NativeFilePicker.Runtime",
+        "Unity.TextMeshPro"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.vrmc.vrm",
+            "expression": "",
+            "define": "VRM10_AVAILABLE"
+        }
+    ],
+    "noEngineReferences": false
+}

@@ -1,9 +1,18 @@
 {
     "name": "Tests.PlayMode",
-    "rootNamespace": "",
+    "rootNamespace": "AICam.Tests.PlayMode",
     "references": [
         "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner"
+        "UnityEditor.TestRunner",
+        "AICam.Core",
+        "AICam.VRMLoader",
+        "AICam.Analytics",
+        "AICam.AvatarCache",
+        "UniTask",
+        "VRM",
+        "UniGLTF",
+        "UniHumanoid",
+        "DSGarage.BlendShape"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -16,6 +25,12 @@
     "defineConstraints": [
         "UNITY_INCLUDE_TESTS"
     ],
-    "versionDefines": [],
+    "versionDefines": [
+        {
+            "name": "com.dsgarage.blendshapecontroller",
+            "expression": "",
+            "define": "BLENDSHAPE_CONTROLLER"
+        }
+    ],
     "noEngineReferences": false
 }

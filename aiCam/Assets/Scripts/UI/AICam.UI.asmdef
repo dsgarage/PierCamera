@@ -1,0 +1,44 @@
+{
+    "name": "AICam.UI",
+    "rootNamespace": "AICam.UI",
+    "references": [
+        "AICam.Core",
+        "AICam.AR",
+        "AICam.Expression",
+        "AICam.FBXLoader",
+        "AICam.VRMLoader",
+        "AICam.AvatarCache",
+        "AICam.AvatarBuilder",
+        "AICam.BugReport",
+        "VRM",
+        "VRM10",
+        "UniTask",
+        "NativeFilePicker.Runtime",
+        "DSGarage.PoseSlot",
+        "DSGarage.BlendShape",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI",
+        "Unity.XR.ARFoundation",
+        "Unity.XR.ARSubsystems"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.dsgarage.blendshapecontroller",
+            "expression": "",
+            "define": "BLENDSHAPE_CONTROLLER"
+        },
+        {
+            "name": "com.vrmc.vrm",
+            "expression": "",
+            "define": "VRM10_AVAILABLE"
+        }
+    ],
+    "noEngineReferences": false
+}

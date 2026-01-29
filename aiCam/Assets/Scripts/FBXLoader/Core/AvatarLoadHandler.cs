@@ -4,6 +4,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using AICam.Analytics;
+using AICam.AvatarCache;
 
 namespace AICam.FBXLoader
 {
@@ -16,6 +17,21 @@ namespace AICam.FBXLoader
         #region Singleton
 
         private static AvatarLoadHandler _instance;
+        /// <summary>
+        /// インスタンスが存在するかどうか（エラーログなしでチェック）
+        /// </summary>
+        public static bool HasInstance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = FindObjectOfType<AvatarLoadHandler>();
+                }
+                return _instance != null;
+            }
+        }
+
         public static AvatarLoadHandler Instance
         {
             get
@@ -30,6 +46,15 @@ namespace AICam.FBXLoader
                 }
                 return _instance;
             }
+        }
+
+        /// <summary>
+        /// Domain Reload無効時に静的変数をリセット（Editor Play Mode時の問題を防止）
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStaticInstance()
+        {
+            _instance = null;
         }
 
         #endregion
@@ -76,10 +101,13 @@ namespace AICam.FBXLoader
         {
             if (_instance != null && _instance != this)
             {
-                Destroy(gameObject);
+                // 重複コンポーネントのみ破棄（GameObjectは保持）
+                Debug.LogWarning("[AvatarLoadHandler] Duplicate instance detected, destroying this component");
+                Destroy(this);
                 return;
             }
             _instance = this;
+            Debug.Log("[AvatarLoadHandler] Instance initialized");
 
             ValidateDependencies();
         }
@@ -360,6 +388,14 @@ namespace AICam.FBXLoader
                     if (cachedAvatar != null)
                     {
                         SetupAnimatorController(cachedAvatar);
+
+                        // メモリキャッシュからの復元でも回転がidentityの場合は補正
+                        if (IsRotationIdentity(cachedAvatar.transform.rotation))
+                        {
+                            cachedAvatar.transform.rotation = Quaternion.Euler(0, 180, 0);
+                            Debug.Log($"[📦 LOAD] Corrected identity rotation to 180° Y (cache hit)");
+                        }
+
                         slotManager?.SelectSlot(request.TargetSlotIndex);
                         OnLoadProgress?.Invoke(1.0f);
 
@@ -397,6 +433,34 @@ namespace AICam.FBXLoader
             {
                 slotData.ApplyTransform(avatar.transform);
                 Debug.Log($"[📦 LOAD] Restored transform from cache");
+
+                // 保存された回転がidentityの場合は180° Y回転を適用
+                // （旧バージョンで回転前に保存された場合の対策）
+                if (IsRotationIdentity(avatar.transform.rotation))
+                {
+                    avatar.transform.rotation = Quaternion.Euler(0, 180, 0);
+                    Debug.Log($"[📦 LOAD] Corrected identity rotation to 180° Y");
+                }
+            }
+            else
+            {
+                // 保存されたトランスフォームがない場合、VRMのデフォルト向き（Z-方向）を設定
+                avatar.transform.rotation = Quaternion.Euler(0, 180, 0);
+                Debug.Log($"[📦 LOAD] Applied default VRM rotation (180° Y)");
+            }
+
+            // Issue #416: アイコンがない場合は再キャプチャ
+            if (!slotData.HasIcon)
+            {
+                Debug.Log($"[📦 LOAD] Icon missing for slot {request.TargetSlotIndex}, capturing new icon");
+                string iconPath = await CaptureAndSaveIconAsync(avatar, request.TargetSlotIndex);
+                if (!string.IsNullOrEmpty(iconPath))
+                {
+                    slotData.iconFilePath = iconPath;
+                    var slotCache = slotManager?.Cache;
+                    slotCache?.SaveToFile();
+                    Debug.Log($"[📦 LOAD] Captured and saved icon: {iconPath}");
+                }
             }
 
             // メモリキャッシュに追加
@@ -537,6 +601,16 @@ namespace AICam.FBXLoader
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// 回転がidentity（無回転）かどうかをチェック
+        /// 旧バージョンで回転適用前に保存された場合の検出用
+        /// </summary>
+        private static bool IsRotationIdentity(Quaternion rotation)
+        {
+            float angleDifference = Quaternion.Angle(rotation, Quaternion.identity);
+            return angleDifference < 1f; // 1度未満ならidentity
         }
 
         /// <summary>
