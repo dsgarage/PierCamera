@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
+using PierCamera.Analytics;
 
 [RequireComponent(typeof(ARRaycastManager))]
 public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
@@ -142,6 +143,18 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         // ARカメラ未指定なら自動取得
         if (!arCamera) arCamera = Camera.main;
 
+        // Issue #473: LiDARなし端末ではオクルージョンを無効化
+        bool hasLiDAR = DeviceAnalytics.HasLiDAR();
+        if (!hasLiDAR)
+        {
+            desiredOcclusionOn = false;
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] Device does NOT have LiDAR - disabling occlusion features");
+        }
+        else
+        {
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] Device has LiDAR - occlusion features enabled");
+        }
+
         // オクルージョンの初期設定（ARFoundation 6.3 仕様: enabled は触らず requested のみ制御）
         if (occlusionManager)
         {
@@ -159,9 +172,67 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour
         if (planeManager)
         {
             planeManager.planesChanged += OnPlanesChanged;
+            Debug.Log($"[PlaceAvatarOnPlaneOnly] ARPlaneManager found - enabled: {planeManager.enabled}, detectionMode: {planeManager.requestedDetectionMode}");
+        }
+        else
+        {
+            Debug.LogError("[PlaceAvatarOnPlaneOnly] ARPlaneManager NOT FOUND! Plane detection will not work.");
         }
 
         Debug.Log($"[PlaceAvatarOnPlaneOnly] Initialized - FollowMode: {enableFollowMode}, Distance: {followDistance}m");
+    }
+
+    void Start()
+    {
+        // Issue #473: 平面検知の状態を定期的にログ出力
+        StartCoroutine(LogPlaneDetectionStatus());
+    }
+
+    System.Collections.IEnumerator LogPlaneDetectionStatus()
+    {
+        // ARSession起動を待つ
+        yield return new WaitForSeconds(1.0f);
+
+        // 初回ログ
+        LogPlaneManagerState("Initial check (1s after start)");
+
+        // 3秒後に再度チェック
+        yield return new WaitForSeconds(2.0f);
+        LogPlaneManagerState("Second check (3s after start)");
+
+        // 5秒後に再度チェック
+        yield return new WaitForSeconds(2.0f);
+        LogPlaneManagerState("Third check (5s after start)");
+    }
+
+    void LogPlaneManagerState(string context)
+    {
+        // ARSessionの状態を確認
+        var arSession = FindFirstObjectByType<ARSession>();
+        string sessionState = arSession != null ? ARSession.state.ToString() : "ARSession not found";
+
+        if (!planeManager)
+        {
+            Debug.LogError($"[PlaceAvatarOnPlaneOnly] {context}: ARPlaneManager is NULL! ARSession.state={sessionState}");
+            return;
+        }
+
+        int planeCount = 0;
+        foreach (var _ in planeManager.trackables)
+        {
+            planeCount++;
+        }
+
+        // ARPlaneManagerのサブシステム状態も確認
+        bool hasSubsystem = planeManager.subsystem != null;
+        bool subsystemRunning = hasSubsystem && planeManager.subsystem.running;
+
+        Debug.Log($"[PlaceAvatarOnPlaneOnly] {context}: " +
+                  $"ARSession.state={sessionState}, " +
+                  $"ARPlaneManager.enabled={planeManager.enabled}, " +
+                  $"subsystem={hasSubsystem}, running={subsystemRunning}, " +
+                  $"detectionMode={planeManager.requestedDetectionMode}, " +
+                  $"trackedPlanes={planeCount}");
     }
 
     void OnEnable()
