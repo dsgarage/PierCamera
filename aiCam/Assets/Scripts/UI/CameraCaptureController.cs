@@ -1515,7 +1515,13 @@ namespace AICam.UI
                     return;
                 }
 
-                Debug.Log($"[📦 AUTO-LOAD] Avatar loaded for slot {slotIndex}: {avatar.name}");
+                // 非アクティブスロットは即座に非表示化（描画を防ぐ）
+                if (!isActiveSlot)
+                {
+                    avatar.SetActive(false);
+                }
+
+                Debug.Log($"[📦 AUTO-LOAD] Avatar loaded for slot {slotIndex}: {avatar.name}, active={isActiveSlot}");
 
                 UpdateSlotProgress(button, 0.7f);
 
