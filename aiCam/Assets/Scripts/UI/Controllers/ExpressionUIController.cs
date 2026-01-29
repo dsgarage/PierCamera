@@ -253,7 +253,10 @@ namespace AICam.UI
 
         private void SwitchToNextExpression()
         {
-            Debug.Log("😊 SwitchToNextExpression called");
+            Debug.Log($"😊 SwitchToNextExpression called - vrm0: {(vrm0ExpressionController != null ? "✅" : "❌")}, vrm10: {(expressionSetup != null ? "✅" : "❌")}");
+#if BLENDSHAPE_CONTROLLER
+            Debug.Log($"😊 BlendShapeManager: {(blendShapeExpressionManager != null ? "✅" : "❌")}");
+#endif
 
             // VRM 0.xを優先チェック（より一般的）
             if (vrm0ExpressionController != null)
