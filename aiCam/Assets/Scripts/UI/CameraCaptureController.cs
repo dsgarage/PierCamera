@@ -1527,7 +1527,8 @@ namespace AICam.UI
                 if (isActiveSlot)
                 {
                     // アクティブスロット: カメラ前方に配置して表示
-                    PlaceAvatarAheadOfCamera(avatar);
+                    // Issue #474: 起動時は平面検知を待機してから配置
+                    await PlaceAvatarAheadOfCameraAsync(avatar);
                     ReapplyLightingSettings();
 
                     UpdateSlotProgress(button, 0.85f);
@@ -3994,6 +3995,26 @@ namespace AICam.UI
             {
                 bool success = placer.PlaceAvatarAhead(avatar, 1.5f);
                 Debug.Log($"📍 Issue #425: Avatar placement result: {(success ? "success" : "failed")}");
+            }
+            else
+            {
+                Debug.LogWarning("⚠️ PlaceAvatarOnPlaneOnly not found - avatar position unchanged");
+            }
+        }
+
+        /// <summary>
+        /// Issue #474: アバターをカメラ前方に配置（平面検知待機版）
+        /// 起動時のキャッシュロードで使用。平面検知を最大3秒待機してから配置する。
+        /// </summary>
+        async UniTask PlaceAvatarAheadOfCameraAsync(GameObject avatar)
+        {
+            if (avatar == null) return;
+
+            var placer = FindFirstObjectByType<PlaceAvatarOnPlaneOnly>();
+            if (placer != null)
+            {
+                bool success = await placer.PlaceAvatarAheadAsync(avatar, 1.5f, maxWaitSeconds: 3.0f);
+                Debug.Log($"📍 Issue #474: Avatar async placement result: {(success ? "success" : "failed")}");
             }
             else
             {
