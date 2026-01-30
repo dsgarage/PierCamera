@@ -209,6 +209,10 @@ namespace AICam.UI
         {
             Debug.Log("🗑 Clearing all avatar cache...");
 
+            // 1. ロード済みアバターを破棄し、UIボタンを削除
+            slotUIController.ClearAllSlotsAndAvatars();
+
+            // 2. AvatarSlotManager のキャッシュをクリア
             var slotManager = AvatarSlotManager.Instance;
             if (slotManager != null)
             {
@@ -219,16 +223,22 @@ namespace AICam.UI
                     {
                         slotManager.ClearSlot(i);
                     }
+                    // lastCreatedSlotCount をリセット
+                    cache.lastCreatedSlotCount = 1;
+                    cache.lastActiveSlotIndex = 0;
+                    cache.SaveToFile();
                 }
             }
 
+            // 3. メモリキャッシュをクリア
             var memoryCache = AvatarMemoryCache.Instance;
             if (memoryCache != null)
             {
                 memoryCache.ClearAll();
             }
 
-            slotUIController.RefreshAllSlotIcons();
+            // 4. スロット数を保存
+            slotPersistenceController?.SaveSlotCount(slotUIController.BottomButtonCount);
 
             showInfo?.Invoke("Cache", "キャッシュをクリアしました", 2f);
             Debug.Log("✅ All avatar cache cleared");

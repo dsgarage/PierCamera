@@ -26,6 +26,10 @@ namespace AICam.UI
         private ExpressionSetManager blendShapeExpressionManager;
 #endif
 
+        // 現在のアバター参照（動的セットアップ用）
+        private GameObject currentAvatar;
+        private int currentSlotIndex = -1;
+
         // ダブルタップ検出
         private int expressionTapCount = 0;
         private System.Threading.CancellationTokenSource expressionTapCts;
@@ -55,13 +59,17 @@ namespace AICam.UI
         {
             if (avatar == null) return;
 
-            Debug.Log($"SetupExpressionSystem: Starting setup for {avatar.name}, slotIndex={slotIndex}");
+            Debug.Log($"[Expression] SetupExpressionSystem: Starting for {avatar.name}, slotIndex={slotIndex}");
+
+            // 現在のアバター参照を保存
+            currentAvatar = avatar;
+            currentSlotIndex = slotIndex;
 
             // VRM 1.0を確認
             var vrm10Instance = avatar.GetComponent<UniVRM10.Vrm10Instance>();
             if (vrm10Instance != null)
             {
-                Debug.Log($"SetupExpressionSystem: VRM 1.0 detected");
+                Debug.Log($"[Expression] VRM 1.0 detected");
                 SetupVrm10ExpressionSystem(avatar, vrm10Instance);
                 return;
             }
@@ -70,20 +78,25 @@ namespace AICam.UI
             var blendShapeProxy = avatar.GetComponent<global::VRM.VRMBlendShapeProxy>();
             if (blendShapeProxy != null)
             {
-                Debug.Log($"SetupExpressionSystem: VRM 0.x detected");
+                Debug.Log($"[Expression] VRM 0.x detected");
                 SetupVrm0ExpressionSystem(avatar, blendShapeProxy);
                 return;
             }
 
             // Issue #471: キャッシュロード時のフォールバック（BlendshapeController SDK）
+            Debug.Log($"[Expression] No VRM component, trying BlendShapeController fallback...");
 #if BLENDSHAPE_CONTROLLER
             if (TrySetupBlendShapeExpressionSystem(avatar, slotIndex))
             {
+                Debug.Log($"[Expression] ✅ BlendShapeController setup successful, manager={blendShapeExpressionManager != null}");
                 return;
             }
+            Debug.LogWarning($"[Expression] BlendShapeController setup failed");
+#else
+            Debug.LogWarning($"[Expression] BLENDSHAPE_CONTROLLER not defined");
 #endif
 
-            Debug.LogWarning($"SetupExpressionSystem: {avatar.name} - no expression support");
+            Debug.LogWarning($"[Expression] {avatar.name} - no expression support");
         }
 
         /// <summary>
@@ -137,25 +150,58 @@ namespace AICam.UI
 #if BLENDSHAPE_CONTROLLER
         /// <summary>
         /// VRM 表情メタデータをキャッシュに保存。
+        /// VRM 1.0 / VRM 0.x 両方に対応。
         /// </summary>
         public void SaveExpressionDataToCache(GameObject avatar, string cacheId)
         {
             try
             {
-                var vrm10 = avatar.GetComponent<UniVRM10.Vrm10Instance>();
-                if (vrm10 == null) return;
-
                 ExpressionSet expressionSet = null;
-                if (AICam.VRM.VrmExpressionBridge.IsVRoidStudioAvatar(avatar))
+
+                // VRM 1.0 を確認
+                var vrm10 = avatar.GetComponent<UniVRM10.Vrm10Instance>();
+                if (vrm10 != null)
                 {
-                    expressionSet = AICam.VRM.VrmExpressionBridge.GetStandardExpressionSet();
+                    Debug.Log($"[Expression] SaveExpressionDataToCache: VRM 1.0 detected");
+                    if (AICam.VRM.VrmExpressionBridge.IsVRoidStudioAvatar(avatar))
+                    {
+                        expressionSet = AICam.VRM.VrmExpressionBridge.GetStandardExpressionSet();
+                    }
+                    else
+                    {
+                        expressionSet = AICam.VRM.VrmExpressionBridge.CreateExpressionSetFromVrm10(vrm10, avatar);
+                    }
                 }
                 else
                 {
-                    expressionSet = AICam.VRM.VrmExpressionBridge.CreateExpressionSetFromVrm10(vrm10, avatar);
+                    // VRM 0.x を確認
+                    var blendShapeProxy = avatar.GetComponent<global::VRM.VRMBlendShapeProxy>();
+                    if (blendShapeProxy != null)
+                    {
+                        Debug.Log($"[Expression] SaveExpressionDataToCache: VRM 0.x detected");
+                        expressionSet = AICam.VRM.VrmExpressionBridge.CreateExpressionSetFromVrm0(blendShapeProxy, avatar);
+                    }
+                    else
+                    {
+                        // VRoidStudio アバターの場合は標準表情セットを使用
+                        if (AICam.VRM.VrmExpressionBridge.IsVRoidStudioAvatar(avatar))
+                        {
+                            Debug.Log($"[Expression] SaveExpressionDataToCache: VRoidStudio avatar detected");
+                            expressionSet = AICam.VRM.VrmExpressionBridge.GetStandardExpressionSet();
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"[Expression] SaveExpressionDataToCache: No VRM component found");
+                            return;
+                        }
+                    }
                 }
 
-                if (expressionSet == null || expressionSet.Count == 0) return;
+                if (expressionSet == null || expressionSet.Count == 0)
+                {
+                    Debug.LogWarning($"[Expression] SaveExpressionDataToCache: No expressions found");
+                    return;
+                }
 
                 var collection = new ExpressionSetCollection
                 {
@@ -181,8 +227,12 @@ namespace AICam.UI
         /// スロット切り替え時の表情状態復元。
         /// ActivateSlotAvatar から呼ばれる。
         /// </summary>
-        public void OnSlotActivated(GameObject avatar)
+        public void OnSlotActivated(GameObject avatar, int slotIndex = -1)
         {
+            // 現在のアバター参照を更新
+            currentAvatar = avatar;
+            currentSlotIndex = slotIndex;
+
 #if BLENDSHAPE_CONTROLLER
             // BlendshapeController をリセット
             blendShapeExpressionManager = null;
@@ -197,9 +247,16 @@ namespace AICam.UI
                     expressionSetup = null;
                     vrm0ExpressionController = null;
                     Debug.Log($"[Expression] Restored BlendShape expression manager: {manager.Collection?.CurrentSet?.Count ?? 0} expressions");
+                    return;
                 }
             }
 #endif
+            // 表情マネージャーが見つからない場合はセットアップを試行
+            if (avatar != null)
+            {
+                Debug.Log($"[Expression] OnSlotActivated: No existing manager, calling SetupExpressionSystem for slot {slotIndex}");
+                SetupExpressionSystem(avatar, slotIndex);
+            }
         }
 
         // ----- Private methods -----
@@ -268,12 +325,7 @@ namespace AICam.UI
                 return;
             }
 
-            // VRM 1.0をチェック
-            if (expressionSetup == null)
-            {
-                expressionSetup = UnityEngine.Object.FindFirstObjectByType<AICam.Expression.VrmExpressionSetup>();
-            }
-
+            // VRM 1.0をチェック（SetupExpressionSystemで設定されたもののみ使用）
             if (expressionSetup != null)
             {
                 var controller = expressionSetup.CurrentExpressionController;
@@ -285,6 +337,9 @@ namespace AICam.UI
                     Debug.Log($"😊 VRM 1.0 Expression switched: {indexBefore} → {indexAfter}, Name: {controller.CurrentExpressionName}");
                     return;
                 }
+                // コントローラーがnullの場合、expressionSetupをクリアして次へ
+                Debug.Log($"😊 VRM 1.0 expressionSetup exists but controller is null, clearing");
+                expressionSetup = null;
             }
 
             // Issue #471: BlendshapeController SDK フォールバック
@@ -295,8 +350,24 @@ namespace AICam.UI
                 blendShapeExpressionManager.NextExpression();
                 int indexAfter = blendShapeExpressionManager.CurrentExpressionIndex;
                 var current = blendShapeExpressionManager.CurrentExpression;
-                Debug.Log($"BlendShape Expression switched: {indexBefore} -> {indexAfter}, Name: {current?.name}");
+                Debug.Log($"😊 BlendShape Expression switched: {indexBefore} -> {indexAfter}, Name: {current?.name}");
                 return;
+            }
+
+            // 動的セットアップを試行
+            if (currentAvatar != null)
+            {
+                Debug.Log($"😊 No controller available, attempting dynamic setup for {currentAvatar.name}");
+                if (TrySetupBlendShapeExpressionSystem(currentAvatar, currentSlotIndex))
+                {
+                    if (blendShapeExpressionManager != null)
+                    {
+                        blendShapeExpressionManager.NextExpression();
+                        var current = blendShapeExpressionManager.CurrentExpression;
+                        Debug.Log($"😊 BlendShape Expression switched after dynamic setup: {current?.name}");
+                        return;
+                    }
+                }
             }
 #endif
 
@@ -315,12 +386,7 @@ namespace AICam.UI
                 return;
             }
 
-            // VRM 1.0をチェック
-            if (expressionSetup == null)
-            {
-                expressionSetup = UnityEngine.Object.FindFirstObjectByType<AICam.Expression.VrmExpressionSetup>();
-            }
-
+            // VRM 1.0をチェック（SetupExpressionSystemで設定されたもののみ使用）
             if (expressionSetup != null)
             {
                 var controller = expressionSetup.CurrentExpressionController;
@@ -330,6 +396,8 @@ namespace AICam.UI
                     Debug.Log("😊 VRM 1.0 Expression reset to neutral");
                     return;
                 }
+                // コントローラーがnullの場合、expressionSetupをクリアして次へ
+                expressionSetup = null;
             }
 
             // Issue #471: BlendshapeController SDK フォールバック
@@ -337,7 +405,7 @@ namespace AICam.UI
             if (blendShapeExpressionManager != null)
             {
                 blendShapeExpressionManager.ResetAllBlendShapes();
-                Debug.Log("BlendShape Expression reset to neutral");
+                Debug.Log("😊 BlendShape Expression reset to neutral");
                 return;
             }
 #endif
@@ -404,21 +472,32 @@ namespace AICam.UI
         /// </summary>
         private bool TrySetupBlendShapeExpressionSystem(GameObject avatar, int slotIndex)
         {
+            Debug.Log($"[Expression] TrySetupBlendShapeExpressionSystem: avatar={avatar.name}, slotIndex={slotIndex}");
+
             // expressions.json からの読み込みを試行
             string jsonPath = null;
             string cacheDir = null;
             if (slotIndex >= 0)
             {
                 var slotManager = AICam.FBXLoader.AvatarSlotManager.Instance;
+                Debug.Log($"[Expression] SlotManager: {(slotManager != null ? "exists" : "null")}, Cache: {(slotManager?.Cache != null ? "exists" : "null")}");
+
                 if (slotManager?.Cache != null)
                 {
                     var slotData = slotManager.Cache.GetSlot(slotIndex);
+                    Debug.Log($"[Expression] SlotData for {slotIndex}: {(slotData != null ? "exists" : "null")}, binaryCacheId: {slotData?.binaryCacheId ?? "null"}");
+
                     if (slotData != null && !string.IsNullOrEmpty(slotData.binaryCacheId))
                     {
                         cacheDir = Path.Combine(Application.persistentDataPath, "AvatarCache", slotData.binaryCacheId);
                         jsonPath = Path.Combine(cacheDir, "expressions.json");
+                        Debug.Log($"[Expression] jsonPath: {jsonPath}, exists: {File.Exists(jsonPath)}");
                     }
                 }
+            }
+            else
+            {
+                Debug.Log($"[Expression] slotIndex is negative ({slotIndex}), cannot look up expressions.json");
             }
 
             // パス1: expressions.json が存在する場合

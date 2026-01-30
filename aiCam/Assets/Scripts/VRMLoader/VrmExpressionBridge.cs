@@ -20,26 +20,40 @@ namespace AICam.VRM
         /// </summary>
         public static bool IsVRoidStudioAvatar(GameObject avatar)
         {
-            if (avatar == null) return false;
+            if (avatar == null)
+            {
+                Debug.Log($"{TAG} IsVRoidStudioAvatar: avatar is null");
+                return false;
+            }
 
             int fclCount = 0;
+            int totalBlendShapes = 0;
             var skinnedMeshes = avatar.GetComponentsInChildren<SkinnedMeshRenderer>();
+            Debug.Log($"{TAG} IsVRoidStudioAvatar: Found {skinnedMeshes.Length} SkinnedMeshRenderers");
 
             foreach (var smr in skinnedMeshes)
             {
                 if (smr.sharedMesh == null) continue;
 
-                for (int i = 0; i < smr.sharedMesh.blendShapeCount; i++)
+                int meshBlendShapes = smr.sharedMesh.blendShapeCount;
+                totalBlendShapes += meshBlendShapes;
+
+                for (int i = 0; i < meshBlendShapes; i++)
                 {
                     string name = smr.sharedMesh.GetBlendShapeName(i);
                     if (name.StartsWith("Fcl_"))
                     {
                         fclCount++;
-                        if (fclCount >= 10) return true;
+                        if (fclCount >= 10)
+                        {
+                            Debug.Log($"{TAG} IsVRoidStudioAvatar: TRUE (found {fclCount} Fcl_ blendshapes)");
+                            return true;
+                        }
                     }
                 }
             }
 
+            Debug.Log($"{TAG} IsVRoidStudioAvatar: FALSE (total={totalBlendShapes}, Fcl_={fclCount})");
             return false;
         }
 
@@ -173,6 +187,102 @@ namespace AICam.VRM
             return set;
         }
 #endif
+
+        /// <summary>
+        /// VRM 0.x BlendShapeProxy → ExpressionSet 変換
+        /// </summary>
+        public static ExpressionSet CreateExpressionSetFromVrm0(global::VRM.VRMBlendShapeProxy blendShapeProxy, GameObject avatar)
+        {
+            if (blendShapeProxy == null)
+            {
+                Debug.LogWarning($"{TAG} VRMBlendShapeProxy is null");
+                return null;
+            }
+
+            var blendShapeAvatar = blendShapeProxy.BlendShapeAvatar;
+            if (blendShapeAvatar == null)
+            {
+                Debug.LogWarning($"{TAG} BlendShapeAvatar is null");
+                return null;
+            }
+
+            var set = new ExpressionSet(avatar != null ? avatar.name : "VRM0Expressions")
+            {
+                description = "Generated from VRM 0.x expression clips"
+            };
+
+            int entryIndex = 0;
+            foreach (var clip in blendShapeAvatar.Clips)
+            {
+                if (clip == null) continue;
+
+                // 視線系をスキップ
+                if (clip.Preset == global::VRM.BlendShapePreset.LookUp ||
+                    clip.Preset == global::VRM.BlendShapePreset.LookDown ||
+                    clip.Preset == global::VRM.BlendShapePreset.LookLeft ||
+                    clip.Preset == global::VRM.BlendShapePreset.LookRight)
+                {
+                    continue;
+                }
+
+                string expressionName = clip.Preset == global::VRM.BlendShapePreset.Unknown
+                    ? clip.BlendShapeName
+                    : clip.Preset.ToString();
+
+                var entry = new ExpressionEntry(expressionName, entryIndex);
+
+                // BlendShapeBindings を解決
+                if (clip.Values != null && clip.Values.Length > 0)
+                {
+                    foreach (var binding in clip.Values)
+                    {
+                        // RelativePath からメッシュを検索
+                        Transform meshTransform = avatar != null
+                            ? avatar.transform.Find(binding.RelativePath)
+                            : null;
+
+                        if (meshTransform == null)
+                        {
+                            Debug.LogWarning($"{TAG} Mesh not found: {binding.RelativePath} for expression {expressionName}");
+                            continue;
+                        }
+
+                        var smr = meshTransform.GetComponent<SkinnedMeshRenderer>();
+                        if (smr == null || smr.sharedMesh == null)
+                        {
+                            Debug.LogWarning($"{TAG} SkinnedMeshRenderer not found at: {binding.RelativePath}");
+                            continue;
+                        }
+
+                        // Index からブレンドシェイプ名を取得
+                        if (binding.Index < 0 || binding.Index >= smr.sharedMesh.blendShapeCount)
+                        {
+                            Debug.LogWarning($"{TAG} BlendShape index {binding.Index} out of range for {binding.RelativePath}");
+                            continue;
+                        }
+
+                        string blendShapeName = smr.sharedMesh.GetBlendShapeName(binding.Index);
+
+                        // Weight: VRM 0.x は 0-100 のまま
+                        float weight = binding.Weight;
+
+                        if (!entry.blendShapes.ContainsKey(blendShapeName))
+                        {
+                            entry.blendShapes[blendShapeName] = weight;
+                        }
+                    }
+                }
+
+                entry.index = entryIndex;
+                set.expressions.Add(entry);
+                entryIndex++;
+
+                Debug.Log($"{TAG} Expression '{expressionName}': {entry.blendShapes.Count} blendshapes");
+            }
+
+            Debug.Log($"{TAG} Created ExpressionSet with {set.Count} expressions from VRM 0.x");
+            return set;
+        }
     }
 }
 #endif

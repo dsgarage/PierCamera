@@ -134,6 +134,18 @@ namespace AICam.UI
         {
             if (enableDebugLogging) Debug.Log($"✅ Root element found: {root.name}");
 
+            // Phase 00: SerializeField の自動取得（null の場合）
+            if (expressionSetup == null)
+            {
+                expressionSetup = GetComponent<AICam.Expression.VrmExpressionSetup>();
+                if (enableDebugLogging) Debug.Log($"🔧 Auto-resolved expressionSetup: {(expressionSetup != null ? "✅" : "❌")}");
+            }
+            if (poseSlotController == null)
+            {
+                poseSlotController = FindAnyObjectByType<PoseSlotController>();
+                if (enableDebugLogging) Debug.Log($"🔧 Auto-resolved poseSlotController: {(poseSlotController != null ? "✅" : "❌")}");
+            }
+
             // Phase 01: サービス初期化
             alertService = new AlertService(root);
             slotProgressService = new SlotProgressService(root);

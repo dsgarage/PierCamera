@@ -500,7 +500,18 @@ namespace AICam.UI
                 Debug.Log($"Updated cachedCurrentAvatar: {slotData.loadedAvatar.name}");
             }
 
-            expressionUIController?.OnSlotActivated(slotData?.loadedAvatar);
+            // スロットインデックスを取得
+            int slotIndex = -1;
+            foreach (var kvp in slotDataMap)
+            {
+                if (kvp.Value == slotData)
+                {
+                    slotIndex = GetSlotIndexFromButton(kvp.Key);
+                    break;
+                }
+            }
+
+            expressionUIController?.OnSlotActivated(slotData?.loadedAvatar, slotIndex);
         }
 
         #endregion
@@ -584,10 +595,78 @@ namespace AICam.UI
             currentLongPressButton = null;
         }
 
+        /// <summary>
+        /// キャッシュクリア時に全スロットのアバターを破棄し、UIボタンを削除する。
+        /// bottomButton1 は残すがアイコンはリセットする。
+        /// </summary>
+        public void ClearAllSlotsAndAvatars()
+        {
+            Debug.Log("🗑 ClearAllSlotsAndAvatars: Starting...");
+
+            // 1. ロード済みアバターを破棄
+            foreach (var kvp in slotDataMap)
+            {
+                var slotData = kvp.Value;
+                if (slotData?.loadedAvatar != null)
+                {
+                    Debug.Log($"🗑 Destroying avatar: {slotData.loadedAvatar.name}");
+                    UnityEngine.Object.Destroy(slotData.loadedAvatar);
+                    slotData.loadedAvatar = null;
+                }
+            }
+
+            // 2. bottomButton1 以外のボタンを削除
+            if (bottomButtonContainer != null)
+            {
+                var buttonsToRemove = new List<Button>();
+                foreach (var child in bottomButtonContainer.Children())
+                {
+                    if (child is Button btn && btn != bottomButtonAdd && btn.name != "bottomButton1")
+                    {
+                        buttonsToRemove.Add(btn);
+                    }
+                }
+
+                foreach (var btn in buttonsToRemove)
+                {
+                    Debug.Log($"🗑 Removing button: {btn.name}");
+                    slotDataMap.Remove(btn);
+                    bottomButtonContainer.Remove(btn);
+                }
+            }
+
+            // 3. bottomButton1 のアイコンをリセット
+            var bottomButton1 = root.Q<Button>("bottomButton1");
+            if (bottomButton1 != null)
+            {
+                bottomButton1.style.backgroundImage = StyleKeyword.None;
+                bottomButton1.RemoveFromClassList("has-icon");
+                bottomButton1.RemoveFromClassList("selected");
+
+                if (slotDataMap.ContainsKey(bottomButton1))
+                {
+                    slotDataMap[bottomButton1] = new SlotData();
+                }
+            }
+
+            // 4. カウントをリセット
+            bottomButtonCount = 1;
+            currentSelectedSlot = null;
+
+            Debug.Log("✅ ClearAllSlotsAndAvatars: Complete");
+        }
+
         public void RemoveSlot(Button button)
         {
-            if (slotDataMap.ContainsKey(button))
+            // ロード済みアバターを破棄
+            if (slotDataMap.TryGetValue(button, out var slotData))
             {
+                if (slotData?.loadedAvatar != null)
+                {
+                    Debug.Log($"🗑 RemoveSlot: Destroying avatar {slotData.loadedAvatar.name}");
+                    UnityEngine.Object.Destroy(slotData.loadedAvatar);
+                    slotData.loadedAvatar = null;
+                }
                 slotDataMap.Remove(button);
             }
 

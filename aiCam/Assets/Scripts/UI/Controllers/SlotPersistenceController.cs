@@ -296,10 +296,13 @@ namespace AICam.UI
 
                 slotProgressUI?.UpdateSlotProgress(button, 0.7f);
 
-                // AOC・表情セットアップ
+                // AOC・表情セットアップ（アクティブスロットのみ）
                 poseUIController?.ApplyDefaultAOC(avatar);
-                expressionUIController?.SetupExpressionSystem(avatar, slotIndex);
-                expressionUIController?.TriggerExpressionIconGeneration(avatar, slotIndex);
+                if (isActiveSlot)
+                {
+                    expressionUIController?.SetupExpressionSystem(avatar, slotIndex);
+                    expressionUIController?.TriggerExpressionIconGeneration(avatar, slotIndex);
+                }
 
                 if (isActiveSlot)
                 {
