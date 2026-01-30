@@ -5,6 +5,10 @@ namespace AICam.UI
 {
     /// <summary>
     /// アスペクト比の切り替え・マスク表示を管理するコントローラー。
+    ///
+    /// ## v0.8.0 変更履歴
+    /// - Issue #478: アスペクト比を 4:3 → 1:1 → 16:9 に変更（Full, 3:2 を削除）
+    /// - Issue #475: マスク色を黒70%透過に変更
     /// </summary>
     public class AspectRatioController
     {
@@ -19,20 +23,20 @@ namespace AICam.UI
 
         private int aspectRatioState = 0;
 
+        // Issue #478: アスペクト比を 4:3 → 1:1 → 16:9 に変更
+        // TODO: 4:3 用アイコン作成後に "02_01_43" に差し替え
         private readonly string[] aspectRatioIcons = new string[]
         {
-            "Sprite/PictIcon/SideBear/02_01_Full",
-            "Sprite/PictIcon/SideBear/02_02_169",
-            "Sprite/PictIcon/SideBear/02_03_32",
-            "Sprite/PictIcon/SideBear/02_04_11"  // 1:1 (正方形)
+            "Sprite/PictIcon/SideBear/02_03_32",  // 4:3 (暫定: 3:2 アイコンを使用)
+            "Sprite/PictIcon/SideBear/02_04_11",  // 1:1 (正方形)
+            "Sprite/PictIcon/SideBear/02_02_169"  // 16:9
         };
 
         private readonly float[] aspectRatios = new float[]
         {
-            0f,      // Full (0 = カメラの最大画角)
-            16f/9f,  // 16:9
-            3f/2f,   // 3:2
-            1f       // 1:1 (正方形)
+            4f/3f,   // 4:3 (デフォルト)
+            1f,      // 1:1 (正方形)
+            16f/9f   // 16:9
         };
 
         /// <summary>
@@ -193,7 +197,7 @@ namespace AICam.UI
                 topMask.style.top = 0;
                 topMask.style.width = screenWidth;
                 topMask.style.height = maskHeight;
-                topMask.style.backgroundColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+                topMask.style.backgroundColor = new Color(0f, 0f, 0f, 0.7f);  // Issue #475: 黒70%透過
                 topMask.style.opacity = 1f;
                 topMask.pickingMode = PickingMode.Ignore;
                 Debug.Log($"📐 Top mask SET: {screenWidth}x{maskHeight}px");
@@ -205,7 +209,7 @@ namespace AICam.UI
                 bottomMask.style.bottom = 0;
                 bottomMask.style.width = screenWidth;
                 bottomMask.style.height = maskHeight;
-                bottomMask.style.backgroundColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+                bottomMask.style.backgroundColor = new Color(0f, 0f, 0f, 0.7f);  // Issue #475
                 bottomMask.style.opacity = 1f;
                 bottomMask.pickingMode = PickingMode.Ignore;
                 Debug.Log($"📐 Bottom mask SET: {screenWidth}x{maskHeight}px");
@@ -224,7 +228,7 @@ namespace AICam.UI
                     leftMask.style.bottom = 0;
                     leftMask.style.width = maskWidth;
                     leftMask.style.height = screenHeight;
-                    leftMask.style.backgroundColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+                    leftMask.style.backgroundColor = new Color(0f, 0f, 0f, 0.7f);  // Issue #475
                     leftMask.style.opacity = 1f;
                     leftMask.pickingMode = PickingMode.Ignore;
                     Debug.Log($"📐 Left mask SET: {maskWidth}x{screenHeight}px");
@@ -239,7 +243,7 @@ namespace AICam.UI
                     rightMask.style.bottom = 0;
                     rightMask.style.width = maskWidth;
                     rightMask.style.height = screenHeight;
-                    rightMask.style.backgroundColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+                    rightMask.style.backgroundColor = new Color(0f, 0f, 0f, 0.7f);  // Issue #475
                     rightMask.style.opacity = 1f;
                     rightMask.pickingMode = PickingMode.Ignore;
                     Debug.Log($"📐 Right mask SET: {maskWidth}x{screenHeight}px");

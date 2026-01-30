@@ -7,6 +7,15 @@ using AICam.Core;
 using Cysharp.Threading.Tasks;
 using PierCamera.Analytics;
 
+/// <summary>
+/// ARプレーン上にアバターを配置し、追従モードやジェスチャー操作を管理するコンポーネント。
+///
+/// ## v0.8.0 変更履歴
+/// - Issue #477: ジェスチャー状態管理を追加
+///   - GestureState enum でピンチ/スワイプ/長押し状態を明示的に管理
+///   - ピンチ終了後のクールダウン期間 (POST_PINCH_COOLDOWN) を追加
+///   - タップ判定に移動距離閾値 (TAP_DISTANCE_THRESHOLD) を追加
+/// </summary>
 [RequireComponent(typeof(ARRaycastManager))]
 public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour, IAvatarPlacer
 {
@@ -100,6 +109,14 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour, IAvatarPlacer
     // 追従モード
     enum FollowMode { Off, PlaneLocked, CameraLocked }
     FollowMode currentFollowMode = FollowMode.Off;
+
+    // Issue #477: ジェスチャー状態管理
+    enum GestureState { None, Tapping, Swiping, Pinching, LongPressing }
+    GestureState currentGestureState = GestureState.None;
+    float gestureStateChangedTime = 0f;
+    const float POST_PINCH_COOLDOWN = 0.15f;  // ピンチ終了後のクールダウン（秒）
+    const float TAP_DISTANCE_THRESHOLD = 20f; // タップ判定の最大移動距離（ピクセル）
+    Vector2 touchStartPosition;               // タッチ開始位置（タップ判定用）
     Vector3 cameraLocalOffset; // CameraLocked用のオフセット
     float lastTapTime = -1f;
     Vector2 lastTapPosition;
@@ -274,9 +291,13 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour, IAvatarPlacer
             UpdateFollowMode();
         }
 
+        // Issue #477: ジェスチャー状態の更新
+        UpdateGestureState();
+
         // Issue #395, #429: ピンチスケール（[青]Off + [橙]PlaneLocked + [紫]CameraLockedモード、全モードで有効）
         if (enablePinchScale && avatar && Input.touchCount == 2)
         {
+            currentGestureState = GestureState.Pinching;
             HandlePinchScale();
         }
         else
@@ -310,11 +331,42 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour, IAvatarPlacer
         if (Input.touchCount == 0)
         {
             isSwipeActive = false;
+            // Issue #477: タッチがなくなったらジェスチャー状態をリセット
+            if (currentGestureState != GestureState.None)
+            {
+                gestureStateChangedTime = Time.time;
+                currentGestureState = GestureState.None;
+            }
             return;
         }
 
         var touch = Input.GetTouch(0);
+
+        // Issue #477: タッチ開始位置を記録
+        if (touch.phase == TouchPhase.Began)
+        {
+            touchStartPosition = touch.position;
+        }
+
+        // Issue #477: ピンチ終了直後はタップ/スワイプを無視
+        if (currentGestureState == GestureState.None &&
+            Time.time - gestureStateChangedTime < POST_PINCH_COOLDOWN)
+        {
+            if (enableDebugLog)
+                Debug.Log($"[PlaceAvatarOnPlaneOnly] Touch ignored - post-pinch cooldown ({Time.time - gestureStateChangedTime:F2}s < {POST_PINCH_COOLDOWN}s)");
+            return;
+        }
+
         if (touch.phase != TouchPhase.Began) return;
+
+        // Issue #477: タップ判定には移動距離チェックを追加
+        float touchMovement = Vector2.Distance(touch.position, touchStartPosition);
+        if (touchMovement > TAP_DISTANCE_THRESHOLD)
+        {
+            if (enableDebugLog)
+                Debug.Log($"[PlaceAvatarOnPlaneOnly] Touch ignored - movement too large ({touchMovement:F0}px > {TAP_DISTANCE_THRESHOLD}px)");
+            return;
+        }
 
         // タップ検出ログ（常に出力）
         Debug.Log($"[PlaceAvatarOnPlaneOnly] Touch detected at {touch.position}, phase: {touch.phase}");
@@ -589,6 +641,44 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour, IAvatarPlacer
         }
     }
 
+    // ========== Issue #477: ジェスチャー状態管理 ==========
+
+    /// <summary>
+    /// Issue #477: ジェスチャー状態を更新
+    /// ピンチ終了後のクールダウンや状態遷移を管理
+    /// </summary>
+    void UpdateGestureState()
+    {
+        int touchCount = Input.touchCount;
+
+        // ピンチ中 → 1指以下になったらクールダウン開始
+        if (currentGestureState == GestureState.Pinching && touchCount < 2)
+        {
+            gestureStateChangedTime = Time.time;
+            currentGestureState = GestureState.None;
+            if (enableDebugLog)
+                Debug.Log($"[PlaceAvatarOnPlaneOnly] Gesture: Pinching → None (cooldown started)");
+        }
+
+        // スワイプ中 → タッチがなくなったらリセット
+        if (currentGestureState == GestureState.Swiping && touchCount == 0)
+        {
+            gestureStateChangedTime = Time.time;
+            currentGestureState = GestureState.None;
+            if (enableDebugLog)
+                Debug.Log($"[PlaceAvatarOnPlaneOnly] Gesture: Swiping → None");
+        }
+
+        // 長押し中 → タッチがなくなったらリセット
+        if (currentGestureState == GestureState.LongPressing && touchCount == 0)
+        {
+            gestureStateChangedTime = Time.time;
+            currentGestureState = GestureState.None;
+            if (enableDebugLog)
+                Debug.Log($"[PlaceAvatarOnPlaneOnly] Gesture: LongPressing → None");
+        }
+    }
+
     // ========== 追従機能 ==========
 
     bool CheckDoubleTap(Vector2 position)
@@ -813,6 +903,12 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour, IAvatarPlacer
         switch (touch.phase)
         {
             case TouchPhase.Began:
+                // Issue #477: ピンチ直後はスワイプを開始しない
+                if (Time.time - gestureStateChangedTime < POST_PINCH_COOLDOWN)
+                {
+                    isSwipeActive = false;
+                    return;
+                }
                 // スワイプ開始
                 isSwipeActive = true;
                 swipeStartPosition = touch.position;
@@ -833,6 +929,9 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour, IAvatarPlacer
                 // Issue #429: 上下スワイプ: 距離調整（[橙]PlaneLockedモードのみ有効、[紫]CameraLockedモードでは無効）
                 if (enableSwipeDistance && currentFollowMode == FollowMode.PlaneLocked && Mathf.Abs(delta.y) > Mathf.Abs(delta.x))
                 {
+                    // Issue #477: スワイプ状態に設定
+                    currentGestureState = GestureState.Swiping;
+
                     // 上にスワイプ(+Y) = 遠くに、下にスワイプ(-Y) = 近くに
                     float distanceDelta = delta.y / swipeDistanceSensitivity;
                     followDistance = Mathf.Clamp(followDistance + distanceDelta, minDistance, maxDistance);
@@ -842,6 +941,9 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour, IAvatarPlacer
                 // 左右スワイプ: 回転（[橙][紫]両方で有効、ただし[紫]長押し中は除く）
                 else if (enableSwipeRotation && Mathf.Abs(delta.x) > Mathf.Abs(delta.y))
                 {
+                    // Issue #477: スワイプ状態に設定
+                    currentGestureState = GestureState.Swiping;
+
                     float rotationDelta = -delta.x * swipeRotationSensitivity;
                     avatarRotationY += rotationDelta;
 
@@ -929,6 +1031,8 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour, IAvatarPlacer
                 if (!isLongPressActive && Time.time - touchStartTime >= longPressThreshold)
                 {
                     isLongPressActive = true;
+                    // Issue #477: 長押し状態に設定
+                    currentGestureState = GestureState.LongPressing;
                     Debug.Log("[PlaceAvatarOnPlaneOnly] Long press detected - drag to adjust position");
                 }
                 break;
@@ -994,6 +1098,9 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour, IAvatarPlacer
     {
         if (Input.touchCount != 1 || !avatar) return;
         if (!enableSwipeRotation) return;
+
+        // Issue #477: ピンチ直後は無視
+        if (Time.time - gestureStateChangedTime < POST_PINCH_COOLDOWN) return;
 
         Touch touch = Input.GetTouch(0);
 
