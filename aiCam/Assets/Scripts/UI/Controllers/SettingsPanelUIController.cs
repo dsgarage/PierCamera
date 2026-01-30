@@ -5,6 +5,9 @@ namespace AICam.UI
 {
     /// <summary>
     /// ライティング/シャドウ設定パネルの表示・非表示・タブ切り替えを管理するコントローラー。
+    ///
+    /// ## v0.8.0 変更履歴
+    /// - Issue #476: パネルクローズ時のコールバックを追加
     /// </summary>
     public class SettingsPanelUIController
     {
@@ -20,6 +23,7 @@ namespace AICam.UI
 
         private readonly System.Action<string, string> onWarning;
         private readonly System.Action<string, string> onError;
+        private readonly System.Action onPanelClosed;  // Issue #476
 
         /// <summary>
         /// 設定パネルが表示中かどうか。
@@ -31,11 +35,13 @@ namespace AICam.UI
             VisualElement root,
             bool enableDebugLogging,
             System.Action<string, string> onWarning,
-            System.Action<string, string> onError)
+            System.Action<string, string> onError,
+            System.Action onPanelClosed = null)  // Issue #476
         {
             this.enableDebugLogging = enableDebugLogging;
             this.onWarning = onWarning;
             this.onError = onError;
+            this.onPanelClosed = onPanelClosed;
 
             // Issue #120: パネル要素を取得
             settingsPanelBackdrop = root.Q<VisualElement>("settingsPanelBackdrop");
@@ -235,6 +241,7 @@ namespace AICam.UI
 
         /// <summary>
         /// すべてのパネルを非表示。
+        /// Issue #476: クローズ後の入力ブロック用コールバックを呼び出し
         /// </summary>
         public void HideAllPanels()
         {
@@ -252,6 +259,9 @@ namespace AICam.UI
                 shadowPanelOverlay.RemoveFromClassList("visible");
             }
             Debug.Log("📋 All panels hidden");
+
+            // Issue #476: パネルクローズを通知
+            onPanelClosed?.Invoke();
         }
 
         private void OnTopButton1Click()

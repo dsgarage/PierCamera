@@ -5,6 +5,9 @@ namespace AICam.UI
 {
     /// <summary>
     /// アイコンプレビューパネルの表示・非表示を管理するコントローラー。
+    ///
+    /// ## v0.8.0 変更履歴
+    /// - Issue #476: パネルクローズ時のコールバックを追加
     /// </summary>
     public class IconPreviewController
     {
@@ -12,6 +15,7 @@ namespace AICam.UI
         private readonly VisualElement iconPreviewImage;
         private readonly Button iconPreviewRetake;
         private readonly Button iconPreviewConfirm;
+        private readonly System.Action onClosed;  // Issue #476
 
         private System.Action onConfirmCallback;
         private System.Action onRetakeCallback;
@@ -28,8 +32,9 @@ namespace AICam.UI
         public bool IsVisible => iconPreviewPanel != null &&
             iconPreviewPanel.ClassListContains("visible");
 
-        public IconPreviewController(VisualElement root)
+        public IconPreviewController(VisualElement root, System.Action onClosed = null)
         {
+            this.onClosed = onClosed;
             iconPreviewPanel = root.Q<VisualElement>("iconPreviewPanel");
             iconPreviewImage = root.Q<VisualElement>("iconPreviewImage");
             iconPreviewRetake = root.Q<Button>("iconPreviewRetake");
@@ -76,6 +81,10 @@ namespace AICam.UI
             Debug.Log($"🖼 IconPreview shown: {texture.width}x{texture.height}");
         }
 
+        /// <summary>
+        /// プレビューを非表示にする。
+        /// Issue #476: クローズ後の入力ブロック用コールバックを呼び出し
+        /// </summary>
         public void Hide()
         {
             if (iconPreviewPanel == null) return;
@@ -93,6 +102,9 @@ namespace AICam.UI
             onRetakeCallback = null;
 
             Debug.Log("✅ IconPreview hidden");
+
+            // Issue #476: クローズを通知
+            onClosed?.Invoke();
         }
 
         private void OnConfirmClicked()

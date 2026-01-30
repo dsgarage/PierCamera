@@ -9,6 +9,12 @@ namespace AICam.UI
     /// <summary>
     /// UIToolkit版のカメラ撮影コントローラー
     /// タップで写真撮影、長押しで動画撮影を行う
+    ///
+    /// ## v0.8.0 変更履歴
+    /// - Issue #476: パネルクローズ後の入力ブロック機能を追加
+    ///   - panelClosedTime でクローズ時刻を記録
+    ///   - PANEL_CLOSE_COOLDOWN (0.2秒) 間はタッチをブロック
+    ///   - NotifyPanelClosed() を各コントローラーから呼び出し
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     [RequireComponent(typeof(UIToolkitInputBlocker))]
@@ -76,6 +82,10 @@ namespace AICam.UI
 
         // Issue #451: 撮影設定バー（topButton1-4用、貫通防止）
         private VisualElement captureSettingBar;
+
+        // Issue #476: パネルクローズ後の入力ブロック
+        private float panelClosedTime = -1f;
+        private const float PANEL_CLOSE_COOLDOWN = 0.2f;  // パネル閉鎖後のクールダウン（秒）
 
         void OnEnable()
         {
@@ -152,15 +162,16 @@ namespace AICam.UI
             new VersionInfoService(root);
 
             // Phase 02: コントローラー初期化
-            iconPreviewController = new IconPreviewController(root);
-            mediaViewerController = new MediaViewerController(root);
+            iconPreviewController = new IconPreviewController(root, () => NotifyPanelClosed());  // Issue #476
+            mediaViewerController = new MediaViewerController(root, () => NotifyPanelClosed());  // Issue #476
 
             // Phase 03: コントローラー初期化
             captureController = new CaptureController(root, photoController,
                 (photo, isVideo) => mediaViewerController?.OpenViewer(photo, isVideo));
             settingsPanelUIController = new SettingsPanelUIController(root, enableDebugLogging,
                 (code, msg) => ShowWarning(code, msg),
-                (code, msg) => ShowError(code, msg));
+                (code, msg) => ShowError(code, msg),
+                () => NotifyPanelClosed());  // Issue #476
             arFeatureController = new ARFeatureController(root, enableDebugLogging,
                 (code, msg) => ShowWarning(code, msg));
 
@@ -342,6 +353,14 @@ namespace AICam.UI
         {
             if (root == null) return false;
 
+            // Issue #476: パネルクローズ直後はタッチをブロック
+            if (panelClosedTime > 0 && Time.time - panelClosedTime < PANEL_CLOSE_COOLDOWN)
+            {
+                if (enableDebugLogging)
+                    Debug.Log($"[#476] Touch blocked - panel close cooldown ({Time.time - panelClosedTime:F2}s < {PANEL_CLOSE_COOLDOWN}s)");
+                return true;
+            }
+
             // RuntimePanelUtilsを使用してスクリーン座標をパネル座標に変換
             // これによりPanelSettingsのスケーリングが自動的に考慮される
             var uiDoc = GetComponent<UIDocument>();
@@ -390,6 +409,17 @@ namespace AICam.UI
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Issue #476: パネルが閉じられたことを通知
+        /// クールダウン期間中はタッチをブロックする
+        /// </summary>
+        public void NotifyPanelClosed()
+        {
+            panelClosedTime = Time.time;
+            if (enableDebugLogging)
+                Debug.Log($"[#476] Panel closed - cooldown started");
         }
 
         /// <summary>
