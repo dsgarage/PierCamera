@@ -10,6 +10,11 @@ namespace AICam.VRM
 {
     /// <summary>
     /// Issue #464: VRM 1.0 の Expression を BlendshapeController SDK の ExpressionSet に変換するブリッジ
+    ///
+    /// ## v0.8.0 修正履歴
+    /// - Issue #471: VRM 0.x 対応 - CreateExpressionSetFromVrm0() メソッドを追加
+    /// - キャッシュ保存時に VRM 0.x の表情データも expressions.json に保存されるように修正
+    /// - IsVRoidStudioAvatar() に詳細ログを追加（デバッグ用）
     /// </summary>
     public static class VrmExpressionBridge
     {
@@ -189,7 +194,16 @@ namespace AICam.VRM
 #endif
 
         /// <summary>
-        /// VRM 0.x BlendShapeProxy → ExpressionSet 変換
+        /// v0.8.0: VRM 0.x BlendShapeProxy → ExpressionSet 変換
+        ///
+        /// VRM 0.x アバターのキャッシュ保存時に expressions.json を生成するために追加。
+        /// VRM 1.0 の CreateExpressionSetFromVrm10() と同様の処理を VRM 0.x 用に実装。
+        ///
+        /// 処理内容:
+        /// 1. BlendShapeAvatar から Clips を取得
+        /// 2. 視線系プリセット (LookUp/Down/Left/Right) をスキップ
+        /// 3. 各 Clip の BlendShapeBindings を ExpressionEntry に変換
+        /// 4. Weight は 0-100 のまま（VRM 1.0 は 0-1 を 100 倍する）
         /// </summary>
         public static ExpressionSet CreateExpressionSetFromVrm0(global::VRM.VRMBlendShapeProxy blendShapeProxy, GameObject avatar)
         {

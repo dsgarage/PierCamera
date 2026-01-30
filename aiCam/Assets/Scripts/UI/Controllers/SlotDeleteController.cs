@@ -8,6 +8,11 @@ namespace AICam.UI
 {
     /// <summary>
     /// Phase 06: スロット削除ポップアップ・キャッシュクリアポップアップを管理するコントローラー。
+    ///
+    /// ## v0.8.0 修正履歴
+    /// - Issue #471: ClearAllAvatarCache() で ClearAllSlotsAndAvatars() を呼び出すように変更
+    /// - キャッシュクリア時にアバターが残る問題を修正
+    /// - lastCreatedSlotCount を正しくリセットするように修正
     /// </summary>
     public class SlotDeleteController
     {

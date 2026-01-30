@@ -12,6 +12,11 @@ namespace AICam.UI
     /// Phase 05: スロットの永続化・復元を担当するコントローラー。
     /// 起動時のスロットデータ読み込み、バイナリキャッシュからのアバター自動ロード、
     /// スロット数の保存を行う。UIを持たず、ISlotPersistenceHost 経由でUI操作を委譲する。
+    ///
+    /// ## v0.8.0 修正履歴
+    /// - Issue #471: アクティブスロットのみ SetupExpressionSystem を呼び出すように変更
+    /// - 非アクティブスロットが表情システムを上書きする問題を修正
+    /// - AutoLoadSlotFromCacheAsync に isActiveSlot パラメータを追加
     /// </summary>
     public class SlotPersistenceController
     {
@@ -296,7 +301,10 @@ namespace AICam.UI
 
                 slotProgressUI?.UpdateSlotProgress(button, 0.7f);
 
-                // AOC・表情セットアップ（アクティブスロットのみ）
+                // v0.8.0: AOC・表情セットアップ（アクティブスロットのみ）
+                // 非アクティブスロットで SetupExpressionSystem を呼ぶと、
+                // アクティブスロットの expressionSetup/blendShapeExpressionManager を上書きしてしまうため、
+                // アクティブスロットのみで呼び出す
                 poseUIController?.ApplyDefaultAOC(avatar);
                 if (isActiveSlot)
                 {

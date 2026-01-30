@@ -12,6 +12,13 @@ namespace AICam.UI
     /// <summary>
     /// 表情切り替えUI制御（シングルタップ→次の表情、ダブルタップ→リセット）を管理するコントローラー。
     /// VRM 1.0 / VRM 0.x / BlendshapeController SDK の3系統に対応。
+    ///
+    /// ## v0.8.0 修正履歴
+    /// - Issue #471: currentAvatar/currentSlotIndex フィールドを追加し、動的セットアップに対応
+    /// - 非アクティブスロットの表情システムがアクティブスロットを上書きする問題を修正
+    /// - OnSlotActivated() で slotIndex を受け取り、アバター参照を保持するように変更
+    /// - SwitchToNextExpression() で expressionSetup が無効な場合に動的セットアップを試行
+    /// - SaveExpressionDataToCache() で VRM 0.x 対応を追加
     /// </summary>
     public class ExpressionUIController
     {
@@ -26,7 +33,9 @@ namespace AICam.UI
         private ExpressionSetManager blendShapeExpressionManager;
 #endif
 
-        // 現在のアバター参照（動的セットアップ用）
+        // v0.8.0: 現在のアバター参照（動的セットアップ用）
+        // 非アクティブスロットがSetupExpressionSystemを呼んでも、
+        // アクティブスロットの表情システムを上書きしないように参照を保持
         private GameObject currentAvatar;
         private int currentSlotIndex = -1;
 

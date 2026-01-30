@@ -11,6 +11,11 @@ namespace AICam.UI
 {
     /// <summary>
     /// Phase 06: スロットUIの管理（ボタン作成・選択・データマップ・長押し検出・ダブルタップ）を担当するコントローラー。
+    ///
+    /// ## v0.8.0 修正履歴
+    /// - Issue #471: ClearAllSlotsAndAvatars() を追加し、キャッシュクリア時にアバターを正しく破棄
+    /// - Issue #471: RemoveSlot() でロード済みアバターを Object.Destroy() で破棄するように変更
+    /// - スロット削除・キャッシュクリア後にアバターが残る問題を修正
     /// </summary>
     public class AvatarSlotUIController
     {
@@ -596,8 +601,14 @@ namespace AICam.UI
         }
 
         /// <summary>
-        /// キャッシュクリア時に全スロットのアバターを破棄し、UIボタンを削除する。
+        /// v0.8.0: キャッシュクリア時に全スロットのアバターを破棄し、UIボタンを削除する。
         /// bottomButton1 は残すがアイコンはリセットする。
+        ///
+        /// 以前はキャッシュデータのみクリアし、ロード済みアバターの GameObject が
+        /// シーンに残ったままになる問題があった。この修正で:
+        /// 1. slotDataMap 内の全 loadedAvatar を Object.Destroy()
+        /// 2. bottomButton1 以外のスロットボタンを削除
+        /// 3. bottomButton1 のアイコンをリセット
         /// </summary>
         public void ClearAllSlotsAndAvatars()
         {
@@ -656,9 +667,13 @@ namespace AICam.UI
             Debug.Log("✅ ClearAllSlotsAndAvatars: Complete");
         }
 
+        /// <summary>
+        /// v0.8.0: スロット削除時にロード済みアバターも破棄する。
+        /// 以前は UI ボタンのみ削除し、アバターの GameObject が残っていた。
+        /// </summary>
         public void RemoveSlot(Button button)
         {
-            // ロード済みアバターを破棄
+            // v0.8.0: ロード済みアバターを破棄（以前は漏れていた）
             if (slotDataMap.TryGetValue(button, out var slotData))
             {
                 if (slotData?.loadedAvatar != null)
