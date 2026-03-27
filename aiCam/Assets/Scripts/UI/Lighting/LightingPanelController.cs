@@ -1106,6 +1106,9 @@ namespace AICam.UI
             // マテリアルキャッシュをクリア
             ClearMaterialCache();
 
+            // Issue #442: アバターのRendererにシャドウ受信・投影を明示的に有効化
+            EnsureAvatarShadowRendering();
+
             // ライティング設定を再適用
             ApplyLighting();
             ApplyLightDirection();
@@ -1114,6 +1117,30 @@ namespace AICam.UI
             ApplyShadow();
 
             Debug.Log("[LightingPanel] Issue #442: All settings reapplied");
+        }
+
+        /// <summary>
+        /// Issue #442: アバターのRendererにreceiveShadowsとshadowCastingModeを設定
+        /// </summary>
+        private void EnsureAvatarShadowRendering()
+        {
+            var renderers = UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None);
+            int configured = 0;
+            foreach (var renderer in renderers)
+            {
+                if (renderer == null) continue;
+                if (renderer.gameObject.layer == LayerMask.NameToLayer("UI")) continue;
+
+                // SkinnedMeshRenderer（アバター本体）のみ対象
+                if (renderer is SkinnedMeshRenderer)
+                {
+                    renderer.receiveShadows = true;
+                    renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+                    configured++;
+                }
+            }
+            if (configured > 0)
+                Debug.Log($"[LightingPanel] Issue #442: Configured shadow rendering on {configured} SkinnedMeshRenderers");
         }
 
         /// <summary>

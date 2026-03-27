@@ -189,23 +189,14 @@ public sealed class ARPhotoController : MonoBehaviour
                 Debug.LogWarning("[ARPhoto] MediaStore failed. Saved to: " + fallback + "\n" + e);
             }
 #elif UNITY_IOS
-            // UaaL用: RNと共有可能な一時パスに保存
-            string uaalPath = Path.Combine(Application.temporaryCachePath, fileName);
-            File.WriteAllBytes(uaalPath, imageBytes);
-            Debug.Log($"[ARPhoto] Saved for UaaL: {uaalPath}");
+            // Issue #441: アプリ内部にのみ保存（Camera Rollには保存しない）
+            // persistentDataPath はアプリのDocumentsディレクトリ内で永続化される
+            string iosPath = Path.Combine(Application.persistentDataPath, fileName);
+            File.WriteAllBytes(iosPath, imageBytes);
+            Debug.Log($"[ARPhoto] Saved to app Documents: {iosPath}");
 
             // UaaLイベント発火（RNに通知）
-            OnPhotoCapturedWithPath?.Invoke(uaalPath, Screen.width, Screen.height);
-
-            try
-            {
-                ARNative_SavePNGToPhotos(imageBytes, imageBytes.Length);
-                Debug.Log("[ARPhoto] Saved to iOS Photos.");
-            }
-            catch (Exception e)
-            {
-                Debug.LogWarning("[ARPhoto] iOS native save failed: " + e);
-            }
+            OnPhotoCapturedWithPath?.Invoke(iosPath, Screen.width, Screen.height);
 #else
             var path = Path.Combine(Application.persistentDataPath, fileName);
             File.WriteAllBytes(path, imageBytes);
