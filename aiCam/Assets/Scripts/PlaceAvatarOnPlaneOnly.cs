@@ -108,7 +108,7 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour, IAvatarPlacer
 
     // 追従モード
     enum FollowMode { Off, PlaneLocked, CameraLocked }
-    FollowMode currentFollowMode = FollowMode.Off;
+    FollowMode currentFollowMode = FollowMode.CameraLocked; // Issue #422: 紫モードをデフォルトに
 
     // Issue #477: ジェスチャー状態管理
     enum GestureState { None, Tapping, Swiping, Pinching, LongPressing }
@@ -483,7 +483,18 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour, IAvatarPlacer
                 }
 
                 avatarPlane = plane; // 配置した平面を記憶
-                currentFollowMode = FollowMode.Off; // 初期はOff
+                // Issue #422: 紫モード（CameraLocked）をデフォルトに
+                currentFollowMode = FollowMode.CameraLocked;
+
+                // CameraLocked初期化: カメラ相対オフセットを計算
+                if (arCamera && avatar)
+                {
+                    Vector3 offset = avatar.transform.position - arCamera.transform.position;
+                    followDistance = offset.magnitude;
+                    cameraLocalOffset = Quaternion.Inverse(arCamera.transform.rotation) * offset;
+                }
+                SetPlaneColor(cameraLockedColor);
+                SetOcclusion(false);
 
                 BindAvatarFaceController();
 
@@ -502,7 +513,16 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour, IAvatarPlacer
             avatar.transform.SetPositionAndRotation(pose.position, rot);
             avatar.transform.SetParent(parent);
             avatarPlane = plane; // 再配置時も平面を更新
-            currentFollowMode = FollowMode.Off; // 再配置時はOff
+            // Issue #422: 紫モード（CameraLocked）をデフォルトに
+            currentFollowMode = FollowMode.CameraLocked;
+            if (arCamera && avatar)
+            {
+                Vector3 offset = avatar.transform.position - arCamera.transform.position;
+                followDistance = offset.magnitude;
+                cameraLocalOffset = Quaternion.Inverse(arCamera.transform.rotation) * offset;
+            }
+            SetPlaneColor(cameraLockedColor);
+            SetOcclusion(false);
             if (!avatarFaceController || !avatarAnimator)
                 BindAvatarFaceController();
 
@@ -1450,7 +1470,16 @@ public sealed class PlaceAvatarOnPlaneOnly : MonoBehaviour, IAvatarPlacer
         // 内部状態を更新
         avatar = loadedAvatar;
         avatarPlane = hitPlane;
-        currentFollowMode = FollowMode.Off;
+        // Issue #422: 紫モード（CameraLocked）をデフォルトに
+        currentFollowMode = FollowMode.CameraLocked;
+        if (arCamera && avatar)
+        {
+            Vector3 offset = avatar.transform.position - arCamera.transform.position;
+            followDistance = offset.magnitude;
+            cameraLocalOffset = Quaternion.Inverse(arCamera.transform.rotation) * offset;
+        }
+        SetPlaneColor(cameraLockedColor);
+        SetOcclusion(false);
         currentAvatarScale = loadedAvatar.transform.localScale.x;
 
         // FaceControllerとAnimatorをバインド

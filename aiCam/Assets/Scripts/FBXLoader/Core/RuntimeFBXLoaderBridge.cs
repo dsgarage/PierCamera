@@ -412,6 +412,9 @@ namespace AICam.FBXLoader
 
                     currentModel = currentVrm10Instance.gameObject;
                     Debug.Log($"[RuntimeFBXLoaderBridge] VRM 1.0 instance created: {currentModel.name}");
+
+                    // Issue #444: VRM 1.0 非サポート通知
+                    AlertBarController.ShowWarning("[NOT SUPPORTED] A VRM 1.0 file is detected. Pier currently DOES NOT support loading VRM 1.0 files.");
                 }
                 else if (loadedVrmVersion == VrmVersion.VRM_0_x)
                 {
@@ -552,6 +555,9 @@ namespace AICam.FBXLoader
                     }
 
                     currentModel = currentVrm10Instance.gameObject;
+
+                    // Issue #444: VRM 1.0 非サポート通知
+                    AlertBarController.ShowWarning("[NOT SUPPORTED] A VRM 1.0 file is detected. Pier currently DOES NOT support loading VRM 1.0 files.");
                 }
                 else if (loadedVrmVersion == VrmVersion.VRM_0_x)
                 {
